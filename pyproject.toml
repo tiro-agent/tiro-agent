@@ -1,0 +1,7 @@
+[project]
+name = "stealth-browser"
+version = "0.1.0"
+description = "A stealth playwright browser including a captcha solving extension."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
