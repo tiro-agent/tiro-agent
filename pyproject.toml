@@ -4,4 +4,15 @@ version = "0.1.0"
 description = "A stealth playwright browser including a captcha solving extension."
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "2captcha-python>=1.5.1",
+    "dotenv>=0.9.9",
+    "playwright-stealth>=1.0.6",
+    "pytest-playwright>=0.7.0",
+    "setuptools>=80.9.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.11.12",
+]
