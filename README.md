@@ -47,7 +47,7 @@ uv run web_agent/main.py
 ```
 
 - you can also use the vscode task to run the script (just press `Ctrl+Shift+B` and select `UV run (python)`)
-- you can also click on the `Run and Debug` button in the top right corner and select `Python: Current File` (while the browser.py file is open)
+- you can also click on the `Run and Debug` button in the top right corner and select `Python: Current File`
 
 5. Run the tests
 
@@ -58,11 +58,12 @@ uv run pytest
 6. Run the formatter & linter
 
 ```bash
-uv run ruff check --fix # check if the code is linted correctly and fix it
-uv run ruff format # format the code correctly (automatically run if you save the file and the ruff extension is installed)
+uv run ruff check --fix # check & fix linting
+uv run ruff format # format the code
 ```
 
-(if you only want to check if the code is formatted correctly, run `uv run ruff format --check`)
+- The formatter & linter will automatically run if you save the file and the [Ruff](https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff) extension is installed in vscode
+- If you only want to check whether the code is formatted correctly, run `uv run ruff format --check`
 
 ## Contribution Guidelines
 
@@ -92,10 +93,12 @@ We follow the [Conventional Commits](https://www.conventionalcommits.org/) speci
 
 #### Commit Examples
 
+```
 feat(browser): add persistent session handling
 fix(agent): handle null return from LLM call
 docs(readme): update installation instructions
 refactor(utils): extract selector parsing logic
+```
 
 ---
 
