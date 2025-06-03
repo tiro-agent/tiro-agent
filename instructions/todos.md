@@ -1,12 +1,10 @@
 # Todos
 
-- [ ] Install dependencies
-    - [X] Install Playwright-test
-    - [X] Download the browsers with the playwright cli
-    - [X] Install Playwright-stealth
-    - [X] Install 2captcha-python
-    - [X] Install dotenv
-- [ ] Create a new todo
-- [ ] Create a new todo
-- [ ] Create a new todo
-- [ ] Create a new todo
+- [x] Install dependencies
+  - [x] Install Playwright-test
+  - [x] Download the browsers with the playwright cli
+  - [x] Install Playwright-stealth
+  - [x] Install 2captcha-python
+  - [x] Install dotenv
+- [x] Set up structure
+- [ ] ...
