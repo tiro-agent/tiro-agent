@@ -59,3 +59,52 @@ uv run ruff format # format the code correctly (automatically run if you save th
 ```
 
 (if you only want to check if the code is formatted correctly, run `uv run ruff format --check`)
+
+## Contribution Guidelines
+
+### Commit messages
+
+We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+
+```
+<type>(optional-scope): short summary
+
+[optional body]
+```
+
+#### Common Commit Types
+
+| Type       | Purpose                               |
+| ---------- | ------------------------------------- |
+| `feat`     | Add new feature                       |
+| `fix`      | Fix a bug                             |
+| `chore`    | Maintenance tasks (e.g. deps, config) |
+| `docs`     | Documentation changes                 |
+| `refactor` | Code improvements, no behavior change |
+| `style`    | Formatting, whitespace, linter fixes  |
+| `test`     | Add or modify tests                   |
+| `build`    | Build system or dependencies changes  |
+| `ci`       | CI/CD pipeline configuration changes  |
+
+#### Commit Examples
+
+feat(browser): add persistent session handling
+fix(agent): handle null return from LLM call
+docs(readme): update installation instructions
+refactor(utils): extract selector parsing logic
+
+---
+
+### Branch Naming Convention
+
+Use a prefix + short description in `kebab-case`.
+
+| Prefix      | Example Branch Name          |
+| ----------- | ---------------------------- |
+| `feat/`     | `feat/agent-decision-loop`   |
+| `fix/`      | `fix/llm-response-timeout`   |
+| `chore/`    | `chore/upgrade-dependencies` |
+| `docs/`     | `docs/setup-instructions`    |
+| `refactor/` | `refactor/browser-utils`     |
+| `test/`     | `test/session-storage-tests` |
+| `hotfix/`   | `hotfix/null-agent-crash`    |
