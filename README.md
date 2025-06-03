@@ -1,12 +1,22 @@
-# Stealth browser with captcha solver
+# An automated web agent with a stealth browser
+
+The package consists of a web agent that uses a stealth browser with a captcha solver.
 
 ## Stack
 
-- Browser: Chrome
-- Browser simulator: Playwright with playwright-stealth
-- Captcha solver: 2captcha API
 - Python: >=3.13
 - Formatter: Ruff (please install the vscode extension [Ruff](https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff))
+
+### Browser
+
+- Browser: Chrome
+- Browser simulator: [Playwright](https://playwright.dev/) with [playwright-stealth](https://github.com/AtuboDad/playwright_stealth)
+- Captcha solver: [2captcha API](https://2captcha.com/)
+
+### Web Agent
+
+- [PydanticAI](https://ai.pydantic.dev/): a library for building AI agents
+- [Pydantic](https://docs.pydantic.dev/latest/): a library for data validation and settings management
 
 ## How to run
 
@@ -24,12 +34,12 @@ uv run playwright install
 
 3. Create a .env file with the required API keys, see [.env.example](.env.example)
 
-- you can get the 2captcha API key from [2captcha](https://2captcha.com/)
+- (CURRENTLY NOT USED) you can get the 2captcha API key from [2captcha](https://2captcha.com/)
 
 4. Run the script
 
 ```bash
-uv run browser.py
+uv run web_agent/main.py
 ```
 
 - you can also use the vscode task to run the script (just press `Ctrl+Shift+B` and select `UV run (python)`)
