@@ -102,3 +102,6 @@ target/
 
 # Ruff stuff:
 .ruff_cache/
+
+# Browser user data (persistent context for playwright)
+.browser_user_data/
