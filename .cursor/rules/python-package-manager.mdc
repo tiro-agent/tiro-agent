@@ -1,0 +1,20 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+## Use `uv` for Python Package Management
+
+Always use `uv` instead of `pip`, `poetry`, or `pipenv`.
+
+### Examples
+
+**Install packages**
+```bash
+uv add package-name
+```
+
+**Run a python script**
+```bash
+uv run script-name.py
+```
