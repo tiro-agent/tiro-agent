@@ -16,3 +16,32 @@ dependencies = [
 dev = [
     "ruff>=0.11.12",
 ]
+
+# Ruff linting and formating
+[tool.ruff]
+# Rule sets to enable:
+# E: pycodestyle errors (PEP 8)
+# F: pyflakes (basic Python errors)
+# I: isort (import sorting)
+# N: pep8-naming (naming conventions)
+# W: pycodestyle warnings
+# B: flake8-bugbear (catches likely bugs)
+# UP: pyupgrade (suggests Python upgrades)
+# PL: pylint (additional style checks)
+# RUF: Ruff-specific rules
+lint.select = ["E", "F", "I", "N", "W", "B", "UP", "PL", "RUF"]
+lint.fixable = ["ALL"] # Enable auto-fixing for all fixable issues
+lint.unfixable = []
+lint.ignore = ["W191", ] # Ignore tab indentation warnings since we're using tabs
+target-version = "py313" # Target Python version 3.13 for modern feature suggestions
+indent-width = 4
+
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "tab"
+docstring-code-format = true
+line-ending = "auto"
+
+[tool.ruff.lint.isort]
+known-first-party = ["stealth_browser"]
+force-single-line = true

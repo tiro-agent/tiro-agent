@@ -1,5 +1,29 @@
 {
-    "files.exclude": {
-        "**/__pycache__": true
-    }
+  // Exclude files
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.ruff_cache": true,
+    "**/.pytest_cache": true
+  },
+  // Format on save
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.ruff": "always",
+    "source.organizeImports.ruff": "always"
+  },
+  // Default formatters
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.tabSize": 4,
+    "editor.insertSpaces": false
+  },
+  // JSONC is a superset of JSON that allows for comments
+  "[jsonc]": {
+    "editor.defaultFormatter": "vscode.json-language-features",
+    "editor.tabSize": 2
+  },
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features",
+    "editor.tabSize": 2
+  }
 }
