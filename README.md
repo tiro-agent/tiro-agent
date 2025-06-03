@@ -18,6 +18,10 @@ The package consists of a web agent that uses a stealth browser with a captcha s
 - [PydanticAI](https://ai.pydantic.dev/): a library for building AI agents
 - [Pydantic](https://docs.pydantic.dev/latest/): a library for data validation and settings management
 
+## Project Structure
+
+For detailed information about the project structure, see the Notion docs.
+
 ## How to run
 
 1. Install dependencies (make sure you have [uv](https://docs.astral.sh/uv/) installed)
@@ -108,3 +112,8 @@ Use a prefix + short description in `kebab-case`.
 | `refactor/` | `refactor/browser-utils`     |
 | `test/`     | `test/session-storage-tests` |
 | `hotfix/`   | `hotfix/null-agent-crash`    |
+
+### PR Title Format
+
+Use the same format as commits:
+<type>(optional-scope): short summary
