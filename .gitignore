@@ -105,3 +105,9 @@ target/
 
 # Browser user data (persistent context for playwright)
 .browser_user_data/
+
+# MacOS
+.DS_Store
+
+# Outputs
+output/

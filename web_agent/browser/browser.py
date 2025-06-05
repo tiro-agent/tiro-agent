@@ -3,6 +3,7 @@ import time
 
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
+from playwright._impl._errors import TimeoutError
 from playwright_stealth import stealth_sync
 from twocaptcha import TwoCaptcha
 
@@ -10,19 +11,78 @@ load_dotenv()
 solver = TwoCaptcha(os.getenv('2CAPTCHA_API_KEY'))
 
 
-def main():
-	with sync_playwright() as p:
-		browser = p.chromium.launch_persistent_context(headless=False, channel='chrome', user_data_dir='./.browser_user_data')
-		page = browser.new_page()
-		stealth_sync(page)
-		page.goto('https://medium.com/')
-		# wait until the page is loaded
-		page.wait_for_load_state('networkidle')
-		page.screenshot(path='example-chromium.png')
-		# wait for 10 seconds
-		time.sleep(10)
-		browser.close()
+class Browser:
+	def __init__(self, headless=False, browser='chromium'):
+		self.headless = headless
+		self.browser_type = browser
 
+	def __enter__(self):
+		self.playwright = sync_playwright().start()
+		self.browser = self.playwright.chromium.launch_persistent_context(
+			headless=self.headless,
+			channel='chrome',
+			user_data_dir='./.browser_user_data'
+		)
+		self.page = self.browser.new_page()
+		# stealth_sync(self.page)   # https://github.com/microsoft/playwright/issues/33529
+		return self
 
-if __name__ == '__main__':
-	main()
+	def load_url(self, url):
+		try:
+			self.page.goto(url)
+			self.page.wait_for_load_state('networkidle')
+			# time.sleep(10)
+		except TimeoutError:
+			print('TimeoutError: Page did not indicate that it was loaded. Proceeding anyway.')
+
+	def clean_page(self):
+		self.page.locator('a').evaluate_all('nodes => nodes.forEach(node => node.removeAttribute("target"))')
+
+	def get_html(self):
+		return self.page.content()
+
+	def get_metadata(self):
+		return {
+			'title': self.page.title(),
+			'url': self.page.url,
+			# 'description': self.page.meta.get('description', ''),
+			# 'is_scrollable': self.page.evaluate('document.body.scrollHeight > document.body.clientHeight')
+			# TODO: add more useful metadata
+		}
+
+	def save_screenshot(self, screenshot_path):
+		print('Screenshotting page...')
+		self.page.screenshot(path=screenshot_path)
+		print('Screenshot saved to', screenshot_path) # TODO: check full page screenshots
+
+	def click_by_text(self, text):
+		targets = self.page.get_by_text(text).filter(visible=True)
+		if targets.count() == 0:
+			return False, 'Text not found on page'
+		elif targets.count() == 1:
+			targets.click()
+			return True, ''
+		else:
+			targets.first.click() # TODO: Not ideal yet
+			return False, 'Multiple targets found: ' + str(targets.all())
+
+	def search_and_highlight(self, text):
+		targets = self.page.get_by_text(text).filter(visible=True)
+		if targets.count() == 0:
+			return False, 'Text not found on page'
+		elif targets.count() == 1:
+			targets.focus()
+			return True, ''
+		else:
+			return False, 'Multiple targets found: ' + str(targets.all())
+	
+	def fill_closest_input_to_text(self, text, value):
+		locator = self.page.get_by_text(text).filter(visible=True)
+
+		for elem in locator.all():
+			print(elem.text_content())
+
+		locator.first.fill(value)
+
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		self.playwright.stop()
