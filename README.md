@@ -38,7 +38,8 @@ uv run playwright install
 
 3. Create a .env file with the required API keys, see [.env.example](.env.example)
 
-- (CURRENTLY NOT USED) you can get the 2captcha API key from [2captcha](https://2captcha.com/)
+- GEMINI_API_KEY - set the [Gemini API](https://aistudio.google.com/apikey) key
+- (CURRENTLY NOT USED) 2CAPTCHA_API_KEY - set the [2captcha](https://2captcha.com/) API key
 
 4. Run the script
 

@@ -1,14 +1,5 @@
-import os
-import time
-
-from dotenv import load_dotenv
-from playwright.sync_api import sync_playwright
 from playwright._impl._errors import TimeoutError
-from playwright_stealth import stealth_sync
-from twocaptcha import TwoCaptcha
-
-load_dotenv()
-solver = TwoCaptcha(os.getenv('2CAPTCHA_API_KEY'))
+from playwright.sync_api import sync_playwright
 
 
 class Browser:
@@ -21,7 +12,7 @@ class Browser:
 		self.browser = self.playwright.chromium.launch_persistent_context(
 			headless=self.headless,
 			channel='chrome',
-			user_data_dir='./.browser_user_data'
+			user_data_dir='./.browser_user_data',
 		)
 		self.page = self.browser.new_page()
 		# stealth_sync(self.page)   # https://github.com/microsoft/playwright/issues/33529
@@ -53,7 +44,7 @@ class Browser:
 	def save_screenshot(self, screenshot_path):
 		print('Screenshotting page...')
 		self.page.screenshot(path=screenshot_path)
-		print('Screenshot saved to', screenshot_path) # TODO: check full page screenshots
+		print('Screenshot saved to', screenshot_path)  # TODO: check full page screenshots
 
 	def click_by_text(self, text):
 		targets = self.page.get_by_text(text).filter(visible=True)
@@ -63,7 +54,7 @@ class Browser:
 			targets.click()
 			return True, ''
 		else:
-			targets.first.click() # TODO: Not ideal yet
+			targets.first.click()  # TODO: Not ideal yet
 			return False, 'Multiple targets found: ' + str(targets.all())
 
 	def search_and_highlight(self, text):
@@ -75,7 +66,7 @@ class Browser:
 			return True, ''
 		else:
 			return False, 'Multiple targets found: ' + str(targets.all())
-	
+
 	def fill_closest_input_to_text(self, text, value):
 		locator = self.page.get_by_text(text).filter(visible=True)
 

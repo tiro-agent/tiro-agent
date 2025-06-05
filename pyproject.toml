@@ -23,7 +23,12 @@ dev = [
 
 # Ruff linting and formating
 [tool.ruff]
-# Rule sets to enable:
+target-version = "py313" # Target Python version 3.13 for modern feature suggestions
+indent-width = 4
+line-length = 130
+
+[tool.ruff.lint]
+# Ruff linting rules: https://docs.astral.sh/ruff/rules/
 # E: pycodestyle errors (PEP 8)
 # F: pyflakes (basic Python errors)
 # I: isort (import sorting)
@@ -33,12 +38,10 @@ dev = [
 # UP: pyupgrade (suggests Python upgrades)
 # PL: pylint (additional style checks)
 # RUF: Ruff-specific rules
-lint.select = ["E", "F", "I", "N", "W", "B", "UP", "PL", "RUF"]
-lint.fixable = ["ALL"] # Enable auto-fixing for all fixable issues
-lint.unfixable = []
-lint.ignore = ["W191", ] # Ignore tab indentation warnings since we're using tabs
-target-version = "py313" # Target Python version 3.13 for modern feature suggestions
-indent-width = 4
+select = ["E", "F", "I", "N", "W", "B", "UP", "PL", "RUF"]
+fixable = ["ALL"] # Enable auto-fixing for all fixable issues
+unfixable = []
+ignore = ["W191", ] # Ignore tab indentation warnings since we're using tabs
 
 [tool.ruff.format]
 quote-style = "single"
@@ -47,5 +50,4 @@ docstring-code-format = true
 line-ending = "auto"
 
 [tool.ruff.lint.isort]
-known-first-party = ["stealth_browser"]
-force-single-line = true
+known-first-party = ["web_agent"]

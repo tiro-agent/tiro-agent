@@ -8,8 +8,8 @@
   // Format on save
   "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {
-    "source.fixAll.ruff": "always",
-    "source.organizeImports.ruff": "always"
+    "source.fixAll.ruff": "explicit",
+    "source.organizeImports.ruff": "explicit"
   },
   // Default formatters
   "[python]": {

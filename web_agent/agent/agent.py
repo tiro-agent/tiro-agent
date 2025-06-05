@@ -1,12 +1,14 @@
-from pydantic_ai import Agent as LLM
-from pydantic_ai import BinaryContent
-
 import time
 
+from browser.browser import Browser
+from pydantic_ai import Agent as ChatAgent
+from pydantic_ai import BinaryContent
+
+
 class Agent:
-	def __init__(self, browser):
+	def __init__(self, browser: Browser):
 		self.browser = browser
-		
+
 		possible_actions = """
 		- "click_text('text')": Click on the first element that contains the given text.
 		- "click_coord('x', 'y')": Click on the element at the given coordinates.
@@ -37,20 +39,19 @@ class Agent:
 		DO NOT TAKE THE SAME ACTION MORE THAN TWICE IN A ROW.
 
 		"""
-	
+
 	def run(self, task, url, output_dir):
 		step = 0
 		past_actions = []
 
 		self.system_prompt = self.system_prompt + f'TASK: {task}'
 		print(self.system_prompt)
-		llm = LLM('google-gla:gemini-2.5-flash-preview-05-20', system_prompt=self.system_prompt)
+		llm = ChatAgent('google-gla:gemini-2.5-flash-preview-05-20', system_prompt=self.system_prompt)
 
 		self.browser.load_url(url)
 
 		# AGENT LOOP
 		while True:
-
 			# PAGE LOADING AND CLEANUP
 			# Page already loaded at start or through action
 			self.browser.clean_page()
@@ -65,18 +66,27 @@ class Agent:
 			# TODO
 
 			# PAGE AND TASK EVALUATION / MULTISTEP PLANNING - TODO: separate
-			past_actions_str = 'Prior actions: \n- ' + '\n- '.join([f'ACTION: {action}, SUCCESS: {'n/a' if success == None else success}' for (action, success, message) in past_actions])
+			past_actions_str = 'Prior actions: \n- ' + '\n- '.join(
+				[
+					f'ACTION: {action}, SUCCESS: {"n/a" if success is None else success}'
+					for (action, success, message) in past_actions
+				]
+			)
 			print(past_actions_str)
 
-			action = llm.run_sync(
-				[
-					#'NEXT STEP, CHOOSE ACTION\n\n',
-					#'Metadata: \n',
-					#str(metadata),
-					BinaryContent(data=screenshot, media_type='image/png'),
-					past_actions_str,
-				]
-			).output.strip().replace('"', "'")
+			action = (
+				llm.run_sync(
+					[
+						#'NEXT STEP, CHOOSE ACTION\n\n',
+						#'Metadata: \n',
+						# str(metadata),
+						BinaryContent(data=screenshot, media_type='image/png'),
+						past_actions_str,
+					]
+				)
+				.output.strip()
+				.replace('"', "'")
+			)
 			print('Action:', action)
 
 			# STEP EXECUTION
@@ -93,28 +103,26 @@ class Agent:
 				success = None
 			elif command == 'search':
 				success, message = self.browser.search_and_highlight(args[0])
-			elif command =='fill':
+			elif command == 'fill':
 				self.browser.fill_closest_input_to_text(args[0], args[1])
-			elif command =='return':
+			elif command == 'return':
 				return args[0]
-			elif command =='click_coord':
+			elif command == 'click_coord':
 				self.browser.page.mouse.click(int(args[0]), int(args[1]))
 				success = None
-			elif command =='type':
+			elif command == 'type':
 				self.browser.page.keyboard.type(args[0])
 				success = None
-			elif command =='back':
+			elif command == 'back':
 				self.browser.page.evaluate('window.history.back()')
 				success = None
-			elif command =='reset':
+			elif command == 'reset':
 				self.browser.load_url(url)
 				success = None
-			
+
 			print('Success:', success)
 			print('Message:', message)
 
 			time.sleep(5)
 			step += 1
 			past_actions.append((action, success, message))
-
-
