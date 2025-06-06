@@ -79,3 +79,34 @@ class ClickAction(BaseAction):
 			return ActionResult(status=ActionResultStatus.SUCCESS, message='Clicked on the first element that contains the given text.')
 		else:
 			return ActionResult(status=ActionResultStatus.FAILURE, message='Multiple targets found: ' + str(targets.all()))
+
+
+class ActionsController:
+	"""Controller for actions."""
+
+	def __init__(self, actions: list[BaseAction] | None = None):
+		self.actions = actions if actions is not None else []
+
+	def register_action(self, action: BaseAction):
+		self.actions.append(action)
+
+	def get_applicable_actions(self, page: Page) -> list[BaseAction]:
+		return [action for action in self.actions if action.is_applicable(page)]
+
+	def get_actions_prompt(self, applicable_actions: list[BaseAction]) -> str:
+		"""Get a prompt for the actions that are applicable to the given page."""
+		if not applicable_actions:
+			# TODO: add a default action OR maybe raise an error OR return false
+			return 'No actions are currently applicable to this page.'
+
+		description = []
+		for action in applicable_actions:
+			schema = action.model_json_schema(indent=2)
+			description.append(
+				f'Name: {action.get_action_name()}\n'
+				f'Description: {action.__doc__}\n'
+				f'Parameters (Pydantic model: {action.__name__}):\n'
+				f'```json\n{schema}\n```\n'
+				f'Example Usage: {action.get_action_name()}(...) # Refer to parameters for required fields.'
+			)
+		return '\n'.join(description)
