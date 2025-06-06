@@ -3,8 +3,9 @@ import json
 import time
 
 import nest_asyncio
-from agent.agent import Agent
-from browser.browser import Browser
+
+from web_agent.agent.agent import Agent
+from web_agent.browser.browser import Browser
 
 nest_asyncio.apply()
 

@@ -1,0 +1,12 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Web Agent Module",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "web_agent.main",
+      "justMyCode": true
+    }
+  ]
+}

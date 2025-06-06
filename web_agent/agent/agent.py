@@ -1,9 +1,10 @@
 import time
 
-from agent.prompts import get_possible_actions_prompt, get_system_prompt
-from browser.browser import Browser
 from pydantic_ai import Agent as ChatAgent
 from pydantic_ai import BinaryContent
+
+from web_agent.agent.prompts import get_possible_actions_prompt, get_system_prompt
+from web_agent.browser.browser import Browser
 
 
 class Agent:

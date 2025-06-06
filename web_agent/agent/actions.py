@@ -6,7 +6,8 @@ from urllib.parse import urlparse
 
 from playwright.sync_api import Page
 from pydantic import BaseModel, Field
-from utils import matches_domain_pattern
+
+from web_agent.utils import matches_domain_pattern
 
 
 class ActionResultStatus(str, Enum):

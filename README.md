@@ -44,16 +44,18 @@ uv run playwright install
 4. Run the script
 
 ```bash
-uv run web_agent/main.py
+uv run python -m web_agent.main
 ```
 
+- you have to run it as a module, otherwise the imports will not work
+- you can also click on the `Run and Debug` menu section and select `Run Web Agent Module` (you can also see the task in [.vscode/launch.json](.vscode/launch.json))
 - you can also use the vscode task to run the script (just press `Ctrl+Shift+B` and select `UV run (python)`)
-- you can also click on the `Run and Debug` button in the top right corner and select `Python: Current File`
+- note: the `Run Python File` option in the top right corner is not working, due to the import structure of the project
 
 5. Run the tests
 
 ```bash
-uv run pytest
+uv run -m pytest
 ```
 
 6. Run the formatter & linter

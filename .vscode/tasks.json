@@ -4,16 +4,18 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "UV run (python)",
+      "label": "UV run web-agent",
       "type": "shell",
       "command": "uv",
       "args": [
         "run",
-        "${file}"
+        "python",
+        "-m",
+        "web_agent.main"
       ],
       "group": "build",
       "problemMatcher": [],
-      "detail": "Run the current Python file with uv"
+      "detail": "Run the web-agent with uv"
     }
   ]
 }
