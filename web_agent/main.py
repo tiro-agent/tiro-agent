@@ -1,5 +1,6 @@
 import argparse
 import time
+import json
 
 import nest_asyncio
 from agent.agent import Agent
@@ -11,22 +12,29 @@ nest_asyncio.apply()
 def main():
 	print('Hello from web-agent!')
 
-	tasks = {  # TODO: Load actual dataset
-		'QR': ('https://www.qatarairways.com/', 'Find the weight of baggage allowance for economy class on Qatar Airways.'),
-		'MTA': ('https://new.mta.info/', 'Find the list of neighborhood maps for Brooklyn on new.mta.info.'),
-		'Apple': ('https://www.apple.com/', 'Find technical specs for the latest Macbook Air on Apple.'),
-	}
+	with open('data/Online_Mind2Web.json') as f:
+		tasks = json.load(f)
 
 	parser = argparse.ArgumentParser(description='Web Agent')
-	parser.add_argument('--task-id', type=str, help='Task to perform', default='QR')
+	parser.add_argument('--task-id', type=str, help='Task to perform', default='4091bdd3fa64a5b0d912bc08eaf9c824')
 	# parser.add_argument('--browser', type=str, help='Browser to use', required=True)
 	parser.add_argument('--headless', action='store_true', help='Run in headless mode')
 	args = parser.parse_args()
 
+	# Find task
+	matching_tasks = [t for t in tasks if t['task_id'] == args.task_id]
+	if len(matching_tasks) == 0:
+		print('ERROR: Task not found')
+		return
+	
+	task = matching_tasks[0]
+	print('Task:', task['confirmed_task'])
+	print('Website:', task['website'])
+
 	with Browser(headless=args.headless) as browser:
 		agent = Agent(browser)
 		output_dir = 'output/' + time.strftime('%Y-%m-%d_%H-%M-%S') + '_' + args.task_id
-		result = agent.run(tasks[args.task_id][1], tasks[args.task_id][0], output_dir)
+		result = agent.run(task['confirmed_task'], task['website'], output_dir)
 		print('Result:', result)
 
 
