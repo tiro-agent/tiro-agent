@@ -1,5 +1,6 @@
 import time
 
+from agent.prompts import get_possible_actions_prompt, get_system_prompt
 from browser.browser import Browser
 from pydantic_ai import Agent as ChatAgent
 from pydantic_ai import BinaryContent
@@ -8,37 +9,8 @@ from pydantic_ai import BinaryContent
 class Agent:
 	def __init__(self, browser: Browser):
 		self.browser = browser
-
-		possible_actions = """
-		- "click_text('text')": Click on the first element that contains the given text.
-		- "click_coord('x', 'y')": Click on the element at the given coordinates.
-		- "scroll('direction')": Scroll the page in the given direction. Valid directions are 'up', 'down'.
-		- "search('query')": Search for the given query on the current page and focus on it.
-		- "type('text')": Type the given text into the focused element.
-		- "back('')": Go back to the previous page.
-		- "reset('')": Reset the browser to the initial starting page.
-		"""
-
-		# BACKUP FOR EASY COPYING
-		backup = """
-		- "scroll('direction')": Scroll the page in the given direction. Valid directions are 'up', 'down'.
-		- "fill('placeholder', 'input')": Fill the given input text into the first element that has the given placeholder text.
-		"""
-
-		self.system_prompt = f"""
-		You are a web agent. You will be given a task that you must complete. Do always verify that you are working towards that task.
-
-		At each step, you will be given a screenshot of the current page alongside some metadata. Use this information to determine what action to take next.
-		You will also be given a list of past actions that you have taken as well as their results.
-
-		These are all possible actions:
-		{possible_actions}
-
-		Only output exactly one action. Do not output anything else.
-		ONLY WHEN you have FULLY performed the task, output "return('result')" with the requested information. Be as concise as possible.
-		DO NOT TAKE THE SAME ACTION MORE THAN TWICE IN A ROW.
-
-		"""
+		possible_actions = get_possible_actions_prompt()
+		self.system_prompt = get_system_prompt(possible_actions)
 
 	def run(self, task, url, output_dir):
 		step = 0
