@@ -9,7 +9,7 @@ from browser.browser import Browser
 nest_asyncio.apply()
 
 
-def main():
+def main() -> None:
 	print('Hello from web-agent!')
 
 	with open('data/Online_Mind2Web.json') as f:

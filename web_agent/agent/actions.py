@@ -84,10 +84,10 @@ class ClickAction(BaseAction):
 class ActionsController:
 	"""Controller for actions."""
 
-	def __init__(self, actions: list[BaseAction] | None = None):
+	def __init__(self, actions: list[BaseAction] | None = None) -> None:
 		self.actions = actions if actions is not None else []
 
-	def register_action(self, action: BaseAction):
+	def register_action(self, action: BaseAction) -> None:
 		self.actions.append(action)
 
 	def get_applicable_actions(self, page: Page) -> list[BaseAction]:

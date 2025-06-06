@@ -38,7 +38,8 @@ line-length = 140
 # UP: pyupgrade (suggests Python upgrades)
 # PL: pylint (additional style checks)
 # RUF: Ruff-specific rules
-select = ["E", "F", "I", "N", "W", "B", "UP", "PL", "RUF"]
+# ANN: flake8-annotations (type annotations)
+select = ["E", "F", "I", "N", "W", "B", "UP", "PL", "RUF", "ANN"]
 fixable = ["ALL"] # Enable auto-fixing for all fixable issues
 unfixable = []
 ignore = ["W191", ] # Ignore tab indentation warnings since we're using tabs

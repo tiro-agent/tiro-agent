@@ -24,7 +24,8 @@ def get_system_prompt(possible_actions: str) -> str:
 	return f"""
 		You are a web agent. You will be given a task that you must complete. Do always verify that you are working towards that task.
 
-		At each step, you will be given a screenshot of the current page alongside some metadata. Use this information to determine what action to take next.
+		At each step, you will be given a screenshot of the current page alongside some metadata.
+		Use this information to determine what action to take next.
 		You will also be given a list of past actions that you have taken as well as their results.
 
 		These are all possible actions:

@@ -7,12 +7,12 @@ from pydantic_ai import BinaryContent
 
 
 class Agent:
-	def __init__(self, browser: Browser):
+	def __init__(self, browser: Browser) -> None:
 		self.browser = browser
 		possible_actions = get_possible_actions_prompt()
 		self.system_prompt = get_system_prompt(possible_actions)
 
-	def run(self, task, url, output_dir):
+	def run(self, task: str, url: str, output_dir: str) -> None:
 		step = 0
 		past_actions = []
 

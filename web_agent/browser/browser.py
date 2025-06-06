@@ -1,13 +1,15 @@
+import types
+
 from playwright._impl._errors import TimeoutError
 from playwright.sync_api import sync_playwright
 
 
 class Browser:
-	def __init__(self, headless=False, browser='chromium'):
+	def __init__(self, headless: bool = False, browser: str = 'chromium') -> None:
 		self.headless = headless
 		self.browser_type = browser
 
-	def __enter__(self):
+	def __enter__(self) -> 'Browser':
 		self.playwright = sync_playwright().start()
 		self.browser = self.playwright.chromium.launch_persistent_context(
 			headless=self.headless,
@@ -18,7 +20,7 @@ class Browser:
 		# stealth_sync(self.page)   # https://github.com/microsoft/playwright/issues/33529
 		return self
 
-	def load_url(self, url):
+	def load_url(self, url: str) -> None:
 		try:
 			self.page.goto(url)
 			self.page.wait_for_load_state('networkidle')
@@ -26,13 +28,13 @@ class Browser:
 		except TimeoutError:
 			print('TimeoutError: Page did not indicate that it was loaded. Proceeding anyway.')
 
-	def clean_page(self):
+	def clean_page(self) -> None:
 		self.page.locator('a').evaluate_all('nodes => nodes.forEach(node => node.removeAttribute("target"))')
 
-	def get_html(self):
+	def get_html(self) -> str:
 		return self.page.content()
 
-	def get_metadata(self):
+	def get_metadata(self) -> dict[str, str]:
 		return {
 			'title': self.page.title(),
 			'url': self.page.url,
@@ -41,12 +43,12 @@ class Browser:
 			# TODO: add more useful metadata
 		}
 
-	def save_screenshot(self, screenshot_path):
+	def save_screenshot(self, screenshot_path: str) -> None:
 		print('Screenshotting page...')
 		self.page.screenshot(path=screenshot_path)
 		print('Screenshot saved to', screenshot_path)  # TODO: check full page screenshots
 
-	def click_by_text(self, text):
+	def click_by_text(self, text: str) -> tuple[bool, str]:
 		targets = self.page.get_by_text(text).filter(visible=True)
 		if targets.count() == 0:
 			return False, 'Text not found on page'
@@ -57,7 +59,7 @@ class Browser:
 			targets.first.click()  # TODO: Not ideal yet
 			return False, 'Multiple targets found: ' + str(targets.all())
 
-	def search_and_highlight(self, text):
+	def search_and_highlight(self, text: str) -> tuple[bool, str]:
 		targets = self.page.get_by_text(text).filter(visible=True)
 		if targets.count() == 0:
 			return False, 'Text not found on page'
@@ -67,7 +69,7 @@ class Browser:
 		else:
 			return False, 'Multiple targets found: ' + str(targets.all())
 
-	def fill_closest_input_to_text(self, text, value):
+	def fill_closest_input_to_text(self, text: str, value: str) -> None:
 		locator = self.page.get_by_text(text).filter(visible=True)
 
 		for elem in locator.all():
@@ -75,5 +77,5 @@ class Browser:
 
 		locator.first.fill(value)
 
-	def __exit__(self, exc_type, exc_val, exc_tb):
+	def __exit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: types.TracebackType | None) -> None:
 		self.playwright.stop()
