@@ -1,6 +1,6 @@
 import argparse
-import time
 import json
+import time
 
 import nest_asyncio
 from agent.agent import Agent
@@ -26,7 +26,7 @@ def main():
 	if len(matching_tasks) == 0:
 		print('ERROR: Task not found')
 		return
-	
+
 	task = matching_tasks[0]
 	print('Task:', task['confirmed_task'])
 	print('Website:', task['website'])

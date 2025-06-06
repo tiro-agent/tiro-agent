@@ -39,10 +39,7 @@ class Agent:
 
 			# PAGE AND TASK EVALUATION / MULTISTEP PLANNING - TODO: separate
 			past_actions_str = 'Prior actions: \n- ' + '\n- '.join(
-				[
-					f'ACTION: {action}, SUCCESS: {"n/a" if success is None else success}'
-					for (action, success, message) in past_actions
-				]
+				[f'ACTION: {action}, SUCCESS: {"n/a" if success is None else success}' for (action, success, message) in past_actions]
 			)
 			print(past_actions_str)
 
