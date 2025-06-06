@@ -25,7 +25,7 @@ dev = [
 [tool.ruff]
 target-version = "py313" # Target Python version 3.13 for modern feature suggestions
 indent-width = 4
-line-length = 130
+line-length = 140
 
 [tool.ruff.lint]
 # Ruff linting rules: https://docs.astral.sh/ruff/rules/
