@@ -4,7 +4,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "UV run web-agent",
+      "label": "RUN: uv run web-agent",
       "type": "shell",
       "command": "uv",
       "args": [
@@ -16,6 +16,45 @@
       "group": "build",
       "problemMatcher": [],
       "detail": "Run the web-agent with uv"
+    },
+    {
+      "label": "RUN: uv run opened module",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-c",
+        "uv run python -m $(echo \"${file}\" | sed -e \"s|${workspaceFolder}/||g\" -e \"s|.py$||g\" -e \"s|/|.|g\")"
+      ],
+      "group": "build",
+      "problemMatcher": [],
+      "detail": "Run the currently opened file as a module with uv"
+    },
+    {
+      "label": "TEST: uv run all tests (pytest)",
+      "type": "shell",
+      "command": "uv",
+      "args": [
+        "run",
+        "-m",
+        "pytest"
+      ],
+      "group": "test",
+      "problemMatcher": [],
+      "detail": "Run all tests with uv as a module"
+    },
+    {
+      "label": "TEST: uv run opened test file (pytest)",
+      "type": "shell",
+      "command": "uv",
+      "args": [
+        "run",
+        "-m",
+        "pytest",
+        "${file}"
+      ],
+      "group": "test",
+      "problemMatcher": [],
+      "detail": "Run the currently opened test file with uv"
     }
   ]
 }

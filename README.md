@@ -48,8 +48,8 @@ uv run python -m web_agent.main
 ```
 
 - you have to run it as a module, otherwise the imports will not work
-- you can also click on the `Run and Debug` menu section and select `Run Web Agent Module` (you can also see the task in [.vscode/launch.json](.vscode/launch.json))
-- you can also use the vscode task to run the script (just press `Ctrl+Shift+B` and select `UV run (python)`)
+- you can also click on the `Run and Debug` menu section and select `RUN: web-agent module` (you can also see the task in [.vscode/launch.json](.vscode/launch.json))
+- you can also use the vscode task to run the script (select `RUN: uv run opened module`) (see [.vscode/tasks.json](.vscode/tasks.json))
 - note: the `Run Python File` option in the top right corner is not working, due to the import structure of the project
 
 5. Run the tests
@@ -57,6 +57,9 @@ uv run python -m web_agent.main
 ```bash
 uv run -m pytest
 ```
+
+- you can also use the vscode task to run the tests (select `TEST: uv run all tests (pytest)`) (see [.vscode/tasks.json](.vscode/tasks.json))
+- you can also click on the `Run and Debug` menu section and select `TEST: all files` (you can also see the task in [.vscode/launch.json](.vscode/launch.json))
 
 6. Run the formatter & linter
 

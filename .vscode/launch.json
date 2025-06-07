@@ -2,11 +2,25 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Run Web Agent Module",
+      "name": "TEST: specific file",
       "type": "debugpy",
       "request": "launch",
-      "module": "web_agent.main",
-      "justMyCode": true
+      "module": "pytest",
+      "args": [
+        "${file}"
+      ]
+    },
+    {
+      "name": "TEST: all files",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+    },
+    {
+      "name": "RUN: web-agent module",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "web_agent.main"
     }
   ]
 }
