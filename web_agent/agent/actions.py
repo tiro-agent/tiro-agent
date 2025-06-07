@@ -1,9 +1,8 @@
-import operator
 import re
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from enum import Enum
-from functools import reduce
+from typing import ClassVar, Union
 from urllib.parse import urlparse
 
 from playwright.sync_api import Page
@@ -35,14 +34,8 @@ class BaseAction(BaseModel, ABC):
 	"""
 
 	# Filters for applicability
-	domains: list[str] | None = Field(
-		None, exclude=True, description='List of domain patterns (e.g., "*.google.com", "example.com") where this tool is applicable.'
-	)
-	page_filter: Callable[[Page], bool] | None = Field(
-		None,
-		exclude=True,
-		description='A callable function that returns True if the tool is applicable to the given Page object.',
-	)
+	domains: ClassVar[list[str] | None] = None
+	page_filter: ClassVar[Callable[[Page], bool] | None] = None
 
 	@abstractmethod
 	def execute(self, page: Page) -> ActionResult:
@@ -58,14 +51,13 @@ class BaseAction(BaseModel, ABC):
 		s2 = re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', s1)
 		return re.sub(r'([a-zA-Z])([0-9])', r'\1_\2', s2).lower()
 
-	def is_applicable(self, page: Page) -> bool:
-		if self.domains is not None:
+	@classmethod
+	def is_applicable(cls, page: Page) -> bool:
+		if cls.domains is not None:
 			domain = urlparse(page.url).netloc
-			if not any(check_domain_pattern_match(domain, pattern) for pattern in self.domains):
-				# print(f'DEBUG: Tool "{self.get_tool_name()}" not applicable: Domain "{current_domain}" not in allowed {self.domains}')
+			if not any(check_domain_pattern_match(domain, pattern) for pattern in cls.domains):
 				return False
-		if self.page_filter is not None and not self.page_filter(page):
-			# print(f'DEBUG: Tool "{self.get_tool_name()}" not applicable: Page filter returned False for "{page.url}"')
+		if cls.page_filter is not None and not cls.page_filter(page):
 			return False
 		return True
 
@@ -131,28 +123,16 @@ class ActionsController:
 	def __init__(self, actions: list[type[BaseAction]] | None = None) -> None:
 		self.actions = actions if actions is not None else []
 
+	@classmethod
+	def create_default(cls) -> 'ActionsController':
+		"""Creates an ActionsController with all available actions."""
+		return cls(actions=BaseAction.__subclasses__())
+
 	def register_action(self, action: type[BaseAction]) -> None:
 		self.actions.append(action)
 
 	def _get_applicable_actions(self, page: Page) -> list[type[BaseAction]]:
 		return [action for action in self.actions if action.is_applicable(page)]
-
-	def get_actions_prompt(self, page: Page) -> str:
-		"""Get a prompt for the actions that are applicable to the given page."""
-
-		# TODO: decide if we need this function or not (maybe we don't need it)
-
-		applicable_actions = self._get_applicable_actions(page)
-		if not applicable_actions:
-			# there should always be at least one applicable action (like finish action, abort action, etc.)
-			raise ValueError('No applicable actions provided')
-
-		actions_text = ''
-		for action in applicable_actions:
-			schema = action.model_json_schema(mode='serialization')
-			actions_text += schema['title'] + '(' + ', '.join(schema['properties'].keys()) + ') - ' + schema['description'] + '\n'
-
-		return actions_text
 
 	def get_agent_decision_type(self, page: Page) -> type[BaseModel]:
 		"""Get the type of the agent decision which will be used to parse the agent's response."""
@@ -161,11 +141,7 @@ class ActionsController:
 			# there should always be at least one applicable action (like finish action, abort action, etc.)
 			raise ValueError('No applicable actions provided')
 
-		action_union = (
-			reduce(operator.or_, [type(action) for action in applicable_action_types])
-			if len(applicable_action_types) > 1
-			else type(applicable_action_types[0])
-		)
+		action_union = Union[tuple(applicable_action_types)]  # noqa: UP007
 
 		return create_model(
 			'AgentDecision',

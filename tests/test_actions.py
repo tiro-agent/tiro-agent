@@ -1,3 +1,6 @@
+from collections.abc import Callable
+from typing import ClassVar
+
 import pytest
 
 from web_agent.agent.actions import ActionResult, ActionResultStatus, ActionsController, BaseAction
@@ -41,73 +44,92 @@ class TestBaseAction:
 		assert MyLLMAction.get_action_name() == 'my_llm_action'
 
 	def test_is_applicable_domain_filter(self) -> None:
-		action = DummyAction()
-		page = Page(url='https://www.google.com')
-		assert action.is_applicable(page)
+		# test with no domains and no page filter
+		class DummyActionNoFilter(DummyAction):
+			domains: ClassVar[list[str] | None] = None
+			page_filter: ClassVar[Callable[[Page], bool] | None] = None
 
-		action = DummyAction(domains=None)
 		page = Page(url='https://www.google.com')
-		assert action.is_applicable(page)
+		assert DummyActionNoFilter.is_applicable(page)
 
-		action = DummyAction(domains=['google.com'])
+		# test with single domain filter (positive)
+		class DummyActionGoogle(DummyAction):
+			domains: ClassVar[list[str] | None] = ['google.com']
+
 		page = Page(url='https://google.com')
-		assert action.is_applicable(page)
+		assert DummyActionGoogle.is_applicable(page)
 
-		action = DummyAction(domains=['google.com'])
 		page = Page(url='https://www.google.com')
-		assert action.is_applicable(page)
+		assert DummyActionGoogle.is_applicable(page)
 
-		action = DummyAction(domains=['*.google.com'])
+		class DummyActionWildcardGoogle(DummyAction):
+			domains: ClassVar[list[str] | None] = ['*.google.com']
+
 		page = Page(url='https://www.google.com')
-		assert action.is_applicable(page)
+		assert DummyActionWildcardGoogle.is_applicable(page)
 
 		# test with multiple domains filter (positive)
-		action = DummyAction(domains=['test.com', '*.test.com', '*.google.com'])
+		class DummyActionMultipleDomains(DummyAction):
+			domains: ClassVar[list[str] | None] = ['test.com', '*.test.com', '*.google.com']
+
 		page = Page(url='https://test.com')
-		assert action.is_applicable(page)
+		assert DummyActionMultipleDomains.is_applicable(page)
 		page = Page(url='https://www.test.com')
-		assert action.is_applicable(page)
+		assert DummyActionMultipleDomains.is_applicable(page)
 		page = Page(url='https://www.google.com')
-		assert action.is_applicable(page)
+		assert DummyActionMultipleDomains.is_applicable(page)
 		page = Page(url='https://www.test.google.com')
-		assert action.is_applicable(page)
+		assert DummyActionMultipleDomains.is_applicable(page)
 
 		# test with domains filter (negative)
-		action = DummyAction(domains=['*.test.com'])
+		class DummyActionTestDomain(DummyAction):
+			domains: ClassVar[list[str] | None] = ['*.test.com']
+
 		page = Page(url='https://www.google.com')
-		assert not action.is_applicable(page)
+		assert not DummyActionTestDomain.is_applicable(page)
 
 		# test with multiple domains filter (negative)
-		action = DummyAction(domains=['test.com', '*.test.com', '*.google.com'])
+		class DummyActionMultipleDomainsNegative(DummyAction):
+			domains: ClassVar[list[str] | None] = ['test.com', '*.test.com', '*.google.com']
+
 		page = Page(url='https://example.com')
-		assert not action.is_applicable(page)
+		assert not DummyActionMultipleDomainsNegative.is_applicable(page)
 
 		# test with empty domains filter -> makes it negative for all pages
-		action = DummyAction(domains=[])
+		class DummyActionEmptyDomains(DummyAction):
+			domains: ClassVar[list[str] | None] = []
+
 		page = Page(url='https://www.google.com')
-		assert not action.is_applicable(page)
+		assert not DummyActionEmptyDomains.is_applicable(page)
 
 		# test with * domains filter -> should raise an error, is not allowed (to allow for all set domains to None)
 		with pytest.raises(ValueError):
-			action = DummyAction(domains=['*'])
+
+			class DummyActionWildcardDomain(DummyAction):
+				domains: ClassVar[list[str] | None] = ['*']
+
 			page = Page(url='https://www.google.com')
-			action.is_applicable(page)
+			DummyActionWildcardDomain.is_applicable(page)
 
 	def test_is_applicable_page_filter(self) -> None:
 		# test with page filter (positive)
-		action = DummyAction(page_filter=lambda page: page.url == 'https://google.com')
+		class DummyActionPageFilterPositive(DummyAction):
+			page_filter: ClassVar[Callable[[Page], bool] | None] = lambda page: page.url == 'https://google.com'
+
 		page = Page(url='https://google.com')
-		assert action.is_applicable(page)
+		assert DummyActionPageFilterPositive.is_applicable(page)
 
 		# test with page filter (negative)
-		action = DummyAction(page_filter=lambda page: page.url == 'https://google.com')
+		class DummyActionPageFilterNegative(DummyAction):
+			page_filter: ClassVar[Callable[[Page], bool] | None] = lambda page: page.url == 'https://google.com'
+
 		page = Page(url='https://test.com')
-		assert not action.is_applicable(page)
+		assert not DummyActionPageFilterNegative.is_applicable(page)
 
 
 class TestActionsController:
 	def test_get_applicable_actions(self) -> None:
-		actions_controller = ActionsController([DummyAction(), DummyAction2()])
+		actions_controller = ActionsController([DummyAction, DummyAction2])
 
 		# test with no domains and no page filter
 		page = Page(url='https://google.com')
@@ -119,7 +141,11 @@ class TestActionsController:
 
 		# test with domains filter (negative)
 		page = Page(url='https://google.com')
-		actions_controller.register_action(DummyAction3(domains=['*.test.com']))
+
+		class DummyAction3Test(DummyAction3):
+			domains: ClassVar[list[str] | None] = ['*.test.com']
+
+		actions_controller.register_action(DummyAction3Test)
 		actions = actions_controller._get_applicable_actions(page)
 		expected_action_count = 2
 		assert len(actions) == expected_action_count
@@ -133,10 +159,10 @@ class TestActionsController:
 		assert len(actions) == expected_action_count
 		assert actions[0].get_action_name() == 'dummy_action'
 		assert actions[1].get_action_name() == 'dummy_action_2'
-		assert actions[2].get_action_name() == 'dummy_action_3'
+		assert actions[2].get_action_name() == 'dummy_action_3_test'
 
 	def test_get_agent_decision_type_one_action(self) -> None:
-		actions_controller = ActionsController([DummyAction()])
+		actions_controller = ActionsController([DummyAction])
 		page = Page(url='https://google.com')
 		agent_decision_type = actions_controller.get_agent_decision_type(page)
 		assert agent_decision_type.model_json_schema(mode='serialization') == {
@@ -160,7 +186,10 @@ class TestActionsController:
 		}
 
 	def test_get_agent_decision_type_one_action_on_page_with_domains_filter(self) -> None:
-		actions_controller = ActionsController([DummyAction(), DummyAction2(domains=['*.test.com'])])
+		class DummyAction2Test(DummyAction2):
+			domains: ClassVar[list[str] | None] = ['*.test.com']
+
+		actions_controller = ActionsController([DummyAction, DummyAction2Test])
 		page = Page(url='https://google.com')
 		agent_decision_type = actions_controller.get_agent_decision_type(page)
 		assert agent_decision_type.model_json_schema(mode='serialization') == {
@@ -184,7 +213,7 @@ class TestActionsController:
 		}
 
 	def test_get_agent_decision_type_two_actions(self) -> None:
-		actions_controller = ActionsController([DummyAction(), DummyAction2()])
+		actions_controller = ActionsController([DummyAction, DummyAction2])
 		page = Page(url='https://google.com')
 		agent_decision_type = actions_controller.get_agent_decision_type(page)
 		assert agent_decision_type.model_json_schema(mode='serialization') == {
