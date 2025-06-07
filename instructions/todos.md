@@ -27,7 +27,7 @@
     - [x] Add ClickAction class
     - [x] Add TypeAction class
     - [x] Add FinishAction class
-    - [ ] Add AbortAction class
+    - [x] Add AbortAction class
     - [ ] Add NavigateAction class
     - [ ] Add ScrollAction class
     - [ ] Add ScrollToAction class

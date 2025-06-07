@@ -15,13 +15,14 @@ class ActionResultStatus(str, Enum):
 	SUCCESS = 'success'
 	FAILURE = 'failure'
 	INFO = 'info'
+	ABORT = 'abort'
 	FINISH = 'finish'
 
 
 class ActionResult(BaseModel):
 	"""Represents the outcome of an executed action."""
 
-	status: ActionResultStatus = Field(..., description='The status of the action (e.g., "success", "failure", "info", "finish").')
+	status: ActionResultStatus = Field(..., description='The status of the action (e.g., "success", "failure", "info", "abort", "finish").')
 	message: str = Field(..., description='A detailed message about the outcome.')
 	data: dict = Field(default_factory=dict, description='Optional: Additional structured data from the action.')
 
@@ -101,6 +102,19 @@ class TypeAction(BaseAction):
 				status=ActionResultStatus.FAILURE,
 				message=f"Could not type into element with selector '{self.selector}': {e}",
 			)
+
+
+class AbortAction(BaseAction):
+	"""
+	Abort the task only in case when you have failed to complete the task and there is no way to recover.
+	Do not use this if you have completed the task.
+	"""
+
+	reason: str = Field(description='The reason for aborting the task.')
+
+	def execute(self, page: Page) -> ActionResult:
+		"""Abort the task."""
+		return ActionResult(status=ActionResultStatus.ABORT, message='Task aborted.')
 
 
 class FinishAction(BaseAction):
