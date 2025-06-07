@@ -9,4 +9,38 @@
   - [x] Install PydanticAI
   - [x] Install Pydantic
 - [x] Set up structure
-- [ ] ...
+  - Structure:
+    - web_agent
+      - agent
+        - actions.py
+        - agent.py
+        - prompts.py
+      - browser
+        - browser.py
+        - captcha.py
+      - utils.py (maybe later into a separate folder)
+      - (config.py (optional, maybe later))
+      - main.py
+- [ ] Add actions:
+  - [x] Add BaseAction class
+  - [ ] Add all the actions
+    - [x] Add ClickAction class
+    - [x] Add TypeAction class
+    - [x] Add FinishAction class
+    - [ ] Add AbortAction class
+    - [ ] Add NavigateAction class
+    - [ ] Add ScrollAction class
+    - [ ] Add ScrollToAction class
+    - ...
+  - [x] Add ActionsController class
+    - [x] Add get_applicable_actions method
+    - [x] Add get_actions_prompt method
+    - [x] Add register_action method
+    - [x] Add get_actions_prompt method
+    - [x] Add get_all_actions_output_type method
+- Implement agent:
+  - [x] Add agent class
+  - [ ] Add generate_llm_with_actions(page: Page, system_prompt: str, actions_controller: ActionsController) function
+  - [ ] Rebuild loop
+  - [ ] Improve filtering & cleanup logic
+  - [ ] ...
