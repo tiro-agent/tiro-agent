@@ -1,4 +1,3 @@
-import json
 import operator
 import re
 from abc import ABC, abstractmethod
@@ -135,29 +134,38 @@ class ActionsController:
 	def register_action(self, action: type[BaseAction]) -> None:
 		self.actions.append(action)
 
-	def get_applicable_actions(self, page: Page) -> list[type[BaseAction]]:
+	def _get_applicable_actions(self, page: Page) -> list[type[BaseAction]]:
 		return [action for action in self.actions if action.is_applicable(page)]
 
-	def get_actions_prompt(self, applicable_actions: list[type[BaseAction]]) -> str:
+	def get_actions_prompt(self, page: Page) -> str:
 		"""Get a prompt for the actions that are applicable to the given page."""
+
+		# TODO: decide if we need this function or not (maybe we don't need it)
+
+		applicable_actions = self._get_applicable_actions(page)
 		if not applicable_actions:
-			# TODO: add a default action OR maybe raise an error OR return false
-			return 'No actions are currently applicable to this page.'
-
-		actions_data = []
-		for action in applicable_actions:
-			schema = action.model_json_schema(mode='serialization')
-			schema['example_usage'] = schema['title'] + '(' + ', '.join(schema['properties'].keys()) + ')'
-			actions_data.append(schema)
-
-		return f'```json\n{json.dumps(actions_data, indent=2)}\n```'
-
-	def get_agent_decision_type(self, applicable_action_types: list[type[BaseAction]]) -> type[BaseModel]:
-		"""Get the type of the agent decision."""
-		if not applicable_action_types:
+			# there should always be at least one applicable action (like finish action, abort action, etc.)
 			raise ValueError('No applicable actions provided')
 
-		action_union = reduce(operator.or_, applicable_action_types) if len(applicable_action_types) > 1 else applicable_action_types[0]
+		actions_text = ''
+		for action in applicable_actions:
+			schema = action.model_json_schema(mode='serialization')
+			actions_text += schema['title'] + '(' + ', '.join(schema['properties'].keys()) + ') - ' + schema['description'] + '\n'
+
+		return actions_text
+
+	def get_agent_decision_type(self, page: Page) -> type[BaseModel]:
+		"""Get the type of the agent decision which will be used to parse the agent's response."""
+		applicable_action_types = self._get_applicable_actions(page)
+		if not applicable_action_types:
+			# there should always be at least one applicable action (like finish action, abort action, etc.)
+			raise ValueError('No applicable actions provided')
+
+		action_union = (
+			reduce(operator.or_, [type(action) for action in applicable_action_types])
+			if len(applicable_action_types) > 1
+			else type(applicable_action_types[0])
+		)
 
 		return create_model(
 			'AgentDecision',
@@ -167,4 +175,3 @@ class ActionsController:
 				Field(..., description='The action to perform next, chosen from the available tools.'),
 			),
 		)
-

@@ -90,7 +90,7 @@ class TestActionsController:
 
 		# test with no domains and no page filter
 		page = Page(url='https://google.com')
-		actions = actions_controller.get_applicable_actions(page)
+		actions = actions_controller._get_applicable_actions(page)
 		expected_action_count = 2
 		assert len(actions) == expected_action_count
 		assert actions[0].get_action_name() == 'dummy_action'
@@ -99,7 +99,7 @@ class TestActionsController:
 		# test with domains filter (negative)
 		page = Page(url='https://google.com')
 		actions_controller.register_action(DummyAction3(domains=['*.test.com']))
-		actions = actions_controller.get_applicable_actions(page)
+		actions = actions_controller._get_applicable_actions(page)
 		expected_action_count = 2
 		assert len(actions) == expected_action_count
 		assert actions[0].get_action_name() == 'dummy_action'
@@ -107,9 +107,95 @@ class TestActionsController:
 
 		# test with domains filter (positive)
 		page = Page(url='https://test.com')
-		actions = actions_controller.get_applicable_actions(page)
+		actions = actions_controller._get_applicable_actions(page)
 		expected_action_count = 3
 		assert len(actions) == expected_action_count
 		assert actions[0].get_action_name() == 'dummy_action'
 		assert actions[1].get_action_name() == 'dummy_action_2'
 		assert actions[2].get_action_name() == 'dummy_action_3'
+
+	def test_get_agent_decision_type_one_action(self) -> None:
+		actions_controller = ActionsController([DummyAction()])
+		page = Page(url='https://google.com')
+		agent_decision_type = actions_controller.get_agent_decision_type(page)
+		assert agent_decision_type.model_json_schema(mode='serialization') == {
+			'$defs': {
+				'DummyAction': {
+					'properties': {
+						'selector': {'default': 'dummy-selector', 'title': 'Selector', 'type': 'string'},
+						'text': {'default': 'dummy-text', 'title': 'Text', 'type': 'string'},
+					},
+					'title': 'DummyAction',
+					'type': 'object',
+				},
+			},
+			'properties': {
+				'thought': {'description': 'Your reasoning process and next step.', 'title': 'Thought', 'type': 'string'},
+				'action': {'$ref': '#/$defs/DummyAction', 'description': 'The action to perform next, chosen from the available tools.'},
+			},
+			'required': ['thought', 'action'],
+			'title': 'AgentDecision',
+			'type': 'object',
+		}
+
+	def test_get_agent_decision_type_one_action_on_page_with_domains_filter(self) -> None:
+		actions_controller = ActionsController([DummyAction(), DummyAction2(domains=['*.test.com'])])
+		page = Page(url='https://google.com')
+		agent_decision_type = actions_controller.get_agent_decision_type(page)
+		assert agent_decision_type.model_json_schema(mode='serialization') == {
+			'$defs': {
+				'DummyAction': {
+					'properties': {
+						'selector': {'default': 'dummy-selector', 'title': 'Selector', 'type': 'string'},
+						'text': {'default': 'dummy-text', 'title': 'Text', 'type': 'string'},
+					},
+					'title': 'DummyAction',
+					'type': 'object',
+				},
+			},
+			'properties': {
+				'thought': {'description': 'Your reasoning process and next step.', 'title': 'Thought', 'type': 'string'},
+				'action': {'$ref': '#/$defs/DummyAction', 'description': 'The action to perform next, chosen from the available tools.'},
+			},
+			'required': ['thought', 'action'],
+			'title': 'AgentDecision',
+			'type': 'object',
+		}
+
+	def test_get_agent_decision_type_two_actions(self) -> None:
+		actions_controller = ActionsController([DummyAction(), DummyAction2()])
+		page = Page(url='https://google.com')
+		agent_decision_type = actions_controller.get_agent_decision_type(page)
+		assert agent_decision_type.model_json_schema(mode='serialization') == {
+			'$defs': {
+				'DummyAction': {
+					'properties': {
+						'selector': {'default': 'dummy-selector', 'title': 'Selector', 'type': 'string'},
+						'text': {'default': 'dummy-text', 'title': 'Text', 'type': 'string'},
+					},
+					'title': 'DummyAction',
+					'type': 'object',
+				},
+				'DummyAction2': {
+					'properties': {
+						'selector': {'default': 'dummy-selector', 'title': 'Selector', 'type': 'string'},
+					},
+					'title': 'DummyAction2',
+					'type': 'object',
+				},
+			},
+			'properties': {
+				'thought': {'description': 'Your reasoning process and next step.', 'title': 'Thought', 'type': 'string'},
+				'action': {
+					'anyOf': [
+						{'$ref': '#/$defs/DummyAction'},
+						{'$ref': '#/$defs/DummyAction2'},
+					],
+					'description': 'The action to perform next, chosen from the available tools.',
+					'title': 'Action',
+				},
+			},
+			'required': ['thought', 'action'],
+			'title': 'AgentDecision',
+			'type': 'object',
+		}

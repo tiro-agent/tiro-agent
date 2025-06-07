@@ -36,7 +36,8 @@
       "args": [
         "run",
         "-m",
-        "pytest"
+        "pytest",
+        "-vv"
       ],
       "group": "test",
       "problemMatcher": [],
@@ -50,6 +51,7 @@
         "run",
         "-m",
         "pytest",
+        "-vv",
         "${file}"
       ],
       "group": "test",
