@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 from playwright.sync_api import Page
 from pydantic import BaseModel, Field
 
-from web_agent.utils import matches_domain_pattern
+from web_agent.utils import check_domain_pattern_match
 
 
 class ActionResultStatus(str, Enum):
@@ -33,7 +33,7 @@ class BaseAction(BaseModel, ABC):
 
 	# Filters for applicability
 	domains: list[str] | None = Field(
-		None, description='List of domain patterns (e.g., "*.google.com", "example.com") where this tool is applicable.'
+		None, exclude=True, description='List of domain patterns (e.g., "*.google.com", "example.com") where this tool is applicable.'
 	)
 	page_filter: Callable[[Page], bool] | None = Field(
 		None,
@@ -56,7 +56,7 @@ class BaseAction(BaseModel, ABC):
 	def is_applicable(self, page: Page) -> bool:
 		if self.domains is not None:
 			domain = urlparse(page.url).netloc
-			if not any(matches_domain_pattern(domain, pattern) for pattern in self.domains):
+			if not any(check_domain_pattern_match(domain, pattern) for pattern in self.domains):
 				# print(f'DEBUG: Tool "{self.get_tool_name()}" not applicable: Domain "{current_domain}" not in allowed {self.domains}')
 				return False
 		if self.page_filter is not None and not self.page_filter(page):
