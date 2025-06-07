@@ -14,12 +14,13 @@ class ActionResultStatus(str, Enum):
 	SUCCESS = 'success'
 	FAILURE = 'failure'
 	INFO = 'info'
+	FINISH = 'finish'
 
 
 class ActionResult(BaseModel):
 	"""Represents the outcome of an executed action."""
 
-	status: ActionResultStatus = Field(..., description='The status of the action (e.g., "success", "failure", "info").')
+	status: ActionResultStatus = Field(..., description='The status of the action (e.g., "success", "failure", "info", "finish").')
 	message: str = Field(..., description='A detailed message about the outcome.')
 	data: dict = Field(default_factory=dict, description='Optional: Additional structured data from the action.')
 
@@ -49,9 +50,11 @@ class BaseAction(BaseModel, ABC):
 	@classmethod
 	def get_action_name(cls) -> str:
 		"""Returns the snake_case name of the action from its class name."""
-		# E.g., ClickAction -> click_action, TypeAction -> type_action
-		name = cls.__name__.replace('Action', '').lower()
-		return re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower()
+		# E.g., ClickAction -> click_action, TypeAction -> type_action, MyHTTPAction -> my_http_action, MyAction2 -> my_action_2
+		name = cls.__name__
+		s1 = re.sub(r'(.)([A-Z][a-z]+)', r'\1_\2', name)
+		s2 = re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', s1)
+		return re.sub(r'([a-zA-Z])([0-9])', r'\1_\2', s2).lower()
 
 	def is_applicable(self, page: Page) -> bool:
 		if self.domains is not None:
