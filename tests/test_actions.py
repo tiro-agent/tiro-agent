@@ -1,4 +1,4 @@
-from web_agent.agent.actions import ActionResult, ActionResultStatus, BaseAction
+from web_agent.agent.actions import ActionResult, ActionResultStatus, ActionsController, BaseAction
 
 
 class Page:
@@ -83,3 +83,33 @@ class TestBaseAction:
 		page = Page(url='https://test.com')
 		assert not action.is_applicable(page)
 
+
+class TestActionsController:
+	def test_get_applicable_actions(self) -> None:
+		actions_controller = ActionsController([DummyAction(), DummyAction2()])
+
+		# test with no domains and no page filter
+		page = Page(url='https://google.com')
+		actions = actions_controller.get_applicable_actions(page)
+		expected_action_count = 2
+		assert len(actions) == expected_action_count
+		assert actions[0].get_action_name() == 'dummy_action'
+		assert actions[1].get_action_name() == 'dummy_action_2'
+
+		# test with domains filter (negative)
+		page = Page(url='https://google.com')
+		actions_controller.register_action(DummyAction3(domains=['*.test.com']))
+		actions = actions_controller.get_applicable_actions(page)
+		expected_action_count = 2
+		assert len(actions) == expected_action_count
+		assert actions[0].get_action_name() == 'dummy_action'
+		assert actions[1].get_action_name() == 'dummy_action_2'
+
+		# test with domains filter (positive)
+		page = Page(url='https://test.com')
+		actions = actions_controller.get_applicable_actions(page)
+		expected_action_count = 3
+		assert len(actions) == expected_action_count
+		assert actions[0].get_action_name() == 'dummy_action'
+		assert actions[1].get_action_name() == 'dummy_action_2'
+		assert actions[2].get_action_name() == 'dummy_action_3'
