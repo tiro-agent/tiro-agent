@@ -1,3 +1,5 @@
+import pytest
+
 from web_agent.agent.actions import ActionResult, ActionResultStatus, ActionsController, BaseAction
 
 
@@ -39,6 +41,14 @@ class TestBaseAction:
 		assert MyLLMAction.get_action_name() == 'my_llm_action'
 
 	def test_is_applicable_domain_filter(self) -> None:
+		action = DummyAction()
+		page = Page(url='https://www.google.com')
+		assert action.is_applicable(page)
+
+		action = DummyAction(domains=None)
+		page = Page(url='https://www.google.com')
+		assert action.is_applicable(page)
+
 		action = DummyAction(domains=['google.com'])
 		page = Page(url='https://google.com')
 		assert action.is_applicable(page)
@@ -71,6 +81,17 @@ class TestBaseAction:
 		action = DummyAction(domains=['test.com', '*.test.com', '*.google.com'])
 		page = Page(url='https://example.com')
 		assert not action.is_applicable(page)
+
+		# test with empty domains filter -> makes it negative for all pages
+		action = DummyAction(domains=[])
+		page = Page(url='https://www.google.com')
+		assert not action.is_applicable(page)
+
+		# test with * domains filter -> should raise an error, is not allowed (to allow for all set domains to None)
+		with pytest.raises(ValueError):
+			action = DummyAction(domains=['*'])
+			page = Page(url='https://www.google.com')
+			action.is_applicable(page)
 
 	def test_is_applicable_page_filter(self) -> None:
 		# test with page filter (positive)

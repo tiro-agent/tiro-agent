@@ -27,6 +27,8 @@ def test_matches_domain_pattern() -> None:
 		check_domain_pattern_match('google.com', '*com')
 	with pytest.raises(ValueError):
 		check_domain_pattern_match('google.com', '*e.com')  # this is not a valid pattern
+	with pytest.raises(ValueError):
+		check_domain_pattern_match('google.com', '*')  # this is not a valid pattern (to allow for all set domains to None)
 
 	# should not match
 	assert not check_domain_pattern_match('google.com', 'test.com')

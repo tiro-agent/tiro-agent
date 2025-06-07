@@ -2,6 +2,12 @@ def check_domain_pattern_match(domain: str, pattern: str) -> bool:
 	"""
 	Checks if a domain string matches a given pattern string with specific wildcard rules.
 
+	Rules:
+	Only the domain part of the url is checked, the path is ignored.
+	Only one wildcard is allowed, and it must be at the beginning of the pattern.
+	The pattern must contain a domain and an ending (e.g., 'domain.ending').
+	The pattern is not allowed to be only a wildcard ('*').
+
 	Args:
 	domain: The domain string to check.
 	pattern: The pattern string.
