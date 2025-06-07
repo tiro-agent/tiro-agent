@@ -40,7 +40,7 @@
     - [x] Add get_all_actions_output_type method
 - Implement agent:
   - [x] Add agent class
-  - [ ] Add generate_llm_with_actions(page: Page, system_prompt: str, actions_controller: ActionsController) function
+  - [x] Add generate_llm_with_actions(page: Page, system_prompt: str, actions_controller: ActionsController) function
   - [ ] Rebuild loop
   - [ ] Improve filtering & cleanup logic
   - [ ] ...

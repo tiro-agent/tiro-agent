@@ -1,8 +1,10 @@
 import time
 
+from playwright.sync_api import Page
 from pydantic_ai import Agent as ChatAgent
 from pydantic_ai import BinaryContent
 
+from web_agent.agent.actions import ActionsController
 from web_agent.agent.prompts import get_possible_actions_prompt, get_system_prompt
 from web_agent.browser.browser import Browser
 
@@ -96,3 +98,14 @@ class Agent:
 			time.sleep(5)
 			step += 1
 			past_actions.append((action, success, message))
+
+
+def _generate_llm_with_actions(
+	page: Page,
+	system_prompt: str,
+	actions_controller: ActionsController,
+	model: str = 'google-gla:gemini-2.5-flash-preview-05-20',
+) -> ChatAgent:
+	agent_decision_type = actions_controller.get_agent_decision_type(page)
+	llm = ChatAgent(model, system_prompt=system_prompt, output_type=agent_decision_type)
+	return llm
