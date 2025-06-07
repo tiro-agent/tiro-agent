@@ -88,6 +88,44 @@ class ClickAction(BaseAction):
 			return ActionResult(status=ActionResultStatus.FAILURE, message='Multiple targets found: ' + str(targets.all()))
 
 
+class TypeAction(BaseAction):
+	"""Types text into a specific element on the page, like an input field."""
+
+	selector: str = Field(description='A selector for the input field.')
+	text: str = Field(description='The text to type into the input field.')
+
+	def execute(self, page: Page) -> ActionResult:
+		"""Type text into an element."""
+		try:
+			targets = page.locator(self.selector).filter(visible=True)
+			if targets.count() == 0:
+				return ActionResult(status=ActionResultStatus.FAILURE, message='Input field not found on page')
+			elif targets.count() == 1:
+				targets.fill(self.text)
+				return ActionResult(status=ActionResultStatus.SUCCESS, message=f"Typed '{self.text}' into element '{self.selector}'.")
+			else:
+				return ActionResult(status=ActionResultStatus.FAILURE, message='Multiple input fields found: ' + str(targets.all()))
+		except Exception as e:
+			return ActionResult(
+				status=ActionResultStatus.FAILURE,
+				message=f"Could not type into element with selector '{self.selector}': {e}",
+			)
+
+
+class FinishAction(BaseAction):
+	"""Indicate that the task is finished and provide the final answer."""
+
+	answer: str = Field(description='The final answer to the user query.')
+
+	def execute(self, page: Page) -> ActionResult:
+		"""Finish the task."""
+		return ActionResult(
+			status=ActionResultStatus.FINISH,
+			message=f'Task finished. The answer is: {self.answer}',
+			data={'answer': self.answer},
+		)
+
+
 class ActionsController:
 	"""Controller for actions."""
 
