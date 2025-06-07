@@ -44,3 +44,5 @@
   - [ ] Rebuild loop
   - [ ] Improve filtering & cleanup logic
   - [ ] ...
+- [ ] Automatic evaluation
+  - [ ] Integrate with Mind2Web evaluator (WebJudge)
