@@ -81,7 +81,9 @@ class Agent:
 			elif command == 'search':
 				success, message = self.browser.search_and_highlight(args[0])
 			elif command == 'fill':
-				self.browser.fill_closest_input_to_text(args[0], args[1])
+				success, message = self.browser.click_by_text(args[0])
+				if success:
+					self.browser.page.keyboard.type(args[1])
 			elif command == 'return':
 				return args[0]
 			elif command == 'click_coord':

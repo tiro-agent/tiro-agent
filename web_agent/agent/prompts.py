@@ -4,10 +4,9 @@ def get_possible_actions_prompt() -> str:
 	"""
 
 	# BACKUP FOR EASY COPYING
-	# backup = """
-	# - "scroll('direction')": Scroll the page in the given direction. Valid directions are 'up', 'down'.
-	# - "fill('placeholder', 'input')": Fill the given input text into the first element that has the given placeholder text.
-	# """
+	backup = """
+	- "scroll('direction')": Scroll the page in the given direction. Valid directions are 'up', 'down'.
+	"""  # noqa: F841
 
 	return """
 		- "click_text('text')": Click on the element that contains the given text. If multiple possible elements are found, try using the click_text_ith() method.
@@ -16,6 +15,7 @@ def get_possible_actions_prompt() -> str:
 		- "scroll('direction')": Scroll the page in the given direction. Valid directions are 'up', 'down'.
 		- "search('query')": Search for the given query on the current page and focus on it.
 		- "type('text')": Type the given text into the focused element.
+		- "fill('placeholder', 'input')": Fill the given input text into the first element that has the given placeholder text.
 		- "back('')": Go back to the previous page.
 		- "reset('')": Reset the browser to the initial starting page.
 		"""
