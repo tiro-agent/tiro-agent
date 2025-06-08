@@ -44,8 +44,8 @@
   - [ ] Improve filtering & cleanup logic
   - [ ] ...
 - Action improvement:
-  - [ ] Improve click action reliability -> handle multiple options case (Benni)
-  - [ ] Improve type action reliability -> click first on text and then type (Benni)
+  - [x] Improve click action reliability -> handle multiple options case (Benni)
+  - [x] Improve type action reliability -> click first on text and then type (Benni)
   - [ ] Page/ARIA specific actions, i.e. search tool
 - [ ] Automatic evaluation
   - [ ] Integrate with Mind2Web evaluator (WebJudge) -> use Gemini or WebJudge-7B?
