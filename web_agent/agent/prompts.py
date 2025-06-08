@@ -10,7 +10,8 @@ def get_possible_actions_prompt() -> str:
 	# """
 
 	return """
-		- "click_text('text')": Click on the first element that contains the given text.
+		- "click_text('text')": Click on the element that contains the given text. If multiple possible elements are found, try using the click_text_ith() method.
+		- "click_text_ith('text', 'i')": Click on the ith element that contains the given text. Both arguments are strings.
 		- "click_coord('x', 'y')": Click on the element at the given coordinates.
 		- "scroll('direction')": Scroll the page in the given direction. Valid directions are 'up', 'down'.
 		- "search('query')": Search for the given query on the current page and focus on it.
@@ -31,7 +32,7 @@ def get_system_prompt(possible_actions: str) -> str:
 		These are all possible actions:
 		{possible_actions}
 
-		Only output exactly one action. Do not output anything else.
+		Only output exactly one action. Do not output anything else. Always use single quotes around all action arguments, even numbers.
 		ONLY WHEN you have FULLY performed the task, output "return('result')" with the requested information. Be as concise as possible.
 		DO NOT TAKE THE SAME ACTION MORE THAN TWICE IN A ROW.
 

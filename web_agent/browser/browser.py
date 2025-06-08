@@ -48,16 +48,23 @@ class Browser:
 		self.page.screenshot(path=screenshot_path)
 		print('Screenshot saved to', screenshot_path)  # TODO: check full page screenshots
 
-	def click_by_text(self, text: str) -> tuple[bool, str]:
+	def click_by_text(self, text: str, i: int | None = None) -> tuple[bool, str]:
 		targets = self.page.get_by_text(text).filter(visible=True)
+
+		if i and targets.count() <= i:
+			return False, 'Index out of bounds'
+
 		if targets.count() == 0:
 			return False, 'Text not found on page'
 		elif targets.count() == 1:
 			targets.click()
 			return True, ''
+		elif i is not None:
+			targets.nth(i).click()
+			return True, ''
 		else:
-			targets.first.click()  # TODO: Not ideal yet
-			return False, 'Multiple targets found: ' + str(targets.all())
+			targets_str = str([f'{i} -  {str(target.element_handle()).replace("JSHandle@", "")}' for i, target in enumerate(targets.all())])
+			return False, f'Multiple targets found: {targets_str}'
 
 	def search_and_highlight(self, text: str) -> tuple[bool, str]:
 		targets = self.page.get_by_text(text).filter(visible=True)

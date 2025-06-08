@@ -42,7 +42,10 @@ class Agent:
 
 			# PAGE AND TASK EVALUATION / MULTISTEP PLANNING - TODO: separate
 			past_actions_str = 'Prior actions: \n- ' + '\n- '.join(
-				[f'ACTION: {action}, SUCCESS: {"n/a" if success is None else success}' for (action, success, message) in past_actions]
+				[
+					f'ACTION: {action}, SUCCESS: {"n/a" if success is None else success}{", MESSAGE: " + message if success is False else ""}'
+					for (action, success, message) in past_actions
+				]
 			)
 			print(past_actions_str)
 
@@ -70,6 +73,8 @@ class Agent:
 			message = ''
 			if command == 'click_text':
 				success, message = self.browser.click_by_text(args[0])
+			elif command == 'click_text_ith':
+				success, message = self.browser.click_by_text(args[0], int(args[1]))
 			elif command == 'scroll':
 				self.browser.page.mouse.wheel(0, 700 if args[0] == 'down' else -700)
 				success = None
