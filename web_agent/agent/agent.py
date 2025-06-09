@@ -52,7 +52,8 @@ class Agent:
 
 	def run(self, task: Task) -> None:
 		step = 0
-		error_count = 0
+		output_format_error_count = 0
+		llm_error_count = 0
 
 		# STEP 0: SETUP LLM
 		system_prompt = self.system_prompt + f'TASK: {task.description}'
@@ -71,7 +72,6 @@ class Agent:
 			screenshot_path = f'{task.output_dir}/step_{step}.png'
 			screenshot = self.browser.save_screenshot(screenshot_path)
 			metadata = self.browser.get_metadata()
-			print('Metadata:', metadata)
 
 			# LOOP STEP 3: PAGE ANALYSIS
 			# TODO
@@ -89,12 +89,15 @@ class Agent:
 			prompt_str += f'Available actions:\n{available_actions_str}\n\n'
 			prompt_str += 'Choose the next action to take.\n'
 
-			print('Prompt: ', prompt_str)
-
 			prompt = [
 				BinaryContent(data=screenshot, media_type='image/png'),
 				prompt_str,
 			]
+
+			print('-' * 100)
+			print('Step number:', step)
+			print('Metadata:', metadata)
+			print('Past actions:\n', past_actions_str)
 
 			# LOOP STEP 6: GET AGENT DECISION
 			try:
@@ -102,8 +105,14 @@ class Agent:
 				print('Action: ', action_decision.action, ' - ', action_decision.thought)
 			except Exception as e:
 				print('Error getting action decision:', e)
-				print('Aborting')
-				break
+
+				llm_error_count += 1
+				if llm_error_count > MAX_ERROR_COUNT:
+					print('Too many errors, aborting. Please try again.')
+					break
+				print('Retrying...')
+				time.sleep(3)
+				continue
 
 			# LOOP STEP 7: ACTION PARSING
 			try:
@@ -111,14 +120,16 @@ class Agent:
 			except ValueError as e:
 				print('Error parsing action:', e)
 
-				# TODO: handle the error and reprompt the LLM
-				error_count += 1
-				if error_count > MAX_ERROR_COUNT:
+				# TODO: handle the error and reprompt the LLM including the error message
+
+				output_format_error_count += 1
+				if output_format_error_count > MAX_ERROR_COUNT:
 					print('Too many errors, aborting')
 					break
+				print('Retrying...')
 				continue
 
-			error_count = 0
+			output_format_error_count = 0
 
 			# LOOP STEP 8: ACTION EXECUTION
 			action_result = action.execute(self.browser.page, task)
