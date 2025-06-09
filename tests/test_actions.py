@@ -180,3 +180,24 @@ class TestActionsController:
 			+ 'dummy_type_action(selector, text) - Types text into the focused element.'
 		)
 		assert actions_str == expected_actions_str
+
+	@pytest.mark.skip(reason='This test is not implemented yet. It includes all the default actions from the actions.py file.')
+	def test_create_default(self) -> None:
+		actions_controller = ActionsController.create_default()
+		page = Page(url='https://google.com')
+		actions_str = actions_controller.get_applicable_actions_str(page)
+		expected_actions_str = (
+			'dummy_click_text_action(text) - Clicks on the first element that contains the given text.\n'
+			+ 'dummy_type_action(selector, text) - Types text into the focused element.'
+			+ 'dummy_click_coord_action(x, y) - Clicks on the given coordinates.'
+		)
+		assert actions_str == expected_actions_str
+
+	def test_is_valid_action_function(self) -> None:
+		assert ActionsController._is_valid_action_function('click_by_text("text")')
+		assert ActionsController._is_valid_action_function('click_by_text_ith("text", 1)')
+		assert ActionsController._is_valid_action_function('back()')
+		assert ActionsController._is_valid_action_function('finish("answer")')
+		assert not ActionsController._is_valid_action_function('click_by_text("text")(')
+		assert not ActionsController._is_valid_action_function('click_by_text("text"')
+		assert not ActionsController._is_valid_action_function('click_by_text')

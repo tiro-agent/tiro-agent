@@ -43,10 +43,10 @@ class Browser:
 			# TODO: add more useful metadata
 		}
 
-	def save_screenshot(self, screenshot_path: str) -> None:
-		print('Screenshotting page...')
-		self.page.screenshot(path=screenshot_path)
-		print('Screenshot saved to', screenshot_path)  # TODO: check full page screenshots
+	def save_screenshot(self, screenshot_path: str) -> bytes:
+		"""Saves the screenshot to the given path and returns the bytes of the screenshot."""
+		self.page.screenshot(path=screenshot_path)  # TODO: check full page screenshots
+		return open(screenshot_path, 'rb').read()
 
 	def click_by_text(self, text: str, i: int | None = None) -> tuple[bool, str]:
 		targets = self.page.get_by_text(text).filter(visible=True)

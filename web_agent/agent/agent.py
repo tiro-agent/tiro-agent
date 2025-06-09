@@ -3,7 +3,13 @@ import time
 from pydantic_ai import Agent as ChatAgent
 from pydantic_ai import BinaryContent
 
-from web_agent.agent.actions import ActionHistoryController, ActionHistoryStep, ActionResultStatus, ActionsController
+from web_agent.agent.actions import (
+	ActionDecision,
+	ActionHistoryController,
+	ActionHistoryStep,
+	ActionResultStatus,
+	ActionsController,
+)
 from web_agent.agent.prompts import get_system_prompt
 from web_agent.agent.schema import Task
 from web_agent.browser.browser import Browser
@@ -34,6 +40,8 @@ The new agent implementation would be as follows:
 - output the logging to the console
 """
 
+MAX_ERROR_COUNT = 3
+
 
 class Agent:
 	def __init__(self, browser: Browser) -> None:
@@ -44,49 +52,70 @@ class Agent:
 
 	def run(self, task: Task) -> None:
 		step = 0
+		error_count = 0
 
-		self.system_prompt = self.system_prompt + f'TASK: {task.description}'
-		print(self.system_prompt)
+		# STEP 0: SETUP LLM
+		system_prompt = self.system_prompt + f'TASK: {task.description}'
+		llm = ChatAgent(model='google-gla:gemini-2.5-flash-preview-05-20', system_prompt=system_prompt, output_type=ActionDecision)
+
+		# STEP 1: LOAD THE URL
 		self.browser.load_url(task.url)
 
-		# AGENT LOOP
+		# STEP 2: AGENT LOOP
 		while True:
-			# PAGE LOADING AND CLEANUP
-			# Page already loaded at start or through action
+			# LOOP STEP 1: PAGE CLEANUP
 			self.browser.clean_page()
+			# TODO: add actual cleanup
+
+			# LOOP STEP 2: GET PAGE DATA
 			screenshot_path = f'{task.output_dir}/step_{step}.png'
-			self.browser.save_screenshot(screenshot_path)
-			screenshot = open(screenshot_path, 'rb').read()
+			screenshot = self.browser.save_screenshot(screenshot_path)
 			metadata = self.browser.get_metadata()
 			print('Metadata:', metadata)
-			# TODO: add cleanup
 
-			# PAGE ANALYSIS
+			# LOOP STEP 3: PAGE ANALYSIS
 			# TODO
 
-			# PAGE AND TASK EVALUATION / MULTISTEP PLANNING - TODO: separate
+			# LOOP STEP 4: MULTISTEP PLANNING
+			# TODO
+
+			# LOOP STEP 5: GET AGENT PROMPT
 			past_actions_str = self.action_history_controller.get_action_history_str()
-			print(past_actions_str)
-
-			llm = _generate_llm_with_actions(self.browser.page, self.system_prompt, self.actions_controller)
-
 			available_actions_str = self.actions_controller.get_applicable_actions_str(self.browser.page)
-			print('Available actions:', available_actions_str, '\n', '=' * 100)
+
+			prompt_str = '\n'
+			# prompt_str += f'Metadata: \n{metadata!s}\n\n'
+			prompt_str += f'Past actions:\n{past_actions_str}\n\n'
+			prompt_str += f'Available actions:\n{available_actions_str}\n\n'
+			prompt_str += 'Choose the next action to take.\n'
+
+			print('Prompt: ', prompt_str)
 
 			prompt = [
-				'AVAILABLE ACTIONS:\n' + available_actions_str,
-				#'NEXT STEP, CHOOSE ACTION\n\n',
-				#'Metadata: \n',
-				# str(metadata),
 				BinaryContent(data=screenshot, media_type='image/png'),
-				past_actions_str,
+				prompt_str,
 			]
 
-			action_decision = llm.run_sync(prompt).output
-			print('Action: ', action_decision.action.get_action_str(), ' - ', action_decision.thought)
+			# LOOP STEP 6: GET AGENT DECISION
+			action_decision: ActionDecision = llm.run_sync(prompt).output
+			print('Action: ', action_decision.action, ' - ', action_decision.thought)
 
-			# STEP EXECUTION
-			action = action_decision.action
+			# LOOP STEP 7: ACTION PARSING
+			try:
+				action = self.actions_controller.parse_action_str(action_decision.action)
+			except ValueError as e:
+				print('Error parsing action:', e)
+
+				# TODO: handle the error and reprompt the LLM
+				error_count += 1
+				if error_count > MAX_ERROR_COUNT:
+					print('Too many errors, aborting')
+					break
+				continue
+
+			error_count = 0
+
+			# LOOP STEP 8: ACTION EXECUTION
 			action_result = action.execute(self.browser.page, task)
 			self.action_history_controller.add_action(
 				ActionHistoryStep(action=action, status=action_result.status, message=action_result.message, screenshot=screenshot_path)

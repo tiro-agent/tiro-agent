@@ -65,7 +65,8 @@ class BaseAction(BaseModel, ABC):
 
 	@classmethod
 	def get_action_type_str(cls) -> str:
-		return f'{cls.get_action_name()}({", ".join(cls.model_fields.keys())})'
+		# example: click_by_text('text')
+		return f'{cls.get_action_name()}({", ".join(f"'{name}'" for name in cls.model_fields.keys())})'
 
 	@classmethod
 	def get_action_description(cls) -> str:
@@ -230,10 +231,7 @@ class Reset(BaseAction):
 
 
 class Abort(BaseAction):
-	"""
-	Abort the task only in case when you have failed to complete the task and there is no way to recover.
-	Do not use this if you have completed the task.
-	"""
+	"""Abort the task only in case when you have failed to complete the task and there is no way to recover."""
 
 	reason: str = Field(description='The reason for aborting the task.')
 
@@ -260,7 +258,10 @@ class ActionDecision(BaseModel):
 	"""The decision of the agent."""
 
 	thought: str = Field(..., description='Your reasoning process and next step.')
-	action: str = Field(..., description='The action to perform next, chosen from the available tools.')
+	action: str = Field(
+		...,
+		description="The function call to the action to perform next, chosen from the available actions. Example: click_by_text('text')",
+	)
 
 
 class ActionsController:
@@ -280,8 +281,132 @@ class ActionsController:
 	def get_applicable_actions_str(self, page: Page) -> str:
 		return '\n'.join([action.get_action_definition_str() for action in self._get_applicable_actions(page)])
 
+	def parse_action_str(self, action_str: str) -> BaseAction:
+		# Remove the whitespace
+		action_str = action_str.strip()
+		if action_str == '':
+			raise ValueError('Action string is empty')
+
+		# check if the action has brackets, if not add them
+		if '(' not in action_str:
+			action_str = f'{action_str}()'
+
+		# Check if the action string is valid (e.g., click_by_text("text") or click_by_text_ith("text", 1) or back() or finish("answer"))
+		if not self._is_valid_action_function(action_str):
+			raise ValueError(f'Action string is not valid: {action_str}')
+
+		# Parse the action name
+		action_name = action_str.split('(')[0]
+
+		# Get the action type
+		action_type = self._get_action_by_name(action_name)
+		if action_type is None:
+			raise ValueError(f'Action type not found: {action_name}')
+
+		# Parse the action parameters
+		action_params_str = action_str.split('(')[1].split(')')[0]
+		action_params = []
+		if action_params_str.strip():  # Only parse if there are parameters
+			raw_params = [param.strip() for param in action_params_str.split(',')]
+			action_params = [self._parse_parameter_value(param) for param in raw_params]
+
+		# Create the action
+		if action_params:
+			# Map positional parameters to field names
+			field_names = list(action_type.model_fields.keys())
+			if len(action_params) > len(field_names):
+				raise ValueError(f'Too many parameters: expected {len(field_names)}, got {len(action_params)}')
+
+			# Convert parameters to the correct types based on field annotations
+			action_kwargs = {}
+			for i, param in enumerate(action_params):
+				field_name = field_names[i]
+
+				# Convert parameter to expected type if needed (probably not needed)
+				# field_info = action_type.model_fields[field_name]
+				# expected_type = field_info.annotation
+				# converted_param = self._convert_to_type(param, expected_type)
+
+				action_kwargs[field_name] = param
+
+			action = action_type(**action_kwargs)
+		else:
+			action = action_type()
+
+		# Return the action
+		return action
+
+	def _get_action_by_name(self, name: str) -> type[BaseAction] | None:
+		for action in self.actions:
+			if action.get_action_name() == name:
+				return action
+		return None
+
 	def _get_applicable_actions(self, page: Page) -> list[type[BaseAction]]:
 		return [action for action in self.actions if action.is_applicable(page)]
+
+	@staticmethod
+	def _is_valid_action_function(action_str: str) -> bool:
+		return re.match(r'^[a-zA-Z0-9_]+\([^)]*\)$', action_str)
+
+	@staticmethod
+	def _parse_parameter_value(param: str) -> str | int | float:
+		"""Parse a parameter value, handling different quote styles and types."""
+		param = param.strip()
+
+		# Handle quoted strings (both single and double quotes)
+		if (param.startswith('"') and param.endswith('"')) or (param.startswith("'") and param.endswith("'")):
+			return param[1:-1]  # Remove quotes
+
+		# Try to parse as integer
+		try:
+			return int(param)
+		except ValueError:
+			pass
+
+		# Try to parse as float
+		try:
+			return float(param)
+		except ValueError:
+			pass
+
+		# Return as string if no quotes and not a number
+		return param
+
+	@staticmethod
+	def _convert_to_type(value: str | int | float, expected_type: type) -> any:
+		"""Convert a value to the expected type."""
+		import typing
+
+		# Handle Optional types and Union types
+		if hasattr(expected_type, '__origin__'):
+			if expected_type.__origin__ is typing.Union:
+				# For Union types (like Optional), try the first non-None type
+				for arg in expected_type.__args__:
+					if arg is not type(None):
+						expected_type = arg
+						break
+
+		# If already the correct type, return as is
+		if isinstance(value, expected_type):
+			return value
+
+		# Convert based on expected type
+		if expected_type is int:
+			if isinstance(value, str):
+				return int(value)
+			elif isinstance(value, float):
+				return int(value)
+		elif expected_type is float:
+			if isinstance(value, str):
+				return float(value)
+			elif isinstance(value, int):
+				return float(value)
+		elif expected_type is str:
+			return str(value)
+
+		# If no conversion needed or possible, return as is
+		return value
 
 
 class ActionHistoryStep(BaseModel):
