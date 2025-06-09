@@ -97,8 +97,13 @@ class Agent:
 			]
 
 			# LOOP STEP 6: GET AGENT DECISION
-			action_decision: ActionDecision = llm.run_sync(prompt).output
-			print('Action: ', action_decision.action, ' - ', action_decision.thought)
+			try:
+				action_decision: ActionDecision = llm.run_sync(prompt).output
+				print('Action: ', action_decision.action, ' - ', action_decision.thought)
+			except Exception as e:
+				print('Error getting action decision:', e)
+				print('Aborting')
+				break
 
 			# LOOP STEP 7: ACTION PARSING
 			try:
