@@ -2,11 +2,11 @@ import re
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from enum import Enum
-from typing import ClassVar, Union
+from typing import ClassVar
 from urllib.parse import urlparse
 
 from playwright.sync_api import Page
-from pydantic import BaseModel, Field, create_model
+from pydantic import BaseModel, Field
 
 from web_agent.agent.schema import Task
 from web_agent.utils import check_domain_pattern_match
@@ -274,28 +274,6 @@ class ActionsController:
 
 	def get_applicable_actions_str(self, page: Page) -> str:
 		return '\n'.join([action.get_action_type_str() for action in self._get_applicable_actions(page)])
-
-	def get_agent_decision_type(self, page: Page, allow_multiple_actions: bool = False) -> type[ActionDecision]:
-		"""Get the type of the agent decision which will be used to parse the agent's response."""
-		applicable_action_types = self._get_applicable_actions(page)
-		if not applicable_action_types:
-			# there should always be at least one applicable action (like finish action, abort action, etc.)
-			raise ValueError('No applicable actions provided')
-
-		action_union = Union[tuple(applicable_action_types)]  # noqa: UP007
-
-		if allow_multiple_actions:
-			# TODO: think about the list[action_union] type, maybe it is better to make it pydantic model somehow
-			action_union = list[action_union]
-
-		return create_model(
-			'AgentDecision',
-			thought=(str, Field(..., description='Your reasoning process and next step.')),
-			action=(
-				action_union,
-				Field(..., description='The action to perform next, chosen from the available tools.'),
-			),
-		)
 
 
 class ActionHistoryStep(BaseModel):
