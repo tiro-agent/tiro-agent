@@ -65,7 +65,15 @@ class BaseAction(BaseModel, ABC):
 
 	@classmethod
 	def get_action_type_str(cls) -> str:
-		return f'{cls.__name__}({", ".join(cls.model_fields.keys())}) - {cls.__doc__}'
+		return f'{cls.get_action_name()}({", ".join(cls.model_fields.keys())})'
+
+	@classmethod
+	def get_action_description(cls) -> str:
+		return cls.__doc__
+
+	@classmethod
+	def get_action_definition_str(cls) -> str:
+		return f'{cls.get_action_type_str()} - {cls.get_action_description()}'
 
 	def get_action_str(self) -> str:
 		return f'{self.get_action_name()}({", ".join(f"{name}: {value}" for name, value in self.model_dump().items())})'
@@ -270,7 +278,7 @@ class ActionsController:
 		self.actions.append(action)
 
 	def get_applicable_actions_str(self, page: Page) -> str:
-		return '\n'.join([action.get_action_type_str() for action in self._get_applicable_actions(page)])
+		return '\n'.join([action.get_action_definition_str() for action in self._get_applicable_actions(page)])
 
 	def _get_applicable_actions(self, page: Page) -> list[type[BaseAction]]:
 		return [action for action in self.actions if action.is_applicable(page)]
