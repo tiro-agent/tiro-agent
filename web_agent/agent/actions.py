@@ -131,6 +131,13 @@ class FinishAction(BaseAction):
 		)
 
 
+class ActionDecision(BaseModel):
+	"""The decision of the agent."""
+
+	thought: str = Field(..., description='Your reasoning process and next step.')
+	action: BaseAction | list[BaseAction] = Field(..., description='The action to perform next, chosen from the available tools.')
+
+
 class ActionsController:
 	"""Controller for actions."""
 
@@ -148,7 +155,10 @@ class ActionsController:
 	def _get_applicable_actions(self, page: Page) -> list[type[BaseAction]]:
 		return [action for action in self.actions if action.is_applicable(page)]
 
-	def get_agent_decision_type(self, page: Page) -> type[BaseModel]:
+	def get_applicable_actions_str(self, page: Page) -> str:
+		return '\n'.join([action.get_action_type_str() for action in self._get_applicable_actions(page)])
+
+	def get_agent_decision_type(self, page: Page, allow_multiple_actions: bool = False) -> type[ActionDecision]:
 		"""Get the type of the agent decision which will be used to parse the agent's response."""
 		applicable_action_types = self._get_applicable_actions(page)
 		if not applicable_action_types:
@@ -157,6 +167,10 @@ class ActionsController:
 
 		action_union = Union[tuple(applicable_action_types)]  # noqa: UP007
 
+		if allow_multiple_actions:
+			# TODO: think about the list[action_union] type, maybe it is better to make it pydantic model somehow
+			action_union = list[action_union]
+
 		return create_model(
 			'AgentDecision',
 			thought=(str, Field(..., description='Your reasoning process and next step.')),
@@ -164,4 +178,36 @@ class ActionsController:
 				action_union,
 				Field(..., description='The action to perform next, chosen from the available tools.'),
 			),
+		)
+
+
+class ActionHistoryStep(BaseModel):
+	"""The step of the action history."""
+
+	action: BaseAction = Field(..., description='The action that was performed.')
+	status: ActionResultStatus = Field(..., description='The status of the action.')
+	message: str = Field(..., description='The message from the action.')
+	screenshot: str = Field(..., description='The path to the screenshot of the action.')
+
+
+class ActionHistoryController:
+	"""Controller for the action history."""
+
+	def __init__(self) -> None:
+		self.action_history: list[ActionHistoryStep] = []
+
+	def add_action(self, action: ActionHistoryStep) -> None:
+		self.action_history.append(action)
+
+	def get_action_history(self) -> list[ActionHistoryStep]:
+		return self.action_history
+
+	def get_action_history_str(self) -> str:
+		return 'Prior actions: \n- ' + '\n- '.join(
+			[
+				f'ACTION: {step.action.get_action_str()}, [{step.status.value.capitalize()}]{
+					", MESSAGE: " + step.message if step.status is not ActionResultStatus.SUCCESS else ""
+				}'
+				for step in self.action_history
+			]
 		)
