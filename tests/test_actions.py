@@ -198,6 +198,9 @@ class TestActionsController:
 		assert ActionsController._is_valid_action_function('click_by_text_ith("text", 1)')
 		assert ActionsController._is_valid_action_function('back()')
 		assert ActionsController._is_valid_action_function('finish("answer")')
+		assert ActionsController._is_valid_action_function('click_text("hello (this is a test)")')
+
+		# test with invalid function calls
 		assert not ActionsController._is_valid_action_function('click_by_text("text")(')
 		assert not ActionsController._is_valid_action_function('click_by_text("text"')
 		assert not ActionsController._is_valid_action_function('click_by_text')
@@ -251,3 +254,13 @@ class TestActionsController:
 		assert action.selector == 'selector'
 		assert action.text == 'text'
 		assert action.get_action_name() == 'dummy_type_action'
+
+		action_str = "dummy_click_text_action('random text with colons: 4 Av-9 St (F)(G), 7 Av (B)(Q), 8 Av (N)...')"
+		action = action_controller.parse_action_str(action_str)
+		assert action.text == 'random text with colons: 4 Av-9 St (F)(G), 7 Av (B)(Q), 8 Av (N)...'
+		assert action.get_action_name() == 'dummy_click_text_action'
+
+		action_str = "dummy_click_text_action('random text with a quotation mark \"')"
+		action = action_controller.parse_action_str(action_str)
+		assert action.text == 'random text with a quotation mark "'
+		assert action.get_action_name() == 'dummy_click_text_action'

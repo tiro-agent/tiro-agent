@@ -295,7 +295,38 @@ class ActionsController:
 		if action_type is None:
 			raise ValueError(f'Action type not found: {action_name}')
 
-		action_params_str = action_str.split('(')[1].split(')')[0]
+		# Extract parameters more carefully by finding the matching closing parenthesis
+		start_paren_idx = action_str.find('(')
+		if start_paren_idx == -1:
+			raise ValueError(f'No opening parenthesis found in action string: {action_str}')
+
+		# Find the matching closing parenthesis
+		paren_count = 0
+		in_quotes = False
+		quote_char = None
+		end_paren_idx = -1
+
+		for i in range(start_paren_idx, len(action_str)):
+			char = action_str[i]
+			if char in ['"', "'"]:
+				if not in_quotes:
+					in_quotes = True
+					quote_char = char
+				elif char == quote_char:
+					in_quotes = False
+			elif not in_quotes:
+				if char == '(':
+					paren_count += 1
+				elif char == ')':
+					paren_count -= 1
+					if paren_count == 0:
+						end_paren_idx = i
+						break
+
+		if end_paren_idx == -1:
+			raise ValueError(f'No matching closing parenthesis found in action string: {action_str}')
+
+		action_params_str = action_str[start_paren_idx + 1 : end_paren_idx]
 		action_params = []
 		if action_params_str.strip():  # Only parse if there are parameters
 			raw_params = self._parse_comma_separated_params(action_params_str)
@@ -349,7 +380,8 @@ class ActionsController:
 
 	@staticmethod
 	def _is_valid_action_function(action_str: str) -> bool:
-		return re.match(r'^[a-zA-Z0-9_]+\([^)]*\)$', action_str)
+		# Simple check: function_name(anything) - let the parser handle the details
+		return re.match(r'^[a-zA-Z0-9_]+\(.*\)$', action_str, re.DOTALL)
 
 	@staticmethod
 	def _parse_comma_separated_params(param_str: str) -> list[str]:
@@ -380,6 +412,15 @@ class ActionsController:
 		"""Parse a parameter value, handling different quote styles and types."""
 		param = param.strip()
 
+		# Only handle named parameters if the parameter doesn't start with quotes
+		if len(param) >= 2 and param[0] in ('"', "'"):  # noqa: PLR2004
+			# This is a quoted string, remove quotes and return
+			if param[0] == param[-1]:
+				return param[1:-1]
+			else:
+				# Mismatched quotes, return as-is
+				return param
+
 		# Handle named parameters in the format key=value
 		if '=' in param:
 			_, value = param.split('=', 1)
@@ -390,7 +431,7 @@ class ActionsController:
 			_, value = param.split(':', 1)
 			param = value.strip()
 
-		# Remove quotes if present
+		# Remove quotes if present (for unquoted named parameters)
 		if len(param) >= 2 and param[0] in ('"', "'") and param[0] == param[-1]:  # noqa: PLR2004
 			param = param[1:-1]
 
