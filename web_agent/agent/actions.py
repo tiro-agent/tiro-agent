@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 from playwright.sync_api import Page
 from pydantic import BaseModel, Field, create_model
 
+from web_agent.agent.schema import Task
 from web_agent.utils import check_domain_pattern_match
 
 
@@ -39,7 +40,7 @@ class BaseAction(BaseModel, ABC):
 	page_filter: ClassVar[Callable[[Page], bool] | None] = None
 
 	@abstractmethod
-	def execute(self, page: Page) -> ActionResult:
+	def execute(self, page: Page, task: Task) -> ActionResult:
 		"""Abstract method to be implemented by subclasses."""
 		pass
 
@@ -62,13 +63,20 @@ class BaseAction(BaseModel, ABC):
 			return False
 		return True
 
+	@classmethod
+	def get_action_type_str(cls) -> str:
+		return f'{cls.__name__}({", ".join(cls.model_fields.keys())}) - {cls.__doc__}'
+
+	def get_action_str(self) -> str:
+		return f'{self.get_action_name()}({", ".join(f"{name}: {value}" for name, value in self.model_dump().items())})'
+
 
 class ClickAction(BaseAction):
 	"""Clicks a specific element on the page."""
 
 	selector: str = Field(description='The selector to click on.')
 
-	def execute(self, page: Page) -> ActionResult:
+	def execute(self, page: Page, task: Task) -> ActionResult:
 		"""Click on the first element that contains the given text."""
 		targets = page.get_by_text(self.selector).filter(visible=True)
 		if targets.count() == 0:
@@ -81,26 +89,19 @@ class ClickAction(BaseAction):
 
 
 class TypeAction(BaseAction):
-	"""Types text into a specific element on the page, like an input field."""
+	"""Type text into the focused element."""
 
-	selector: str = Field(description='A selector for the input field.')
-	text: str = Field(description='The text to type into the input field.')
+	text: str = Field(description='The text to type into the focused element.')
 
-	def execute(self, page: Page) -> ActionResult:
+	def execute(self, page: Page, task: Task) -> ActionResult:
 		"""Type text into an element."""
 		try:
-			targets = page.locator(self.selector).filter(visible=True)
-			if targets.count() == 0:
-				return ActionResult(status=ActionResultStatus.FAILURE, message='Input field not found on page')
-			elif targets.count() == 1:
-				targets.fill(self.text)
-				return ActionResult(status=ActionResultStatus.SUCCESS, message=f"Typed '{self.text}' into element '{self.selector}'.")
-			else:
-				return ActionResult(status=ActionResultStatus.FAILURE, message='Multiple input fields found: ' + str(targets.all()))
+			page.keyboard.type(self.text)
+			return ActionResult(status=ActionResultStatus.SUCCESS, message=f"Typed '{self.text}' into the focused element.")
 		except Exception as e:
 			return ActionResult(
 				status=ActionResultStatus.FAILURE,
-				message=f"Could not type into element with selector '{self.selector}': {e}",
+				message=f'Could not type into the focused element: {e}',
 			)
 
 
@@ -112,9 +113,9 @@ class AbortAction(BaseAction):
 
 	reason: str = Field(description='The reason for aborting the task.')
 
-	def execute(self, page: Page) -> ActionResult:
+	def execute(self, page: Page, task: Task) -> ActionResult:
 		"""Abort the task."""
-		return ActionResult(status=ActionResultStatus.ABORT, message='Task aborted.')
+		return ActionResult(status=ActionResultStatus.ABORT, message=f'Task aborted. Reason: {self.reason}')
 
 
 class FinishAction(BaseAction):
@@ -122,7 +123,7 @@ class FinishAction(BaseAction):
 
 	answer: str = Field(description='The final answer to the user query.')
 
-	def execute(self, page: Page) -> ActionResult:
+	def execute(self, page: Page, task: Task) -> ActionResult:
 		"""Finish the task."""
 		return ActionResult(
 			status=ActionResultStatus.FINISH,
