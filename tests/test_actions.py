@@ -2,6 +2,7 @@ from collections.abc import Callable
 from typing import ClassVar
 
 import pytest
+from pydantic import Field
 
 from web_agent.agent.actions import ActionResult, ActionResultStatus, ActionsController, BaseAction
 
@@ -11,31 +12,40 @@ class Page:
 		self.url = url
 
 
-class DummyAction(BaseAction):
-	selector: str = 'dummy-selector'
-	text: str = 'dummy-text'
+class DummyClickTextAction(BaseAction):
+	"""Clicks on the first element that contains the given text."""
+
+	text: str = Field(description='The text to click on.')
 
 	def execute(self, page: Page) -> ActionResult:
 		return ActionResult(status=ActionResultStatus.SUCCESS, message='Dummy message')
 
 
-class DummyAction2(BaseAction):
-	selector: str = 'dummy-selector'
+class DummyTypeAction(BaseAction):
+	"""Types text into the focused element."""
+
+	selector: str = Field(description='The selector to type into.')
+	text: str = Field(description='The text to type into the focused element.')
 
 	def execute(self, page: Page) -> ActionResult:
 		return ActionResult(status=ActionResultStatus.SUCCESS, message='Dummy message 2')
 
 
-class DummyAction3(BaseAction):
+class DummyClickCoordAction(BaseAction):
+	"""Clicks on the given coordinates."""
+
+	x: int = Field(description='The x coordinate to click on.')
+	y: int = Field(description='The y coordinate to click on.')
+
 	def execute(self, page: Page) -> ActionResult:
 		return ActionResult(status=ActionResultStatus.SUCCESS, message='Dummy message 3')
 
 
 class TestBaseAction:
 	def test_get_action_name(self) -> None:
-		assert DummyAction.get_action_name() == 'dummy_action'
-		assert DummyAction2.get_action_name() == 'dummy_action_2'
-		assert DummyAction3.get_action_name() == 'dummy_action_3'
+		assert DummyClickTextAction.get_action_name() == 'dummy_click_text_action'
+		assert DummyTypeAction.get_action_name() == 'dummy_type_action'
+		assert DummyClickCoordAction.get_action_name() == 'dummy_click_coord_action'
 
 		class MyLLMAction(BaseAction):
 			def execute(self, page: Page) -> ActionResult:
@@ -45,7 +55,7 @@ class TestBaseAction:
 
 	def test_is_applicable_domain_filter(self) -> None:
 		# test with no domains and no page filter
-		class DummyActionNoFilter(DummyAction):
+		class DummyActionNoFilter(DummyClickTextAction):
 			domains: ClassVar[list[str] | None] = None
 			page_filter: ClassVar[Callable[[Page], bool] | None] = None
 
@@ -53,7 +63,7 @@ class TestBaseAction:
 		assert DummyActionNoFilter.is_applicable(page)
 
 		# test with single domain filter (positive)
-		class DummyActionGoogle(DummyAction):
+		class DummyActionGoogle(DummyClickTextAction):
 			domains: ClassVar[list[str] | None] = ['google.com']
 
 		page = Page(url='https://google.com')
@@ -62,14 +72,14 @@ class TestBaseAction:
 		page = Page(url='https://www.google.com')
 		assert DummyActionGoogle.is_applicable(page)
 
-		class DummyActionWildcardGoogle(DummyAction):
+		class DummyActionWildcardGoogle(DummyClickTextAction):
 			domains: ClassVar[list[str] | None] = ['*.google.com']
 
 		page = Page(url='https://www.google.com')
 		assert DummyActionWildcardGoogle.is_applicable(page)
 
 		# test with multiple domains filter (positive)
-		class DummyActionMultipleDomains(DummyAction):
+		class DummyActionMultipleDomains(DummyClickTextAction):
 			domains: ClassVar[list[str] | None] = ['test.com', '*.test.com', '*.google.com']
 
 		page = Page(url='https://test.com')
@@ -82,21 +92,21 @@ class TestBaseAction:
 		assert DummyActionMultipleDomains.is_applicable(page)
 
 		# test with domains filter (negative)
-		class DummyActionTestDomain(DummyAction):
+		class DummyActionTestDomain(DummyClickTextAction):
 			domains: ClassVar[list[str] | None] = ['*.test.com']
 
 		page = Page(url='https://www.google.com')
 		assert not DummyActionTestDomain.is_applicable(page)
 
 		# test with multiple domains filter (negative)
-		class DummyActionMultipleDomainsNegative(DummyAction):
+		class DummyActionMultipleDomainsNegative(DummyClickTextAction):
 			domains: ClassVar[list[str] | None] = ['test.com', '*.test.com', '*.google.com']
 
 		page = Page(url='https://example.com')
 		assert not DummyActionMultipleDomainsNegative.is_applicable(page)
 
 		# test with empty domains filter -> makes it negative for all pages
-		class DummyActionEmptyDomains(DummyAction):
+		class DummyActionEmptyDomains(DummyClickTextAction):
 			domains: ClassVar[list[str] | None] = []
 
 		page = Page(url='https://www.google.com')
@@ -105,7 +115,7 @@ class TestBaseAction:
 		# test with * domains filter -> should raise an error, is not allowed (to allow for all set domains to None)
 		with pytest.raises(ValueError):
 
-			class DummyActionWildcardDomain(DummyAction):
+			class DummyActionWildcardDomain(DummyClickTextAction):
 				domains: ClassVar[list[str] | None] = ['*']
 
 			page = Page(url='https://www.google.com')
@@ -113,14 +123,14 @@ class TestBaseAction:
 
 	def test_is_applicable_page_filter(self) -> None:
 		# test with page filter (positive)
-		class DummyActionPageFilterPositive(DummyAction):
+		class DummyActionPageFilterPositive(DummyClickTextAction):
 			page_filter: ClassVar[Callable[[Page], bool] | None] = lambda page: page.url == 'https://google.com'
 
 		page = Page(url='https://google.com')
 		assert DummyActionPageFilterPositive.is_applicable(page)
 
 		# test with page filter (negative)
-		class DummyActionPageFilterNegative(DummyAction):
+		class DummyActionPageFilterNegative(DummyClickTextAction):
 			page_filter: ClassVar[Callable[[Page], bool] | None] = lambda page: page.url == 'https://google.com'
 
 		page = Page(url='https://test.com')
@@ -129,34 +139,44 @@ class TestBaseAction:
 
 class TestActionsController:
 	def test_get_applicable_actions(self) -> None:
-		actions_controller = ActionsController([DummyAction, DummyAction2])
+		actions_controller = ActionsController([DummyClickTextAction, DummyTypeAction])
 
 		# test with no domains and no page filter
 		page = Page(url='https://google.com')
 		actions = actions_controller._get_applicable_actions(page)
 		expected_action_count = 2
 		assert len(actions) == expected_action_count
-		assert actions[0].get_action_name() == 'dummy_action'
-		assert actions[1].get_action_name() == 'dummy_action_2'
+		assert actions[0].get_action_name() == 'dummy_click_text_action'
+		assert actions[1].get_action_name() == 'dummy_type_action'
 
 		# test with domains filter (negative)
 		page = Page(url='https://google.com')
 
-		class DummyAction3Test(DummyAction3):
+		class DummyClickCoordActionTest(DummyClickCoordAction):
 			domains: ClassVar[list[str] | None] = ['*.test.com']
 
-		actions_controller.register_action(DummyAction3Test)
+		actions_controller.register_action(DummyClickCoordActionTest)
 		actions = actions_controller._get_applicable_actions(page)
 		expected_action_count = 2
 		assert len(actions) == expected_action_count
-		assert actions[0].get_action_name() == 'dummy_action'
-		assert actions[1].get_action_name() == 'dummy_action_2'
+		assert actions[0].get_action_name() == 'dummy_click_text_action'
+		assert actions[1].get_action_name() == 'dummy_type_action'
 
 		# test with domains filter (positive)
 		page = Page(url='https://test.com')
 		actions = actions_controller._get_applicable_actions(page)
 		expected_action_count = 3
 		assert len(actions) == expected_action_count
-		assert actions[0].get_action_name() == 'dummy_action'
-		assert actions[1].get_action_name() == 'dummy_action_2'
-		assert actions[2].get_action_name() == 'dummy_action_3_test'
+		assert actions[0].get_action_name() == 'dummy_click_text_action'
+		assert actions[1].get_action_name() == 'dummy_type_action'
+		assert actions[2].get_action_name() == 'dummy_click_coord_action_test'
+
+	def test_get_applicable_actions_str(self) -> None:
+		actions_controller = ActionsController([DummyClickTextAction, DummyTypeAction])
+		page = Page(url='https://google.com')
+		actions_str = actions_controller.get_applicable_actions_str(page)
+		expected_actions_str = (
+			'dummy_click_text_action(text) - Clicks on the first element that contains the given text.\n'
+			+ 'dummy_type_action(selector, text) - Types text into the focused element.'
+		)
+		assert actions_str == expected_actions_str
