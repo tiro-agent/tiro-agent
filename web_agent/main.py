@@ -5,6 +5,7 @@ import time
 import nest_asyncio
 
 from web_agent.agent.agent import Agent
+from web_agent.agent.schema import Task
 from web_agent.browser.browser import Browser
 
 nest_asyncio.apply()
@@ -35,7 +36,7 @@ def main() -> None:
 	with Browser(headless=args.headless) as browser:
 		agent = Agent(browser)
 		output_dir = 'output/' + time.strftime('%Y-%m-%d_%H-%M-%S') + '_' + args.task_id
-		result = agent.run(task['confirmed_task'], task['website'], output_dir)
+		result = agent.run(Task(description=task['confirmed_task'], url=task['website'], output_dir=output_dir))
 		print('Result:', result)
 
 
