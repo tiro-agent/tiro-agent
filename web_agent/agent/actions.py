@@ -47,7 +47,7 @@ class BaseAction(BaseModel, ABC):
 	@classmethod
 	def get_action_name(cls) -> str:
 		"""Returns the snake_case name of the action from its class name."""
-		# E.g., ClickAction -> click_action, TypeAction -> type_action, MyHTTPAction -> my_http_action, MyAction2 -> my_action_2
+		# E.g., Click -> click, Type -> type, MyHTTP -> my_http, MyAction2 -> my_action_2 (not my_2)
 		name = cls.__name__
 		s1 = re.sub(r'(.)([A-Z][a-z]+)', r'\1_\2', name)
 		s2 = re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', s1)
@@ -71,7 +71,7 @@ class BaseAction(BaseModel, ABC):
 		return f'{self.get_action_name()}({", ".join(f"{name}: {value}" for name, value in self.model_dump().items())})'
 
 
-class ClickAction(BaseAction):
+class Click(BaseAction):
 	"""Clicks a specific element on the page."""
 
 	selector: str = Field(description='The selector to click on.')
@@ -88,7 +88,7 @@ class ClickAction(BaseAction):
 			return ActionResult(status=ActionResultStatus.FAILURE, message='Multiple targets found: ' + str(targets.all()))
 
 
-class ClickByTextAction(BaseAction):
+class ClickByText(BaseAction):
 	"""Clicks on the first element that contains the given text."""
 
 	text: str = Field(description='The text to click on.')
@@ -105,7 +105,7 @@ class ClickByTextAction(BaseAction):
 			return ActionResult(status=ActionResultStatus.FAILURE, message='Multiple targets found: ' + str(targets.all()))
 
 
-class ClickByTextIthAction(BaseAction):
+class ClickByTextIth(BaseAction):
 	"""Clicks on the ith element that contains the given text."""
 
 	text: str = Field(description='The text to click on.')
@@ -123,7 +123,7 @@ class ClickByTextIthAction(BaseAction):
 			return ActionResult(status=ActionResultStatus.SUCCESS, message='Clicked on the ith element that contains the given text.')
 
 
-class ScrollUpAction(BaseAction):
+class ScrollUp(BaseAction):
 	"""Scrolls up on the page."""
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
@@ -132,7 +132,7 @@ class ScrollUpAction(BaseAction):
 		return ActionResult(status=ActionResultStatus.SUCCESS, message='Scrolled up on the page.')
 
 
-class ScrollDownAction(BaseAction):
+class ScrollDown(BaseAction):
 	"""Scrolls down on the page."""
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
@@ -141,7 +141,7 @@ class ScrollDownAction(BaseAction):
 		return ActionResult(status=ActionResultStatus.SUCCESS, message='Scrolled down on the page.')
 
 
-class SearchTextAction(BaseAction):
+class SearchText(BaseAction):
 	"""Searches for the given text on the current page and focuses on it."""
 
 	text: str = Field(description='The text to search for.')
@@ -160,7 +160,7 @@ class SearchTextAction(BaseAction):
 			return ActionResult(status=ActionResultStatus.FAILURE, message='Multiple targets found: ' + str(targets.all()))
 
 
-class TypeAction(BaseAction):
+class Type(BaseAction):
 	"""Type text into the focused element."""
 
 	text: str = Field(description='The text to type into the focused element.')
@@ -177,7 +177,7 @@ class TypeAction(BaseAction):
 			)
 
 
-class FillAction(BaseAction):
+class Fill(BaseAction):
 	"""Fill the given input text into the first element that has the given placeholder text."""
 
 	placeholder: str = Field(description='The placeholder text of the input field.')
@@ -191,7 +191,7 @@ class FillAction(BaseAction):
 		)
 
 
-class ClickCoordAction(BaseAction):
+class ClickCoord(BaseAction):
 	"""Clicks on the given coordinates."""
 
 	x: int = Field(description='The x coordinate to click on.')
@@ -203,7 +203,7 @@ class ClickCoordAction(BaseAction):
 		return ActionResult(status=ActionResultStatus.SUCCESS, message='Clicked on the given coordinates.')
 
 
-class BackAction(BaseAction):
+class Back(BaseAction):
 	"""Go back to the previous page."""
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
@@ -212,7 +212,7 @@ class BackAction(BaseAction):
 		return ActionResult(status=ActionResultStatus.SUCCESS, message='Go back to the previous page.')
 
 
-class ResetAction(BaseAction):
+class Reset(BaseAction):
 	"""Reset the browser to the initial starting page."""
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
@@ -221,7 +221,7 @@ class ResetAction(BaseAction):
 		return ActionResult(status=ActionResultStatus.SUCCESS, message='Reset the browser to the initial starting page.')
 
 
-class AbortAction(BaseAction):
+class Abort(BaseAction):
 	"""
 	Abort the task only in case when you have failed to complete the task and there is no way to recover.
 	Do not use this if you have completed the task.
@@ -234,7 +234,7 @@ class AbortAction(BaseAction):
 		return ActionResult(status=ActionResultStatus.ABORT, message=f'Task aborted. Reason: {self.reason}')
 
 
-class FinishAction(BaseAction):
+class Finish(BaseAction):
 	"""Indicate that the task is finished and provide the final answer."""
 
 	answer: str = Field(description='The final answer to the user query.')
@@ -269,11 +269,11 @@ class ActionsController:
 	def register_action(self, action: type[BaseAction]) -> None:
 		self.actions.append(action)
 
-	def _get_applicable_actions(self, page: Page) -> list[type[BaseAction]]:
-		return [action for action in self.actions if action.is_applicable(page)]
-
 	def get_applicable_actions_str(self, page: Page) -> str:
 		return '\n'.join([action.get_action_type_str() for action in self._get_applicable_actions(page)])
+
+	def _get_applicable_actions(self, page: Page) -> list[type[BaseAction]]:
+		return [action for action in self.actions if action.is_applicable(page)]
 
 
 class ActionHistoryStep(BaseModel):
