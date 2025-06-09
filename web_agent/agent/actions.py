@@ -217,7 +217,7 @@ class Back(BaseAction):
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
 		"""Go back to the previous page."""
-		page.go_back()
+		page.evaluate('window.history.back()')
 		return ActionResult(status=ActionResultStatus.SUCCESS, message='Go back to the previous page.')
 
 
@@ -226,7 +226,12 @@ class Reset(BaseAction):
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
 		"""Reset the browser to the initial starting page."""
-		page.goto(task.url)
+		try:
+			page.goto(task.url)
+			page.wait_for_load_state('networkidle')
+		except TimeoutError:
+			return ActionResult(status=ActionResultStatus.INFO, message='Page did not indicate that it was loaded. Proceeding anyway.')
+
 		return ActionResult(status=ActionResultStatus.SUCCESS, message='Reset the browser to the initial starting page.')
 
 
@@ -241,7 +246,7 @@ class Abort(BaseAction):
 
 
 class Finish(BaseAction):
-	"""Indicate that the task is finished and provide the final answer."""
+	"""Indicate that the task is finished and provide the final answer/result."""
 
 	answer: str = Field(description='The final answer to the user query.')
 
@@ -255,7 +260,7 @@ class Finish(BaseAction):
 
 
 class ActionDecision(BaseModel):
-	"""The decision of the agent."""
+	"""The decision of the agent which action/function call to perform next."""
 
 	thought: str = Field(..., description='Your reasoning process and next step.')
 	action: str = Field(
