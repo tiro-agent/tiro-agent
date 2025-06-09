@@ -252,7 +252,7 @@ class ActionDecision(BaseModel):
 	"""The decision of the agent."""
 
 	thought: str = Field(..., description='Your reasoning process and next step.')
-	action: BaseAction | list[BaseAction] = Field(..., description='The action to perform next, chosen from the available tools.')
+	action: str = Field(..., description='The action to perform next, chosen from the available tools.')
 
 
 class ActionsController:
