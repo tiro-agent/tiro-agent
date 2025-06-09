@@ -88,6 +88,78 @@ class ClickAction(BaseAction):
 			return ActionResult(status=ActionResultStatus.FAILURE, message='Multiple targets found: ' + str(targets.all()))
 
 
+class ClickByTextAction(BaseAction):
+	"""Clicks on the first element that contains the given text."""
+
+	text: str = Field(description='The text to click on.')
+
+	def execute(self, page: Page, task: Task) -> ActionResult:
+		"""Click on the first element that contains the given text."""
+		targets = page.get_by_text(self.text).filter(visible=True)
+		if targets.count() == 0:
+			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
+		elif targets.count() == 1:
+			targets.click()
+			return ActionResult(status=ActionResultStatus.SUCCESS, message='Clicked on the first element that contains the given text.')
+		else:
+			return ActionResult(status=ActionResultStatus.FAILURE, message='Multiple targets found: ' + str(targets.all()))
+
+
+class ClickByTextIthAction(BaseAction):
+	"""Clicks on the ith element that contains the given text."""
+
+	text: str = Field(description='The text to click on.')
+	ith: int = Field(description='The index of the element to click on.')
+
+	def execute(self, page: Page, task: Task) -> ActionResult:
+		"""Click on the ith element that contains the given text."""
+		targets = page.get_by_text(self.text).filter(visible=True)
+		if targets.count() == 0:
+			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
+		elif targets.count() < self.ith:
+			return ActionResult(status=ActionResultStatus.FAILURE, message='Not enough targets found: ' + str(targets.all()))
+		else:
+			targets[self.ith].click()
+			return ActionResult(status=ActionResultStatus.SUCCESS, message='Clicked on the ith element that contains the given text.')
+
+
+class ScrollUpAction(BaseAction):
+	"""Scrolls up on the page."""
+
+	def execute(self, page: Page, task: Task) -> ActionResult:
+		"""Scrolls up on the page."""
+		page.mouse.wheel(0, -700)
+		return ActionResult(status=ActionResultStatus.SUCCESS, message='Scrolled up on the page.')
+
+
+class ScrollDownAction(BaseAction):
+	"""Scrolls down on the page."""
+
+	def execute(self, page: Page, task: Task) -> ActionResult:
+		"""Scrolls down on the page."""
+		page.mouse.wheel(0, 700)
+		return ActionResult(status=ActionResultStatus.SUCCESS, message='Scrolled down on the page.')
+
+
+class SearchTextAction(BaseAction):
+	"""Searches for the given text on the current page and focuses on it."""
+
+	text: str = Field(description='The text to search for.')
+
+	def execute(self, page: Page, task: Task) -> ActionResult:
+		"""Searches for the given query on the current page and focuses on it."""
+		targets = page.get_by_text(self.text).filter(visible=True)
+		if targets.count() == 0:
+			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
+		elif targets.count() == 1:
+			targets.focus()
+			return ActionResult(
+				status=ActionResultStatus.SUCCESS, message='Searched for the given text on the current page and focused on it.'
+			)
+		else:
+			return ActionResult(status=ActionResultStatus.FAILURE, message='Multiple targets found: ' + str(targets.all()))
+
+
 class TypeAction(BaseAction):
 	"""Type text into the focused element."""
 
@@ -103,6 +175,50 @@ class TypeAction(BaseAction):
 				status=ActionResultStatus.FAILURE,
 				message=f'Could not type into the focused element: {e}',
 			)
+
+
+class FillAction(BaseAction):
+	"""Fill the given input text into the first element that has the given placeholder text."""
+
+	placeholder: str = Field(description='The placeholder text of the input field.')
+	text: str = Field(description='The text to fill into the input field.')
+
+	def execute(self, page: Page, task: Task) -> ActionResult:
+		"""Fill the given input text into the first element that has the given placeholder text."""
+		page.locator(f'input[placeholder="{self.placeholder}"]').fill(self.text)
+		return ActionResult(
+			status=ActionResultStatus.SUCCESS, message=f"Filled '{self.text}' into the first element that has the given placeholder text."
+		)
+
+
+class ClickCoordAction(BaseAction):
+	"""Clicks on the given coordinates."""
+
+	x: int = Field(description='The x coordinate to click on.')
+	y: int = Field(description='The y coordinate to click on.')
+
+	def execute(self, page: Page, task: Task) -> ActionResult:
+		"""Click on the given coordinates."""
+		page.mouse.click(self.x, self.y)
+		return ActionResult(status=ActionResultStatus.SUCCESS, message='Clicked on the given coordinates.')
+
+
+class BackAction(BaseAction):
+	"""Go back to the previous page."""
+
+	def execute(self, page: Page, task: Task) -> ActionResult:
+		"""Go back to the previous page."""
+		page.go_back()
+		return ActionResult(status=ActionResultStatus.SUCCESS, message='Go back to the previous page.')
+
+
+class ResetAction(BaseAction):
+	"""Reset the browser to the initial starting page."""
+
+	def execute(self, page: Page, task: Task) -> ActionResult:
+		"""Reset the browser to the initial starting page."""
+		page.goto(task.url)
+		return ActionResult(status=ActionResultStatus.SUCCESS, message='Reset the browser to the initial starting page.')
 
 
 class AbortAction(BaseAction):
