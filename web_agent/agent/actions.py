@@ -282,32 +282,18 @@ class ActionsController:
 		return '\n'.join([action.get_action_definition_str() for action in self._get_applicable_actions(page)])
 
 	def parse_action_str(self, action_str: str) -> BaseAction:
-		# Remove the whitespace
-		action_str = action_str.strip()
-		if action_str == '':
-			raise ValueError('Action string is empty')
+		action_str = self._clean_and_validate_action_str(action_str)
 
-		# check if the action has brackets, if not add them
-		if '(' not in action_str:
-			action_str = f'{action_str}()'
-
-		# Check if the action string is valid (e.g., click_by_text("text") or click_by_text_ith("text", 1) or back() or finish("answer"))
-		if not self._is_valid_action_function(action_str):
-			raise ValueError(f'Action string is not valid: {action_str}')
-
-		# Parse the action name
 		action_name = action_str.split('(')[0]
-
-		# Get the action type
 		action_type = self._get_action_by_name(action_name)
+
 		if action_type is None:
 			raise ValueError(f'Action type not found: {action_name}')
 
-		# Parse the action parameters
 		action_params_str = action_str.split('(')[1].split(')')[0]
 		action_params = []
 		if action_params_str.strip():  # Only parse if there are parameters
-			raw_params = [param.strip() for param in action_params_str.split(',')]
+			raw_params = self._parse_comma_separated_params(action_params_str)
 			action_params = [self._parse_parameter_value(param) for param in raw_params]
 
 		# Create the action
@@ -321,11 +307,6 @@ class ActionsController:
 			action_kwargs = {}
 			for i, param in enumerate(action_params):
 				field_name = field_names[i]
-
-				# Convert parameter to expected type if needed (probably not needed)
-				# field_info = action_type.model_fields[field_name]
-				# expected_type = field_info.annotation
-				# converted_param = self._convert_to_type(param, expected_type)
 
 				action_kwargs[field_name] = param
 
@@ -345,68 +326,77 @@ class ActionsController:
 	def _get_applicable_actions(self, page: Page) -> list[type[BaseAction]]:
 		return [action for action in self.actions if action.is_applicable(page)]
 
+	@classmethod
+	def _clean_and_validate_action_str(cls, action_str: str) -> str:
+		"""Clean and validate the action string."""
+		action_str = action_str.strip()
+		if action_str == '':
+			raise ValueError('Action string is empty')
+
+		# check if the action has brackets, if not add them
+		if '(' not in action_str:
+			action_str = f'{action_str}()'
+
+		if not cls._is_valid_action_function(action_str):
+			raise ValueError(f'Action string is not valid: {action_str}')
+
+		return action_str
+
 	@staticmethod
 	def _is_valid_action_function(action_str: str) -> bool:
 		return re.match(r'^[a-zA-Z0-9_]+\([^)]*\)$', action_str)
+
+	@staticmethod
+	def _parse_comma_separated_params(param_str: str) -> list[str]:
+		"""Parse a comma-separated parameter string, handling quoted strings that may contain commas and named parameters."""
+		result = []
+		current = ''
+		in_quotes = False
+		quote_char = None
+		for char in param_str:
+			if char in ['"', "'"]:
+				if not in_quotes:
+					in_quotes = True
+					quote_char = char
+				elif char == quote_char:
+					in_quotes = False
+				current += char
+			elif char == ',' and not in_quotes:
+				result.append(current.strip())
+				current = ''
+			else:
+				current += char
+		if current:
+			result.append(current.strip())
+		return result
 
 	@staticmethod
 	def _parse_parameter_value(param: str) -> str | int | float:
 		"""Parse a parameter value, handling different quote styles and types."""
 		param = param.strip()
 
-		# Handle quoted strings (both single and double quotes)
-		if (param.startswith('"') and param.endswith('"')) or (param.startswith("'") and param.endswith("'")):
-			return param[1:-1]  # Remove quotes
+		# Handle named parameters in the format key=value
+		if '=' in param:
+			_, value = param.split('=', 1)
+			param = value.strip()
 
-		# Try to parse as integer
-		try:
-			return int(param)
-		except ValueError:
-			pass
+		# Handle named parameters in the format key: value
+		elif ':' in param:
+			_, value = param.split(':', 1)
+			param = value.strip()
 
-		# Try to parse as float
-		try:
-			return float(param)
-		except ValueError:
-			pass
+		# Remove quotes if present
+		if len(param) >= 2 and param[0] in ('"', "'") and param[0] == param[-1]:  # noqa: PLR2004
+			param = param[1:-1]
 
-		# Return as string if no quotes and not a number
+		# Try to parse as number (int first, then float)
+		for converter in (int, float):
+			try:
+				return converter(param)
+			except ValueError:
+				continue
+
 		return param
-
-	@staticmethod
-	def _convert_to_type(value: str | int | float, expected_type: type) -> any:
-		"""Convert a value to the expected type."""
-		import typing
-
-		# Handle Optional types and Union types
-		if hasattr(expected_type, '__origin__'):
-			if expected_type.__origin__ is typing.Union:
-				# For Union types (like Optional), try the first non-None type
-				for arg in expected_type.__args__:
-					if arg is not type(None):
-						expected_type = arg
-						break
-
-		# If already the correct type, return as is
-		if isinstance(value, expected_type):
-			return value
-
-		# Convert based on expected type
-		if expected_type is int:
-			if isinstance(value, str):
-				return int(value)
-			elif isinstance(value, float):
-				return int(value)
-		elif expected_type is float:
-			if isinstance(value, str):
-				return float(value)
-			elif isinstance(value, int):
-				return float(value)
-		elif expected_type is str:
-			return str(value)
-
-		# If no conversion needed or possible, return as is
-		return value
 
 
 class ActionHistoryStep(BaseModel):

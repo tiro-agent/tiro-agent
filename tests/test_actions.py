@@ -176,8 +176,8 @@ class TestActionsController:
 		page = Page(url='https://google.com')
 		actions_str = actions_controller.get_applicable_actions_str(page)
 		expected_actions_str = (
-			'dummy_click_text_action(text) - Clicks on the first element that contains the given text.\n'
-			+ 'dummy_type_action(selector, text) - Types text into the focused element.'
+			"dummy_click_text_action('text') - Clicks on the first element that contains the given text.\n"
+			+ "dummy_type_action('selector', 'text') - Types text into the focused element."
 		)
 		assert actions_str == expected_actions_str
 
@@ -201,3 +201,53 @@ class TestActionsController:
 		assert not ActionsController._is_valid_action_function('click_by_text("text")(')
 		assert not ActionsController._is_valid_action_function('click_by_text("text"')
 		assert not ActionsController._is_valid_action_function('click_by_text')
+
+	def test_parse_comma_separated_params(self) -> None:
+		assert ActionsController._parse_comma_separated_params('"text"') == ['"text"']
+		assert ActionsController._parse_comma_separated_params('"text, text"') == ['"text, text"']
+		assert ActionsController._parse_comma_separated_params('"text, text", "2"') == ['"text, text"', '"2"']
+		assert ActionsController._parse_comma_separated_params('\'text, text\', "2"') == ["'text, text'", '"2"']
+		assert ActionsController._parse_comma_separated_params('2') == ['2']
+
+	def test_parse_parameter_value(self) -> None:
+		# test with quotes
+		assert ActionsController._parse_parameter_value('"text"') == 'text'
+		assert ActionsController._parse_parameter_value("'text'") == 'text'
+
+		# test with spaces
+		assert ActionsController._parse_parameter_value(' "text" ') == 'text'
+
+		# test with comma in string
+		assert ActionsController._parse_parameter_value('text, text') == 'text, text'
+
+		# test with numbers
+		assert ActionsController._parse_parameter_value('1') == 1
+		assert ActionsController._parse_parameter_value('1.0') == 1.0
+
+		# test with named parameters and equal sign
+		assert ActionsController._parse_parameter_value('test="hello"') == 'hello'
+		assert ActionsController._parse_parameter_value('test= "hello"') == 'hello'
+		assert ActionsController._parse_parameter_value('test ="hello"') == 'hello'
+		assert ActionsController._parse_parameter_value('test = "hello"') == 'hello'
+		assert ActionsController._parse_parameter_value("test='hello'") == 'hello'
+		assert ActionsController._parse_parameter_value("test='1'") == 1
+		assert ActionsController._parse_parameter_value('test=1') == 1
+
+		# test with named parameters and colon
+		assert ActionsController._parse_parameter_value('test: 1') == 1
+		assert ActionsController._parse_parameter_value('test: 1.0') == 1.0
+		assert ActionsController._parse_parameter_value('test: hello') == 'hello'
+		assert ActionsController._parse_parameter_value('test: "hello"') == 'hello'
+
+	def test_parse_action_str(self) -> None:
+		action_controller = ActionsController([DummyClickTextAction, DummyTypeAction])
+		action_str = 'dummy_click_text_action("text")'
+		action = action_controller.parse_action_str(action_str)
+		assert action.text == 'text'
+		assert action.get_action_name() == 'dummy_click_text_action'
+
+		action_str = 'dummy_type_action("selector", "text")'
+		action = action_controller.parse_action_str(action_str)
+		assert action.selector == 'selector'
+		assert action.text == 'text'
+		assert action.get_action_name() == 'dummy_type_action'
