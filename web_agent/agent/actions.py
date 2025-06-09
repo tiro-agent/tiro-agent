@@ -77,7 +77,7 @@ class BaseAction(BaseModel, ABC):
 		return f'{cls.get_action_type_str()} - {cls.get_action_description()}'
 
 	def get_action_str(self) -> str:
-		return f'{self.get_action_name()}({", ".join(f"{name}: {value}" for name, value in self.model_dump().items())})'
+		return f'{self.get_action_name()}({", ".join(f"{name}='{value}'" for name, value in self.model_dump().items())})'
 
 
 class Click(BaseAction):
