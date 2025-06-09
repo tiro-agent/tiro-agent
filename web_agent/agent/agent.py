@@ -138,5 +138,5 @@ class Agent:
 
 				break
 
-			time.sleep(5)
+			time.sleep(3)
 			step += 1
