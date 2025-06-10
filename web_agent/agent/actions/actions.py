@@ -12,7 +12,6 @@ class Click(BaseAction):
 	selector: str = Field(description='The selector to click on.')
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
-		"""Click on the first element that contains the given text."""
 		targets = page.get_by_text(self.selector).filter(visible=True)
 		if targets.count() == 0:
 			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
@@ -30,7 +29,6 @@ class ClickByText(BaseAction):
 	text: str = Field(description='The text to click on.')
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
-		"""Click on the first element that contains the given text."""
 		targets = page.get_by_text(self.text).filter(visible=True)
 		if targets.count() == 0:
 			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
@@ -38,7 +36,8 @@ class ClickByText(BaseAction):
 			targets.click()
 			return ActionResult(status=ActionResultStatus.SUCCESS, message='Clicked on the first element that contains the given text.')
 		else:
-			return ActionResult(status=ActionResultStatus.FAILURE, message='Multiple targets found: ' + str(targets.all()))
+			targets_str = str([f'{i} -  {str(target.element_handle()).replace("JSHandle@", "")}' for i, target in enumerate(targets.all())])
+			return ActionResult(status=ActionResultStatus.FAILURE, message='Multiple targets found: ' + targets_str)
 
 
 @default_action
@@ -49,7 +48,6 @@ class ClickByTextIth(BaseAction):
 	ith: int = Field(description='The index of the element to click on.')
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
-		"""Click on the ith element that contains the given text."""
 		targets = page.get_by_text(self.text).filter(visible=True)
 		if targets.count() == 0:
 			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
@@ -65,7 +63,6 @@ class ScrollUp(BaseAction):
 	"""Scrolls up on the page."""
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
-		"""Scrolls up on the page."""
 		page.mouse.wheel(0, -700)
 		return ActionResult(status=ActionResultStatus.SUCCESS, message='Scrolled up on the page.')
 
@@ -75,7 +72,6 @@ class ScrollDown(BaseAction):
 	"""Scrolls down on the page."""
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
-		"""Scrolls down on the page."""
 		page.mouse.wheel(0, 700)
 		return ActionResult(status=ActionResultStatus.SUCCESS, message='Scrolled down on the page.')
 
@@ -87,7 +83,6 @@ class SearchText(BaseAction):
 	text: str = Field(description='The text to search for.')
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
-		"""Searches for the given query on the current page and focuses on it."""
 		targets = page.get_by_text(self.text).filter(visible=True)
 		if targets.count() == 0:
 			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
@@ -107,7 +102,6 @@ class TypeText(BaseAction):
 	text: str = Field(description='The text to type into the focused element.')
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
-		"""Type text into an element."""
 		try:
 			page.keyboard.type(self.text)
 			return ActionResult(status=ActionResultStatus.SUCCESS, message=f"Typed '{self.text}' into the focused element.")
@@ -120,17 +114,25 @@ class TypeText(BaseAction):
 
 @default_action
 class Fill(BaseAction):
-	"""Fill the given input text into the first element that has the given placeholder text."""
+	"""Click on the first element that contains the given text and type the given content into it."""
 
-	placeholder: str = Field(description='The placeholder text of the input field.')
-	text: str = Field(description='The text to fill into the input field.')
+	text: str = Field(description='The text of the element to click on.')
+	content: str = Field(description='The content to fill into the selected field.')
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
-		"""Fill the given input text into the first element that has the given placeholder text."""
-		page.locator(f'input[placeholder="{self.placeholder}"]').fill(self.text)
-		return ActionResult(
-			status=ActionResultStatus.SUCCESS, message=f"Filled '{self.text}' into the first element that has the given placeholder text."
-		)
+		targets = page.get_by_text(self.text).filter(visible=True)
+		if targets.count() == 0:
+			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
+		else:
+			targets.first.click()
+			page.keyboard.type(self.content)
+			message = f'Clicked on the first element that contains {self.text} and filled the given content into it.'
+			if targets.count() > 1:
+				message += ' WARNING: Multiple targets found, selected first.'
+			return ActionResult(
+				status=ActionResultStatus.SUCCESS,
+				message=message,
+			)
 
 
 @default_action
@@ -141,7 +143,6 @@ class ClickCoord(BaseAction):
 	y: int = Field(description='The y coordinate to click on.')
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
-		"""Click on the given coordinates."""
 		page.mouse.click(self.x, self.y)
 		return ActionResult(status=ActionResultStatus.SUCCESS, message='Clicked on the given coordinates.')
 
@@ -151,7 +152,6 @@ class Back(BaseAction):
 	"""Go back to the previous page."""
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
-		"""Go back to the previous page."""
 		page.evaluate('window.history.back()')
 		return ActionResult(status=ActionResultStatus.SUCCESS, message='Go back to the previous page.')
 
@@ -161,7 +161,6 @@ class Reset(BaseAction):
 	"""Reset the browser to the initial starting page."""
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
-		"""Reset the browser to the initial starting page."""
 		try:
 			page.goto(task.url)
 			page.wait_for_load_state('networkidle')
@@ -178,7 +177,6 @@ class Abort(BaseAction):
 	reason: str = Field(description='The reason for aborting the task.')
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
-		"""Abort the task."""
 		return ActionResult(status=ActionResultStatus.ABORT, message=f'Task aborted. Reason: {self.reason}')
 
 
@@ -189,7 +187,6 @@ class Finish(BaseAction):
 	answer: str = Field(description='The final answer to the user query.')
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
-		"""Finish the task."""
 		return ActionResult(
 			status=ActionResultStatus.FINISH,
 			message=f'Task finished. The answer is: {self.answer}',

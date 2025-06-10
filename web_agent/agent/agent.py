@@ -108,8 +108,6 @@ class Agent:
 			)
 
 			if action_result.status in (ActionResultStatus.FINISH, ActionResultStatus.ABORT):
-				print('Task finished with status:', action_result.status)
-
 				# dump the action history to a file
 				with open(f'{task.output_dir}/action_history.txt', 'w') as f:
 					f.write(f'Task description: {task.description}\n')
@@ -117,7 +115,12 @@ class Agent:
 					f.write(f'Task output dir: {task.output_dir}\n')
 					f.write(f'Action history: {self.action_history_controller.get_action_history_str()}\n')
 
-				break
+				if action_result.status == ActionResultStatus.FINISH:
+					print('Task finished with answer:', action_result.data['answer'])
+					return action_result.data['answer']
+				else:
+					print('Task aborted with reason:', action_result.message)
+					return 'ERROR'
 
 			time.sleep(3)
 			step += 1
