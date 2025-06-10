@@ -3,12 +3,9 @@ import time
 from pydantic_ai import Agent as ChatAgent
 from pydantic_ai import BinaryContent
 
-from web_agent.agent.actions.actions import (
-	ActionHistoryController,
-	ActionHistoryStep,
-	ActionResultStatus,
-	ActionsRegistry,
-)
+from web_agent.agent.actions.actions import ActionResultStatus
+from web_agent.agent.actions.history import ActionsHistoryController, ActionsHistoryStep
+from web_agent.agent.actions.registry import ActionsRegistry
 from web_agent.agent.prompts import get_system_prompt
 from web_agent.agent.schemas import AgentDecision, Task
 from web_agent.browser.browser import Browser
@@ -20,7 +17,7 @@ class Agent:
 	def __init__(self, browser: Browser) -> None:
 		self.browser = browser
 		self.actions_controller = ActionsRegistry.create_default()
-		self.action_history_controller = ActionHistoryController()
+		self.action_history_controller = ActionsHistoryController()
 		self.system_prompt = get_system_prompt()
 
 	def run(self, task: Task) -> None:  # noqa: PLR0915
@@ -107,7 +104,7 @@ class Agent:
 			# LOOP STEP 8: ACTION EXECUTION
 			action_result = action.execute(self.browser.page, task)
 			self.action_history_controller.add_action(
-				ActionHistoryStep(action=action, status=action_result.status, message=action_result.message, screenshot=screenshot_path)
+				ActionsHistoryStep(action=action, status=action_result.status, message=action_result.message, screenshot=screenshot_path)
 			)
 
 			if action_result.status in (ActionResultStatus.FINISH, ActionResultStatus.ABORT):
