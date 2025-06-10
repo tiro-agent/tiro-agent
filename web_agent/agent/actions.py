@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 from playwright.sync_api import Page
 from pydantic import BaseModel, Field
 
-from web_agent.agent.schema import Task
+from web_agent.agent.schemas import Task
 from web_agent.utils import check_domain_pattern_match
 
 

@@ -11,7 +11,7 @@ from web_agent.agent.actions import (
 	ActionsController,
 )
 from web_agent.agent.prompts import get_system_prompt
-from web_agent.agent.schema import Task
+from web_agent.agent.schemas import Task
 from web_agent.browser.browser import Browser
 
 
