@@ -14,36 +14,10 @@ from web_agent.agent.prompts import get_system_prompt
 from web_agent.agent.schema import Task
 from web_agent.browser.browser import Browser
 
-"""
-The new agent implementation would be as follows:
-
-1. The agent would be a class with a run method.
-2. The class would have a browser instance, a system prompt, and an actions controller.
-3. The run method would take a task, a url, and an output directory.
-4. The run method would load the url. (call browser.load_url(url))
-5. The run method would start the agent loop:
-	- save a screenshot of the page. (call browser.save_screenshot(f'{output_dir}/step_{step}.png'))
-	- clean the page. (call browser.clean_page())
-	- generate a prompt for the LLM. (call generate_step_prompt())
-	- generate the agent instance. (call _generate_llm_with_actions(page, system_prompt, actions_controller))
-	- run the agent. (call agent.run_sync())
-	- get the LLM's response (automatically parsed by pydantic_ai)
-	- execute the action
-	- save the action to the action history including the result, message, the action itself, page_metadata, and the screenshot
-	- sleep for 5 seconds
-	- if ActionResult.status is not FINISH or ABORT, go back to step 5
-	- if ActionResult.status is FINISH, return the answer
-	- if ActionResult.status is ABORT, return the answer
-
-- log all the steps and actions, and the results of the actions
-- log the final answer
-- output the logging to the console
-"""
-
-MAX_ERROR_COUNT = 3
-
 
 class Agent:
+	MAX_ERROR_COUNT = 3
+
 	def __init__(self, browser: Browser) -> None:
 		self.browser = browser
 		self.actions_controller = ActionsController.create_default()
@@ -107,7 +81,7 @@ class Agent:
 				print('Error getting action decision:', e)
 
 				llm_error_count += 1
-				if llm_error_count > MAX_ERROR_COUNT:
+				if llm_error_count > self.MAX_ERROR_COUNT:
 					print('Too many errors, aborting. Please try again.')
 					break
 				print('Retrying...')
@@ -123,7 +97,7 @@ class Agent:
 				# TODO: handle the error and reprompt the LLM including the error message
 
 				output_format_error_count += 1
-				if output_format_error_count > MAX_ERROR_COUNT:
+				if output_format_error_count > self.MAX_ERROR_COUNT:
 					print('Too many errors, aborting')
 					break
 				print('Retrying...')
