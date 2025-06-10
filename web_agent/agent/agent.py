@@ -3,7 +3,7 @@ import time
 from pydantic_ai import Agent as ChatAgent
 from pydantic_ai import BinaryContent
 
-from web_agent.agent.actions import (
+from web_agent.agent.actions.actions import (
 	ActionDecision,
 	ActionHistoryController,
 	ActionHistoryStep,

@@ -4,7 +4,7 @@ from typing import ClassVar
 import pytest
 from pydantic import Field
 
-from web_agent.agent.actions import ActionParser, ActionResult, ActionResultStatus, ActionsController, BaseAction
+from web_agent.agent.actions.actions import ActionParser, ActionResult, ActionResultStatus, ActionsController, BaseAction
 
 
 class Page:
