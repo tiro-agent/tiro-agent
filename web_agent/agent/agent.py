@@ -7,7 +7,7 @@ from web_agent.agent.actions.actions import (
 	ActionHistoryController,
 	ActionHistoryStep,
 	ActionResultStatus,
-	ActionsController,
+	ActionsRegistry,
 )
 from web_agent.agent.prompts import get_system_prompt
 from web_agent.agent.schemas import AgentDecision, Task
@@ -19,7 +19,7 @@ class Agent:
 
 	def __init__(self, browser: Browser) -> None:
 		self.browser = browser
-		self.actions_controller = ActionsController.create_default()
+		self.actions_controller = ActionsRegistry.create_default()
 		self.action_history_controller = ActionHistoryController()
 		self.system_prompt = get_system_prompt()
 

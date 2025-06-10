@@ -4,7 +4,7 @@ from typing import ClassVar
 import pytest
 from pydantic import Field
 
-from web_agent.agent.actions.actions import ActionParser, ActionResult, ActionResultStatus, ActionsController, BaseAction
+from web_agent.agent.actions.actions import ActionParser, ActionResult, ActionResultStatus, ActionsRegistry, BaseAction
 
 
 class Page:
@@ -139,7 +139,7 @@ class TestBaseAction:
 
 class TestActionsController:
 	def test_get_applicable_actions(self) -> None:
-		actions_controller = ActionsController([DummyClickTextAction, DummyTypeAction])
+		actions_controller = ActionsRegistry([DummyClickTextAction, DummyTypeAction])
 
 		# test with no domains and no page filter
 		page = Page(url='https://google.com')
@@ -172,7 +172,7 @@ class TestActionsController:
 		assert actions[2].get_action_name() == 'dummy_click_coord_action_test'
 
 	def test_get_applicable_actions_str(self) -> None:
-		actions_controller = ActionsController([DummyClickTextAction, DummyTypeAction])
+		actions_controller = ActionsRegistry([DummyClickTextAction, DummyTypeAction])
 		page = Page(url='https://google.com')
 		actions_str = actions_controller.get_applicable_actions_str(page)
 		expected_actions_str = (
@@ -183,7 +183,7 @@ class TestActionsController:
 
 	@pytest.mark.skip(reason='This test is not implemented yet. It includes all the default actions from the actions.py file.')
 	def test_create_default(self) -> None:
-		actions_controller = ActionsController.create_default()
+		actions_controller = ActionsRegistry.create_default()
 		page = Page(url='https://google.com')
 		actions_str = actions_controller.get_applicable_actions_str(page)
 		expected_actions_str = (

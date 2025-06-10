@@ -170,7 +170,7 @@ class SearchText(BaseAction):
 			return ActionResult(status=ActionResultStatus.FAILURE, message='Multiple targets found: ' + str(targets.all()))
 
 
-class Type(BaseAction):
+class TypeText(BaseAction):
 	"""Type text into the focused element."""
 
 	text: str = Field(description='The text to type into the focused element.')
@@ -350,16 +350,16 @@ class ActionParser:
 		return None
 
 
-class ActionsController:
-	"""Controller for actions."""
+class ActionsRegistry:
+	"""Registry for actions."""
 
 	def __init__(self, actions: list[type[BaseAction]] | None = None) -> None:
 		self.actions = actions if actions is not None else []
 		self.parser = ActionParser()
 
 	@classmethod
-	def create_default(cls) -> 'ActionsController':
-		"""Creates an ActionsController with all available actions."""
+	def create_default(cls) -> 'ActionsRegistry':
+		"""Creates an ActionsRegistry with all available actions."""
 		return cls(actions=BaseAction.__subclasses__())
 
 	def register_action(self, action: type[BaseAction]) -> None:
