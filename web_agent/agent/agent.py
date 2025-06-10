@@ -1,118 +1,126 @@
 import time
 
-from playwright.sync_api import Page
 from pydantic_ai import Agent as ChatAgent
 from pydantic_ai import BinaryContent
 
-from web_agent.agent.actions import ActionsController
-from web_agent.agent.prompts import get_possible_actions_prompt, get_system_prompt
+from web_agent.agent.actions.actions import ActionResultStatus
+from web_agent.agent.actions.history import ActionsHistoryController, ActionsHistoryStep
+from web_agent.agent.actions.registry import ActionsRegistry
+from web_agent.agent.prompts import get_system_prompt
+from web_agent.agent.schemas import AgentDecision, Task
 from web_agent.browser.browser import Browser
 
 
 class Agent:
+	MAX_ERROR_COUNT = 3
+
 	def __init__(self, browser: Browser) -> None:
 		self.browser = browser
-		possible_actions = get_possible_actions_prompt()
-		self.system_prompt = get_system_prompt(possible_actions)
+		self.actions_controller = ActionsRegistry.create_default()
+		self.action_history_controller = ActionsHistoryController()
+		self.system_prompt = get_system_prompt()
 
-	def run(self, task: str, url: str, output_dir: str) -> None:
+	def run(self, task: Task) -> None:  # noqa: PLR0915
 		step = 0
-		past_actions = []
+		output_format_error_count = 0
+		llm_error_count = 0
 
-		self.system_prompt = self.system_prompt + f'TASK: {task}'
-		print(self.system_prompt)
-		llm = ChatAgent('google-gla:gemini-2.5-flash-preview-05-20', system_prompt=self.system_prompt)
+		# STEP 0: SETUP LLM
+		system_prompt = self.system_prompt + f'TASK: {task.description}'
+		llm = ChatAgent(model='google-gla:gemini-2.5-flash-preview-05-20', system_prompt=system_prompt, output_type=AgentDecision)
 
-		self.browser.load_url(url)
+		# STEP 1: LOAD THE URL
+		self.browser.load_url(task.url)
 
-		# AGENT LOOP
+		# STEP 2: AGENT LOOP
 		while True:
-			# PAGE LOADING AND CLEANUP
-			# Page already loaded at start or through action
+			# LOOP STEP 1: PAGE CLEANUP
 			self.browser.clean_page()
-			self.browser.save_screenshot(f'{output_dir}/step_{step}.png')
-			screenshot = open(f'{output_dir}/step_{step}.png', 'rb').read()
-			# html = self.browser.get_html()
-			metadata = self.browser.get_metadata()
-			print('Metadata:', metadata)
-			# TODO: add cleanup
+			# TODO: add actual cleanup
 
-			# PAGE ANALYSIS
+			# LOOP STEP 2: GET PAGE DATA
+			screenshot_path = f'{task.output_dir}/step_{step}.png'
+			screenshot = self.browser.save_screenshot(screenshot_path)
+			metadata = self.browser.get_metadata()
+
+			# LOOP STEP 3: PAGE ANALYSIS
 			# TODO
 
-			# PAGE AND TASK EVALUATION / MULTISTEP PLANNING - TODO: separate
-			past_actions_str = 'Prior actions: \n- ' + '\n- '.join(
-				[
-					f'ACTION: {action}, SUCCESS: {"n/a" if success is None else success}{", MESSAGE: " + message if success is False else ""}'
-					for (action, success, message) in past_actions
-				]
+			# LOOP STEP 4: MULTISTEP PLANNING
+			# TODO
+
+			# LOOP STEP 5: GET AGENT PROMPT
+			past_actions_str = self.action_history_controller.get_action_history_str()
+			available_actions_str = self.actions_controller.get_applicable_actions_str(self.browser.page)
+
+			prompt_str = '\n'
+			# prompt_str += f'Metadata: \n{metadata!s}\n\n'
+			prompt_str += f'Past actions:\n{past_actions_str}\n\n'
+			prompt_str += f'Available actions:\n{available_actions_str}\n\n'
+			prompt_str += 'Choose the next action to take.\n'
+
+			prompt = [
+				BinaryContent(data=screenshot, media_type='image/png'),
+				prompt_str,
+			]
+
+			print('-' * 100)
+			print('Step number:', step)
+			print('Metadata:', metadata)
+			print('Past actions:\n', past_actions_str)
+
+			# LOOP STEP 6: GET AGENT DECISION
+			try:
+				action_decision: AgentDecision = llm.run_sync(prompt).output
+				print('Action: ', action_decision.action, ' - ', action_decision.thought)
+			except Exception as e:
+				print('Error getting action decision:', e)
+
+				llm_error_count += 1
+				if llm_error_count > self.MAX_ERROR_COUNT:
+					print('Too many errors, aborting. Please try again.')
+					break
+				print('Retrying...')
+				time.sleep(3)
+				continue
+
+			# LOOP STEP 7: ACTION PARSING
+			try:
+				action = self.actions_controller.parse_action_str(action_decision.action)
+			except ValueError as e:
+				print('Error parsing action:', e)
+
+				# TODO: handle the error and reprompt the LLM including the error message
+
+				output_format_error_count += 1
+				if output_format_error_count > self.MAX_ERROR_COUNT:
+					print('Too many errors, aborting')
+					break
+				print('Retrying...')
+				continue
+
+			output_format_error_count = 0
+
+			# LOOP STEP 8: ACTION EXECUTION
+			action_result = action.execute(self.browser.page, task)
+			self.action_history_controller.add_action(
+				ActionsHistoryStep(action=action, status=action_result.status, message=action_result.message, screenshot=screenshot_path)
 			)
-			print(past_actions_str)
 
-			action = (
-				llm.run_sync(
-					[
-						#'NEXT STEP, CHOOSE ACTION\n\n',
-						#'Metadata: \n',
-						# str(metadata),
-						BinaryContent(data=screenshot, media_type='image/png'),
-						past_actions_str,
-					]
-				)
-				.output.strip()
-				.replace('"', "'")
-			)
-			print('Action:', action)
+			if action_result.status in (ActionResultStatus.FINISH, ActionResultStatus.ABORT):
+				# dump the action history to a file
+				with open(f'{task.output_dir}/action_history.txt', 'w') as f:
+					f.write(f'Task description: {task.description}\n')
+					f.write(f'Task url: {task.url}\n')
+					f.write(f'Task output dir: {task.output_dir}\n')
+					f.write(f'Action history: {self.action_history_controller.get_action_history_str()}\n')
 
-			# STEP EXECUTION
-			command, args = action.split("('")[0], action.split("('")[1].split("')")[0].replace("', '", "','").split("','")
-			print('Command:', command)
-			print('Args:', args)
+				if action_result.status == ActionResultStatus.FINISH:
+					print('Task finished with answer:', action_result.data['answer'])
+					return action_result.data['answer']
+				else:
+					print('Task aborted with reason:', action_result.message)
+					return 'ERROR'
 
-			success = None
-			message = ''
-			if command == 'click_text':
-				success, message = self.browser.click_by_text(args[0])
-			elif command == 'click_text_ith':
-				success, message = self.browser.click_by_text(args[0], int(args[1]))
-			elif command == 'scroll':
-				self.browser.page.mouse.wheel(0, 700 if args[0] == 'down' else -700)
-				success = None
-			elif command == 'search':
-				success, message = self.browser.search_and_highlight(args[0])
-			elif command == 'fill':
-				success, message = self.browser.click_by_text(args[0])
-				if success:
-					self.browser.page.keyboard.type(args[1])
-			elif command == 'return':
-				return args[0]
-			elif command == 'click_coord':
-				self.browser.page.mouse.click(int(args[0]), int(args[1]))
-				success = None
-			elif command == 'type':
-				self.browser.page.keyboard.type(args[0])
-				success = None
-			elif command == 'back':
-				self.browser.page.evaluate('window.history.back()')
-				success = None
-			elif command == 'reset':
-				self.browser.load_url(url)
-				success = None
-
-			print('Success:', success)
-			print('Message:', message)
-
-			time.sleep(5)
+			time.sleep(3)
 			step += 1
-			past_actions.append((action, success, message))
-
-
-def _generate_llm_with_actions(
-	page: Page,
-	system_prompt: str,
-	actions_controller: ActionsController,
-	model: str = 'google-gla:gemini-2.5-flash-preview-05-20',
-) -> ChatAgent:
-	agent_decision_type = actions_controller.get_agent_decision_type(page)
-	llm = ChatAgent(model, system_prompt=system_prompt, output_type=agent_decision_type)
-	return llm

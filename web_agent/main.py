@@ -5,6 +5,7 @@ import time
 import nest_asyncio
 
 from web_agent.agent.agent import Agent
+from web_agent.agent.schemas import Task
 from web_agent.browser.browser import Browser
 
 nest_asyncio.apply()
@@ -15,6 +16,11 @@ def main() -> None:
 
 	with open('data/Online_Mind2Web.json') as f:
 		tasks = json.load(f)
+
+	# some easy random tasks
+	# mta: 4091bdd3fa64a5b0d912bc08eaf9c824
+	# qatarairways: 005be9dd91c95669d6ddde9ae667125c (easy) (currently not working)
+	# gamestop: 62f1626ce249c31098854f8b38bdd6cf (medium) (has to use search - not that easy)
 
 	parser = argparse.ArgumentParser(description='Web Agent')
 	parser.add_argument('--task-id', type=str, help='Task to perform', default='4091bdd3fa64a5b0d912bc08eaf9c824')
@@ -35,7 +41,7 @@ def main() -> None:
 	with Browser(headless=args.headless) as browser:
 		agent = Agent(browser)
 		output_dir = 'output/' + time.strftime('%Y-%m-%d_%H-%M-%S') + '_' + args.task_id
-		result = agent.run(task['confirmed_task'], task['website'], output_dir)
+		result = agent.run(Task(description=task['confirmed_task'], url=task['website'], output_dir=output_dir))
 		print('Result:', result)
 
 
