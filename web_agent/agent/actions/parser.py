@@ -1,6 +1,6 @@
 import ast
 
-from web_agent.agent.actions.actions import BaseAction
+from web_agent.agent.actions.base import BaseAction
 
 
 class ActionParser:

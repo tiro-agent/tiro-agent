@@ -1,6 +1,8 @@
 from playwright.sync_api import Page
 
-from web_agent.agent.actions.actions import BaseAction
+# Import all actions to make sure they're loaded for __subclasses__() to work
+from web_agent.agent.actions import actions as _  # noqa: F401
+from web_agent.agent.actions.base import BaseAction
 from web_agent.agent.actions.parser import ActionParser
 
 
@@ -13,6 +15,11 @@ class ActionsRegistry:
 
 	@classmethod
 	def create_default(cls) -> 'ActionsRegistry':
+		"""Creates an ActionsRegistry with default actions only."""
+		return cls(actions=BaseAction.get_default_actions())
+
+	@classmethod
+	def create_all(cls) -> 'ActionsRegistry':
 		"""Creates an ActionsRegistry with all available actions."""
 		return cls(actions=BaseAction.__subclasses__())
 

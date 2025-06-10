@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-from web_agent.agent.actions.actions import ActionResultStatus, BaseAction
+from web_agent.agent.actions.base import ActionResultStatus, BaseAction
 
 
 class ActionsHistoryStep(BaseModel):
