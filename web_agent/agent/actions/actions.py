@@ -260,16 +260,6 @@ class Finish(BaseAction):
 		)
 
 
-class ActionDecision(BaseModel):
-	"""The decision of the agent which action/function call to perform next."""
-
-	thought: str = Field(..., description='Your reasoning process and next step.')
-	action: str = Field(
-		...,
-		description="The function call to the action to perform next, chosen from the available actions. Example: click_by_text('text')",
-	)
-
-
 class ActionParser:
 	"""Parser for action strings that converts them into BaseAction instances."""
 

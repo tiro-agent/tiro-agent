@@ -4,14 +4,13 @@ from pydantic_ai import Agent as ChatAgent
 from pydantic_ai import BinaryContent
 
 from web_agent.agent.actions.actions import (
-	ActionDecision,
 	ActionHistoryController,
 	ActionHistoryStep,
 	ActionResultStatus,
 	ActionsController,
 )
 from web_agent.agent.prompts import get_system_prompt
-from web_agent.agent.schemas import Task
+from web_agent.agent.schemas import AgentDecision, Task
 from web_agent.browser.browser import Browser
 
 
@@ -31,7 +30,7 @@ class Agent:
 
 		# STEP 0: SETUP LLM
 		system_prompt = self.system_prompt + f'TASK: {task.description}'
-		llm = ChatAgent(model='google-gla:gemini-2.5-flash-preview-05-20', system_prompt=system_prompt, output_type=ActionDecision)
+		llm = ChatAgent(model='google-gla:gemini-2.5-flash-preview-05-20', system_prompt=system_prompt, output_type=AgentDecision)
 
 		# STEP 1: LOAD THE URL
 		self.browser.load_url(task.url)
@@ -75,7 +74,7 @@ class Agent:
 
 			# LOOP STEP 6: GET AGENT DECISION
 			try:
-				action_decision: ActionDecision = llm.run_sync(prompt).output
+				action_decision: AgentDecision = llm.run_sync(prompt).output
 				print('Action: ', action_decision.action, ' - ', action_decision.thought)
 			except Exception as e:
 				print('Error getting action decision:', e)
