@@ -269,28 +269,15 @@ class ActionDecision(BaseModel):
 	)
 
 
-class ActionsController:
-	"""Controller for actions."""
+class ActionParser:
+	"""Parser for action strings that converts them into BaseAction instances."""
 
-	def __init__(self, actions: list[type[BaseAction]] | None = None) -> None:
-		self.actions = actions if actions is not None else []
-
-	@classmethod
-	def create_default(cls) -> 'ActionsController':
-		"""Creates an ActionsController with all available actions."""
-		return cls(actions=BaseAction.__subclasses__())
-
-	def register_action(self, action: type[BaseAction]) -> None:
-		self.actions.append(action)
-
-	def get_applicable_actions_str(self, page: Page) -> str:
-		return '\n'.join([action.get_action_definition_str() for action in self._get_applicable_actions(page)])
-
-	def parse_action_str(self, action_str: str) -> BaseAction:
+	def parse(self, action_str: str, action_types: list[type[BaseAction]]) -> BaseAction:
+		"""Parse an action string into a BaseAction instance using the provided action types."""
 		action_str = self._clean_and_validate_action_str(action_str)
 
 		action_name = action_str.split('(')[0]
-		action_type = self._get_action_by_name(action_name)
+		action_type = self._get_action_by_name(action_name, action_types)
 
 		if action_type is None:
 			raise ValueError(f'Action type not found: {action_name}')
@@ -353,17 +340,15 @@ class ActionsController:
 		# Return the action
 		return action
 
-	def _get_action_by_name(self, name: str) -> type[BaseAction] | None:
-		for action in self.actions:
+	def _get_action_by_name(self, name: str, action_types: list[type[BaseAction]]) -> type[BaseAction] | None:
+		"""Find an action type by name from the provided action types list."""
+		for action in action_types:
 			if action.get_action_name() == name:
 				return action
 		return None
 
-	def _get_applicable_actions(self, page: Page) -> list[type[BaseAction]]:
-		return [action for action in self.actions if action.is_applicable(page)]
-
-	@classmethod
-	def _clean_and_validate_action_str(cls, action_str: str) -> str:
+	@staticmethod
+	def _clean_and_validate_action_str(action_str: str) -> str:
 		"""Clean and validate the action string."""
 		action_str = action_str.strip()
 		if action_str == '':
@@ -373,7 +358,7 @@ class ActionsController:
 		if '(' not in action_str:
 			action_str = f'{action_str}()'
 
-		if not cls._is_valid_action_function(action_str):
+		if not ActionParser._is_valid_action_function(action_str):
 			raise ValueError(f'Action string is not valid: {action_str}')
 
 		return action_str
@@ -443,6 +428,32 @@ class ActionsController:
 				continue
 
 		return param
+
+
+class ActionsController:
+	"""Controller for actions."""
+
+	def __init__(self, actions: list[type[BaseAction]] | None = None) -> None:
+		self.actions = actions if actions is not None else []
+		self.parser = ActionParser()
+
+	@classmethod
+	def create_default(cls) -> 'ActionsController':
+		"""Creates an ActionsController with all available actions."""
+		return cls(actions=BaseAction.__subclasses__())
+
+	def register_action(self, action: type[BaseAction]) -> None:
+		self.actions.append(action)
+
+	def get_applicable_actions(self, page: Page) -> list[type[BaseAction]]:
+		return [action for action in self.actions if action.is_applicable(page)]
+
+	def get_applicable_actions_str(self, page: Page) -> str:
+		return '\n'.join([action.get_action_definition_str() for action in self.get_applicable_actions(page)])
+
+	def parse_action_str(self, action_str: str) -> BaseAction:
+		"""Parse an action string into a BaseAction instance."""
+		return self.parser.parse(action_str, self.actions)
 
 
 class ActionHistoryStep(BaseModel):
