@@ -195,73 +195,43 @@ class TestActionsController:
 
 
 class TestActionParser:
-	def test_is_valid_action_function(self) -> None:
-		assert ActionParser._is_valid_action_function('click_by_text("text")')
-		assert ActionParser._is_valid_action_function('click_by_text_ith("text", 1)')
-		assert ActionParser._is_valid_action_function('back()')
-		assert ActionParser._is_valid_action_function('finish("answer")')
-		assert ActionParser._is_valid_action_function('click_text("hello (this is a test)")')
-
-		# test with invalid function calls
-		assert not ActionParser._is_valid_action_function('click_by_text("text")(')
-		assert not ActionParser._is_valid_action_function('click_by_text("text"')
-		assert not ActionParser._is_valid_action_function('click_by_text')
-
-	def test_parse_comma_separated_params(self) -> None:
-		assert ActionParser._parse_comma_separated_params('"text"') == ['"text"']
-		assert ActionParser._parse_comma_separated_params('"text, text"') == ['"text, text"']
-		assert ActionParser._parse_comma_separated_params('"text, text", "2"') == ['"text, text"', '"2"']
-		assert ActionParser._parse_comma_separated_params('\'text, text\', "2"') == ["'text, text'", '"2"']
-		assert ActionParser._parse_comma_separated_params('2') == ['2']
-
-	def test_parse_parameter_value(self) -> None:
-		# test with quotes
-		assert ActionParser._parse_parameter_value('"text"') == 'text'
-		assert ActionParser._parse_parameter_value("'text'") == 'text'
-
-		# test with spaces
-		assert ActionParser._parse_parameter_value(' "text" ') == 'text'
-
-		# test with comma in string
-		assert ActionParser._parse_parameter_value('text, text') == 'text, text'
-
-		# test with numbers
-		assert ActionParser._parse_parameter_value('1') == 1
-		assert ActionParser._parse_parameter_value('1.0') == 1.0
-
-		# test with named parameters and equal sign
-		assert ActionParser._parse_parameter_value('test="hello"') == 'hello'
-		assert ActionParser._parse_parameter_value('test= "hello"') == 'hello'
-		assert ActionParser._parse_parameter_value('test ="hello"') == 'hello'
-		assert ActionParser._parse_parameter_value('test = "hello"') == 'hello'
-		assert ActionParser._parse_parameter_value("test='hello'") == 'hello'
-		assert ActionParser._parse_parameter_value("test='1'") == 1
-		assert ActionParser._parse_parameter_value('test=1') == 1
-
-		# test with named parameters and colon
-		assert ActionParser._parse_parameter_value('test: 1') == 1
-		assert ActionParser._parse_parameter_value('test: 1.0') == 1.0
-		assert ActionParser._parse_parameter_value('test: hello') == 'hello'
-		assert ActionParser._parse_parameter_value('test: "hello"') == 'hello'
-
 	def test_parse_action_str(self) -> None:
 		action_parser = ActionParser()
+
+		# test with single argument
 		action_str = 'dummy_click_text_action("text")'
 		action = action_parser.parse(action_str, [DummyClickTextAction, DummyTypeAction])
 		assert action.text == 'text'
 		assert action.get_action_name() == 'dummy_click_text_action'
 
+		# test with multiple arguments
 		action_str = 'dummy_type_action("selector", "text")'
 		action = action_parser.parse(action_str, [DummyClickTextAction, DummyTypeAction])
 		assert action.selector == 'selector'
 		assert action.text == 'text'
 		assert action.get_action_name() == 'dummy_type_action'
 
+		# test with commas and spaces in the arguments
+		action_str = 'dummy_type_action("text with spaces and commas, here", "text")'
+		action = action_parser.parse(action_str, [DummyClickTextAction, DummyTypeAction])
+		assert action.selector == 'text with spaces and commas, here'
+		assert action.text == 'text'
+		assert action.get_action_name() == 'dummy_type_action'
+
+		# test with spaces around the arguments
+		action_str = 'dummy_type_action( "selector" ,  "text"  )'
+		action = action_parser.parse(action_str, [DummyClickTextAction, DummyTypeAction])
+		assert action.selector == 'selector'
+		assert action.text == 'text'
+		assert action.get_action_name() == 'dummy_type_action'
+
+		# test with colons in the arguments
 		action_str = "dummy_click_text_action('random text with colons: 4 Av-9 St (F)(G), 7 Av (B)(Q), 8 Av (N)...')"
 		action = action_parser.parse(action_str, [DummyClickTextAction, DummyTypeAction])
 		assert action.text == 'random text with colons: 4 Av-9 St (F)(G), 7 Av (B)(Q), 8 Av (N)...'
 		assert action.get_action_name() == 'dummy_click_text_action'
 
+		# test with a quotation mark in the arguments
 		action_str = "dummy_click_text_action('random text with a quotation mark \"')"
 		action = action_parser.parse(action_str, [DummyClickTextAction, DummyTypeAction])
 		assert action.text == 'random text with a quotation mark "'

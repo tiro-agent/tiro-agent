@@ -1,3 +1,4 @@
+import ast
 import re
 from abc import ABC, abstractmethod
 from collections.abc import Callable
@@ -274,71 +275,82 @@ class ActionParser:
 
 	def parse(self, action_str: str, action_types: list[type[BaseAction]]) -> BaseAction:
 		"""Parse an action string into a BaseAction instance using the provided action types."""
-		action_str = self._clean_and_validate_action_str(action_str)
+		action_str = self._clean_action_str(action_str)
 
-		action_name = action_str.split('(')[0]
-		action_type = self._get_action_by_name(action_name, action_types)
+		try:
+			# Parse as Python expression using AST
+			parsed = ast.parse(action_str, mode='eval')
+			call_node = parsed.body
 
-		if action_type is None:
-			raise ValueError(f'Action type not found: {action_name}')
+			# TODO: if ever needed, add additional security checks here (complex function names, DoS attacks, malicious arguments, etc.)
 
-		# Extract parameters more carefully by finding the matching closing parenthesis
-		start_paren_idx = action_str.find('(')
-		if start_paren_idx == -1:
-			raise ValueError(f'No opening parenthesis found in action string: {action_str}')
+			if not isinstance(call_node, ast.Call):
+				raise ValueError(f'Expected function call, got: {action_str}')
 
-		# Find the matching closing parenthesis
-		paren_count = 0
-		in_quotes = False
-		quote_char = None
-		end_paren_idx = -1
+			# Extract function name
+			if not isinstance(call_node.func, ast.Name):
+				raise ValueError(f'Expected simple function name, got: {action_str}')
 
-		for i in range(start_paren_idx, len(action_str)):
-			char = action_str[i]
-			if char in ['"', "'"]:
-				if not in_quotes:
-					in_quotes = True
-					quote_char = char
-				elif char == quote_char:
-					in_quotes = False
-			elif not in_quotes:
-				if char == '(':
-					paren_count += 1
-				elif char == ')':
-					paren_count -= 1
-					if paren_count == 0:
-						end_paren_idx = i
-						break
+			action_name = call_node.func.id
+			action_type = self._get_action_by_name(action_name, action_types)
 
-		if end_paren_idx == -1:
-			raise ValueError(f'No matching closing parenthesis found in action string: {action_str}')
+			if action_type is None:
+				raise ValueError(f'Action type not found: {action_name}')
 
-		action_params_str = action_str[start_paren_idx + 1 : end_paren_idx]
-		action_params = []
-		if action_params_str.strip():  # Only parse if there are parameters
-			raw_params = self._parse_comma_separated_params(action_params_str)
-			action_params = [self._parse_parameter_value(param) for param in raw_params]
+			# Extract arguments and convert to kwargs
+			kwargs = self._extract_kwargs_from_call(call_node, action_type)
 
-		# Create the action
-		if action_params:
-			# Map positional parameters to field names
-			field_names = list(action_type.model_fields.keys())
-			if len(action_params) > len(field_names):
-				raise ValueError(f'Too many parameters: expected {len(field_names)}, got {len(action_params)}')
+			# Create and return the action
+			return action_type(**kwargs)
 
-			# Convert parameters to the correct types based on field annotations
-			action_kwargs = {}
-			for i, param in enumerate(action_params):
-				field_name = field_names[i]
+		except SyntaxError as e:
+			raise ValueError(f'Invalid syntax in action string "{action_str}": {e}') from e
+		except Exception as e:
+			raise ValueError(f'Failed to parse action string "{action_str}": {e}') from e
 
-				action_kwargs[field_name] = param
+	def _clean_action_str(self, action_str: str) -> str:
+		"""Clean and validate the action string."""
+		action_str = action_str.strip()
+		if not action_str:
+			raise ValueError('Action string is empty')
 
-			action = action_type(**action_kwargs)
+		# Add parentheses if missing
+		if '(' not in action_str:
+			action_str = f'{action_str}()'
+
+		return action_str
+
+	def _extract_kwargs_from_call(self, call_node: ast.Call, action_type: type[BaseAction]) -> dict:
+		"""Extract keyword arguments from AST call node."""
+		kwargs = {}
+		field_names = list(action_type.model_fields.keys())
+
+		# Handle positional arguments
+		for i, arg in enumerate(call_node.args):
+			if i >= len(field_names):
+				raise ValueError(f'Too many positional arguments: expected {len(field_names)}, got {len(call_node.args)}')
+
+			field_name = field_names[i]
+			kwargs[field_name] = self._extract_value_from_ast(arg)
+
+		# Handle keyword arguments
+		for keyword in call_node.keywords:
+			if keyword.arg is None:
+				raise ValueError('**kwargs not supported')
+
+			if keyword.arg in kwargs:
+				raise ValueError(f'Duplicate argument: {keyword.arg}')
+
+			kwargs[keyword.arg] = self._extract_value_from_ast(keyword.value)
+
+		return kwargs
+
+	def _extract_value_from_ast(self, node: ast.AST) -> str | int | float:
+		"""Extract Python value from AST node."""
+		if isinstance(node, ast.Constant):
+			return node.value
 		else:
-			action = action_type()
-
-		# Return the action
-		return action
+			raise ValueError(f'Unsupported argument type: {type(node).__name__}')
 
 	def _get_action_by_name(self, name: str, action_types: list[type[BaseAction]]) -> type[BaseAction] | None:
 		"""Find an action type by name from the provided action types list."""
@@ -346,88 +358,6 @@ class ActionParser:
 			if action.get_action_name() == name:
 				return action
 		return None
-
-	@staticmethod
-	def _clean_and_validate_action_str(action_str: str) -> str:
-		"""Clean and validate the action string."""
-		action_str = action_str.strip()
-		if action_str == '':
-			raise ValueError('Action string is empty')
-
-		# check if the action has brackets, if not add them
-		if '(' not in action_str:
-			action_str = f'{action_str}()'
-
-		if not ActionParser._is_valid_action_function(action_str):
-			raise ValueError(f'Action string is not valid: {action_str}')
-
-		return action_str
-
-	@staticmethod
-	def _is_valid_action_function(action_str: str) -> bool:
-		# Simple check: function_name(anything) - let the parser handle the details
-		return re.match(r'^[a-zA-Z0-9_]+\(.*\)$', action_str, re.DOTALL)
-
-	@staticmethod
-	def _parse_comma_separated_params(param_str: str) -> list[str]:
-		"""Parse a comma-separated parameter string, handling quoted strings that may contain commas and named parameters."""
-		result = []
-		current = ''
-		in_quotes = False
-		quote_char = None
-		for char in param_str:
-			if char in ['"', "'"]:
-				if not in_quotes:
-					in_quotes = True
-					quote_char = char
-				elif char == quote_char:
-					in_quotes = False
-				current += char
-			elif char == ',' and not in_quotes:
-				result.append(current.strip())
-				current = ''
-			else:
-				current += char
-		if current:
-			result.append(current.strip())
-		return result
-
-	@staticmethod
-	def _parse_parameter_value(param: str) -> str | int | float:
-		"""Parse a parameter value, handling different quote styles and types."""
-		param = param.strip()
-
-		# Only handle named parameters if the parameter doesn't start with quotes
-		if len(param) >= 2 and param[0] in ('"', "'"):  # noqa: PLR2004
-			# This is a quoted string, remove quotes and return
-			if param[0] == param[-1]:
-				return param[1:-1]
-			else:
-				# Mismatched quotes, return as-is
-				return param
-
-		# Handle named parameters in the format key=value
-		if '=' in param:
-			_, value = param.split('=', 1)
-			param = value.strip()
-
-		# Handle named parameters in the format key: value
-		elif ':' in param:
-			_, value = param.split(':', 1)
-			param = value.strip()
-
-		# Remove quotes if present (for unquoted named parameters)
-		if len(param) >= 2 and param[0] in ('"', "'") and param[0] == param[-1]:  # noqa: PLR2004
-			param = param[1:-1]
-
-		# Try to parse as number (int first, then float)
-		for converter in (int, float):
-			try:
-				return converter(param)
-			except ValueError:
-				continue
-
-		return param
 
 
 class ActionsController:

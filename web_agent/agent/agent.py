@@ -50,7 +50,7 @@ class Agent:
 		self.action_history_controller = ActionHistoryController()
 		self.system_prompt = get_system_prompt()
 
-	def run(self, task: Task) -> None:
+	def run(self, task: Task) -> None:  # noqa: PLR0915
 		step = 0
 		output_format_error_count = 0
 		llm_error_count = 0
