@@ -1,3 +1,4 @@
+from playwright._impl._errors import TimeoutError
 from playwright.sync_api import Page
 from pydantic import Field
 
@@ -33,7 +34,10 @@ class ClickByText(BaseAction):
 		if targets.count() == 0:
 			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
 		elif targets.count() == 1:
-			targets.click()
+			try:
+				targets.click()
+			except TimeoutError:
+				return ActionResult(status=ActionResultStatus.FAILURE, message='Click timed out, element might not be clickable')
 			return ActionResult(status=ActionResultStatus.SUCCESS, message='Clicked on the first element that contains the given text.')
 		else:
 			targets_str = str([f'{i} -  {str(target.element_handle()).replace("JSHandle@", "")}' for i, target in enumerate(targets.all())])
