@@ -14,6 +14,10 @@ nest_asyncio.apply()
 def main() -> None:
 	print('Hello from web-agent!')
 
+	user_input = input("To avoid getting your IP blocked, it is recommended to use a VPN. Type 'y' to continue: ")
+	while user_input.lower() != 'y':
+		user_input = input("You did not confirm. Please type 'y' once your VPN is connected to continue: ")
+
 	with open('data/Online_Mind2Web.json') as f:
 		tasks = json.load(f)
 
