@@ -1,3 +1,4 @@
+import json
 import time
 
 from pydantic_ai import Agent as ChatAgent
@@ -39,7 +40,7 @@ class Agent:
 			# TODO: add actual cleanup
 
 			# LOOP STEP 2: GET PAGE DATA
-			screenshot_path = f'{task.output_dir}/step_{step}.png'
+			screenshot_path = f'{task.output_dir}/{step}_full_screenshot.png'
 			screenshot = self.browser.save_screenshot(screenshot_path)
 			metadata = self.browser.get_metadata()
 
@@ -104,7 +105,13 @@ class Agent:
 			# LOOP STEP 8: ACTION EXECUTION
 			action_result = action.execute(self.browser.page, task)
 			self.action_history_controller.add_action(
-				ActionsHistoryStep(action=action, status=action_result.status, message=action_result.message, screenshot=screenshot_path)
+				ActionsHistoryStep(
+					thought=action_decision.thought,
+					action=action,
+					status=action_result.status,
+					message=action_result.message,
+					screenshot=screenshot_path,
+				)
 			)
 
 			if action_result.status in (ActionResultStatus.FINISH, ActionResultStatus.ABORT):
@@ -115,12 +122,24 @@ class Agent:
 					f.write(f'Task output dir: {task.output_dir}\n')
 					f.write(f'Action history: {self.action_history_controller.get_action_history_str()}\n')
 
+				final_result = action_result.data['answer'] if action_result.status == ActionResultStatus.FINISH else 'ABORTED'
+
+				output_data = {
+					'task_id': task.identifier,
+					'task': task.description,
+					'final_result_response': final_result,
+					'action_history': [step.action.get_action_str() for step in self.action_history_controller.get_action_history()],
+					'thoughts': [step.thought for step in self.action_history_controller.get_action_history()],
+				}
+				with open(f'{task.output_dir}/result.json', 'w') as f:
+					json.dump(output_data, f, indent=4)
+
 				if action_result.status == ActionResultStatus.FINISH:
 					print('Task finished with answer:', action_result.data['answer'])
-					return action_result.data['answer']
 				else:
 					print('Task aborted with reason:', action_result.message)
-					return 'ERROR'
+
+				return final_result
 
 			time.sleep(3)
 			step += 1

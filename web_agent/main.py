@@ -41,7 +41,7 @@ def main() -> None:
 	with Browser(headless=args.headless) as browser:
 		agent = Agent(browser)
 		output_dir = 'output/' + time.strftime('%Y-%m-%d_%H-%M-%S') + '_' + args.task_id
-		result = agent.run(Task(description=task['confirmed_task'], url=task['website'], output_dir=output_dir))
+		result = agent.run(Task(identifier=task['task_id'], description=task['confirmed_task'], url=task['website'], output_dir=output_dir))
 		print('Result:', result)
 
 

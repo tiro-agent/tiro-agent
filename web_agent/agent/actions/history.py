@@ -6,6 +6,7 @@ from web_agent.agent.actions.base import ActionResultStatus, BaseAction
 class ActionsHistoryStep(BaseModel):
 	"""The step of the action history."""
 
+	thought: str = Field(..., description='The thought process of the action.')
 	action: BaseAction = Field(..., description='The action that was performed.')
 	status: ActionResultStatus = Field(..., description='The status of the action.')
 	message: str = Field(..., description='The message from the action.')
