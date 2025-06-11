@@ -54,7 +54,7 @@ class ClickByTextIth(BaseAction):
 		elif targets.count() < self.ith:
 			return ActionResult(status=ActionResultStatus.FAILURE, message='Not enough targets found: ' + str(targets.all()))
 		else:
-			targets[self.ith].click()
+			targets.nth(self.ith).click()
 			return ActionResult(status=ActionResultStatus.SUCCESS, message='Clicked on the ith element that contains the given text.')
 
 
