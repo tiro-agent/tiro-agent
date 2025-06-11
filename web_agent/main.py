@@ -27,26 +27,37 @@ def main() -> None:
 	# gamestop: 62f1626ce249c31098854f8b38bdd6cf (medium) (has to use search - not that easy)
 
 	parser = argparse.ArgumentParser(description='Web Agent')
-	parser.add_argument('--task-id', type=str, help='Task to perform', default='4091bdd3fa64a5b0d912bc08eaf9c824')
+	parser.add_argument('--task-id', type=str, help='Task to perform (all if not given)', required=False)
 	# parser.add_argument('--browser', type=str, help='Browser to use', required=True)
 	parser.add_argument('--headless', action='store_true', help='Run in headless mode')
 	args = parser.parse_args()
 
 	# Find task
-	matching_tasks = [t for t in tasks if t['task_id'] == args.task_id]
+	if args.task_id is None:
+		matching_tasks = tasks[1:5]
+	else:
+		matching_tasks = [t for t in tasks if t['task_id'] == args.task_id]
+
 	if len(matching_tasks) == 0:
-		print('ERROR: Task not found')
+		print('ERROR: Task(s) not found')
 		return
 
-	task = matching_tasks[0]
-	print('Task:', task['confirmed_task'])
-	print('Website:', task['website'])
+	time_str = time.strftime('%Y-%m-%d_%H-%M-%S')
 
-	with Browser(headless=args.headless) as browser:
-		agent = Agent(browser)
-		output_dir = 'output/' + time.strftime('%Y-%m-%d_%H-%M-%S') + '_' + args.task_id
-		result = agent.run(Task(identifier=task['task_id'], description=task['confirmed_task'], url=task['website'], output_dir=output_dir))
-		print('Result:', result)
+	for i, task in enumerate(matching_tasks):
+		print(f'============= Task {i} =============')
+		print('Id:', task['task_id'])
+		print('Task:', task['confirmed_task'])
+		print('Website:', task['website'])
+
+		with Browser(headless=args.headless) as browser:
+			agent = Agent(browser)
+			output_dir = f'output/{time_str}/{task["task_id"]}'
+			result = agent.run(
+				Task(identifier=task['task_id'], description=task['confirmed_task'], url=task['website'], output_dir=output_dir)
+			)
+			print('Result:', result)
+		print('====================================\n\n')
 
 
 if __name__ == '__main__':
