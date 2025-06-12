@@ -68,7 +68,7 @@ class ScrollUp(BaseAction):
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
 		page.mouse.wheel(0, -700)
-		return ActionResult(status=ActionResultStatus.SUCCESS, message='Scrolled up on the page.')
+		return ActionResult(status=ActionResultStatus.UNKNOWN, message='Sent scroll up command.')
 
 
 @default_action
@@ -77,7 +77,7 @@ class ScrollDown(BaseAction):
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
 		page.mouse.wheel(0, 700)
-		return ActionResult(status=ActionResultStatus.SUCCESS, message='Scrolled down on the page.')
+		return ActionResult(status=ActionResultStatus.UNKNOWN, message='Sent scroll down command.')
 
 
 @default_action
@@ -108,7 +108,9 @@ class TypeText(BaseAction):
 	def execute(self, page: Page, task: Task) -> ActionResult:
 		try:
 			page.keyboard.type(self.text)
-			return ActionResult(status=ActionResultStatus.SUCCESS, message=f"Typed '{self.text}' into the focused element.")
+			return ActionResult(
+				status=ActionResultStatus.UNKNOWN, message=f"Typed '{self.text}' into the focused element if there was any."
+			)
 		except Exception as e:
 			return ActionResult(
 				status=ActionResultStatus.FAILURE,
@@ -148,7 +150,7 @@ class ClickCoord(BaseAction):
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
 		page.mouse.click(self.x, self.y)
-		return ActionResult(status=ActionResultStatus.SUCCESS, message='Clicked on the given coordinates.')
+		return ActionResult(status=ActionResultStatus.UNKNOWN, message='Clicked on the given coordinates.')
 
 
 @default_action
@@ -156,7 +158,7 @@ class Back(BaseAction):
 	"""Go back to the previous page."""
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
-		page.evaluate('window.history.back()')
+		page.go_back()
 		return ActionResult(status=ActionResultStatus.SUCCESS, message='Go back to the previous page.')
 
 

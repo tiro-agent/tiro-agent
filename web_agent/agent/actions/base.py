@@ -15,6 +15,7 @@ from web_agent.utils import check_domain_pattern_match
 class ActionResultStatus(str, Enum):
 	SUCCESS = 'success'
 	FAILURE = 'failure'
+	UNKNOWN = 'unknown'
 	INFO = 'info'
 	ABORT = 'abort'
 	FINISH = 'finish'
