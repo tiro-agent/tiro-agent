@@ -21,14 +21,14 @@
       - utils.py (maybe later into a separate folder)
       - (config.py (optional, maybe later))
       - main.py
-- [ ] Action overhaul: (Niklas)
+- [x] Action overhaul: (Niklas)
   - [x] Add BaseAction class
-  - [ ] Add all the actions
+  - [x] Add all the actions
     - [x] Add ClickAction class
     - [x] Add TypeAction class
     - [x] Add FinishAction class
     - [x] Add AbortAction class
-    - [ ] Add ScrollAction class
+    - [x] Add ScrollAction class
     - [ ] Add ScrollToAction class
     - ...
   - [x] Add ActionsController class
@@ -40,13 +40,20 @@
 - General agent implementation:
   - [x] Add agent class
   - [x] Add generate_llm_with_actions(page: Page, system_prompt: str, actions_controller: ActionsController) function
-  - [ ] Rebuild loop -> intention logger
+  - [x] Rebuild loop -> intention logger
   - [ ] Improve filtering & cleanup logic
+  - [ ] Add some long-term memory
   - [ ] ...
 - Action improvement:
   - [x] Improve click action reliability -> handle multiple options case (Benni)
   - [x] Improve type action reliability -> click first on text and then type (Benni)
+  - [ ] Try click action definition from Ludwig's paper
+  - [ ] Improve type action further
+  - [ ] Improve cookie/popup handling
+  - [ ] Show entire page vs screenshot
+  - [ ] Handle infinite scrolling issue
   - [ ] Page/ARIA specific actions, i.e. search tool
 - [ ] Automatic evaluation
-  - [ ] Integrate with Mind2Web evaluator (WebJudge) -> use Gemini or WebJudge-7B?
+  - [x] Integrate with Mind2Web evaluator (WebJudge)
+  - [ ] figure out how to use Gemini or WebJudge-7B
         [See WebJudge model](https://huggingface.co/osunlp/WebJudge-7B)
