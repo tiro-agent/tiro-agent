@@ -55,10 +55,13 @@ def main() -> None:
 		with Browser(headless=args.headless) as browser:
 			agent = Agent(browser)
 			output_dir = f'output/{time_str}/{task["task_id"]}'
-			result = agent.run(
-				Task(identifier=task['task_id'], description=task['confirmed_task'], url=task['website'], output_dir=output_dir)
-			)
-			print('Result:', result)
+			try:
+				result = agent.run(
+					Task(identifier=task['task_id'], description=task['confirmed_task'], url=task['website'], output_dir=output_dir, max_steps=40)
+				)
+				print('Result:', result)
+			except Exception as e:
+				print(f'Task {i} failed with following exception:', e)
 		print('====================================\n\n')
 
 

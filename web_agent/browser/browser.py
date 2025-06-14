@@ -43,6 +43,10 @@ class Browser:
 			# time.sleep(10)
 		except TimeoutError:
 			print('TimeoutError: Page did not indicate that it was loaded. Proceeding anyway.')
+		except Error:
+			print('Page couldn\'t load, moving on to next task.')
+			raise Exception('Could not load the URL')
+
 
 	def clean_page(self) -> None:
 		try:
