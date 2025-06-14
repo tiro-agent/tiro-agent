@@ -30,10 +30,10 @@ For detailed information about the project structure, see the Notion docs.
 uv sync
 ```
 
-2. Download the browsers with the playwright cli
+2. Download the Chrome browser with the playwright cli
 
 ```bash
-uv run playwright install
+uv run playwright install chrome
 ```
 
 3. Create a .env file with the required API keys, see [.env.example](.env.example)
