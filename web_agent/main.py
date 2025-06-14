@@ -3,12 +3,14 @@ import json
 import time
 
 import nest_asyncio
+from dotenv import load_dotenv
 
 from web_agent.agent.agent import Agent
 from web_agent.agent.schemas import Task
 from web_agent.browser.browser import Browser
 
 nest_asyncio.apply()
+load_dotenv()
 
 
 def main() -> None:
