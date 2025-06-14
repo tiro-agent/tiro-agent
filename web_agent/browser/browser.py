@@ -2,6 +2,22 @@ import types
 
 from playwright._impl._errors import TimeoutError
 from playwright.sync_api import sync_playwright
+from playwright._impl._js_handle import JSHandle
+
+
+def get_js_attr(node: JSHandle, attr: str) -> str:
+	return node.evaluate(f'node => node.{attr}')
+
+def pretty_print_element(node: JSHandle) -> str:
+	html_tag = get_js_attr(node, 'tagName').lower()
+	html_id = get_js_attr(node, 'id')
+	html_text = get_js_attr(node, 'innerText')
+
+	if html_tag == 'a':
+		html_href = get_js_attr(node, 'href')
+		return f'<a href="{html_href}" id="{html_id}">{html_text}</a>'
+	else:
+		return f'<{html_tag} id="{html_id}">{html_text}</{html_tag}>'
 
 
 class Browser:

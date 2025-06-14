@@ -4,6 +4,7 @@ from pydantic import Field
 
 from web_agent.agent.actions.base import ActionResult, ActionResultStatus, BaseAction, default_action
 from web_agent.agent.schemas import Task
+from web_agent.browser.browser import pretty_print_element
 
 
 @default_action
@@ -40,7 +41,7 @@ class ClickByText(BaseAction):
 				return ActionResult(status=ActionResultStatus.FAILURE, message='Click timed out, element might not be clickable')
 			return ActionResult(status=ActionResultStatus.SUCCESS, message='Clicked on the first element that contains the given text.')
 		else:
-			targets_str = str([f'{i} -  {str(target.element_handle()).replace("JSHandle@", "")}' for i, target in enumerate(targets.all())])
+			targets_str = str([f'{i} -  {pretty_print_element(target.element_handle())}' for i, target in enumerate(targets.all())])
 			return ActionResult(status=ActionResultStatus.FAILURE, message='Multiple targets found: ' + targets_str)
 
 
