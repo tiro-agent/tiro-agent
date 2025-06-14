@@ -1,6 +1,6 @@
 import types
 
-from playwright._impl._errors import TimeoutError
+from playwright._impl._errors import TimeoutError, Error
 from playwright.sync_api import sync_playwright
 from playwright._impl._js_handle import JSHandle
 
@@ -45,7 +45,10 @@ class Browser:
 			print('TimeoutError: Page did not indicate that it was loaded. Proceeding anyway.')
 
 	def clean_page(self) -> None:
-		self.page.locator('a').evaluate_all('nodes => nodes.forEach(node => node.removeAttribute("target"))')
+		try:
+			self.page.locator('a').evaluate_all('nodes => nodes.forEach(node => node.removeAttribute("target"))')
+		except Error:
+			print('WARNING: page cleanup failed, proceeding anyways and hoping for automatic recovery in next step')
 
 	def get_html(self) -> str:
 		return self.page.content()
