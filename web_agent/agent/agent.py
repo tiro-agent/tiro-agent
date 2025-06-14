@@ -4,7 +4,7 @@ import time
 from pydantic_ai import Agent as ChatAgent
 from pydantic_ai import BinaryContent
 
-from web_agent.agent.actions.actions import ActionResultStatus
+from web_agent.agent.actions.actions import ActionResultStatus, ActionResult
 from web_agent.agent.actions.history import ActionsHistoryController, ActionsHistoryStep
 from web_agent.agent.actions.registry import ActionsRegistry
 from web_agent.agent.prompts import get_system_prompt
@@ -21,7 +21,7 @@ class Agent:
 		self.action_history_controller = ActionsHistoryController()
 		self.system_prompt = get_system_prompt()
 
-	def run(self, task: Task) -> None:  # noqa: PLR0915
+	def run(self, task: Task, max_steps=20) -> str:  # noqa: PLR0915
 		step = 0
 		output_format_error_count = 0
 		llm_error_count = 0
@@ -114,6 +114,9 @@ class Agent:
 				)
 			)
 
+			if step >= max_steps:
+				action_result = ActionResult(status=ActionResultStatus.ABORT, message='Max steps reached')
+
 			if action_result.status in (ActionResultStatus.FINISH, ActionResultStatus.ABORT):
 				# dump the action history to a file
 				with open(f'{task.output_dir}/action_history.txt', 'w') as f:
@@ -122,7 +125,7 @@ class Agent:
 					f.write(f'Task output dir: {task.output_dir}\n')
 					f.write(f'Action history: {self.action_history_controller.get_action_history_str()}\n')
 
-				final_result = action_result.data['answer'] if action_result.status == ActionResultStatus.FINISH else 'ABORTED'
+				final_result = action_result.data['answer'] if action_result.status == ActionResultStatus.FINISH else f'ABORTED: {action_result.message}'
 
 				output_data = {
 					'task_id': task.identifier,
