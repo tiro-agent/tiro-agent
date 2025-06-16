@@ -6,27 +6,26 @@ from web_agent.agent.actions.base import ActionResult, ActionResultStatus, BaseA
 from web_agent.agent.schemas import Task
 from web_agent.browser.browser import pretty_print_element
 
+# @default_action
+# class Click(BaseAction):
+# 	"""Clicks a specific element on the page."""
 
-@default_action
-class Click(BaseAction):
-	"""Clicks a specific element on the page."""
+# 	selector: str = Field(description='The selector to click on.')
 
-	selector: str = Field(description='The selector to click on.')
-
-	def execute(self, page: Page, task: Task) -> ActionResult:
-		targets = page.get_by_text(self.selector).filter(visible=True)
-		if targets.count() == 0:
-			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
-		elif targets.count() == 1:
-			targets.click()
-			return ActionResult(status=ActionResultStatus.SUCCESS, message='Clicked on the first element that contains the given text.')
-		else:
-			return ActionResult(status=ActionResultStatus.FAILURE, message='Multiple targets found: ' + str(targets.all()))
+# 	def execute(self, page: Page, task: Task) -> ActionResult:
+# 		targets = page.get_by_text(self.selector).filter(visible=True)
+# 		if targets.count() == 0:
+# 			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
+# 		elif targets.count() == 1:
+# 			targets.click()
+# 			return ActionResult(status=ActionResultStatus.SUCCESS, message='Clicked on the first element that contains the given text.')
+# 		else:
+# 			return ActionResult(status=ActionResultStatus.FAILURE, message='Multiple targets found: ' + str(targets.all()))
 
 
 @default_action
 class ClickByText(BaseAction):
-	"""Clicks on the first element that contains the given text."""
+	"""Clicks the element that contains the given text. Will respond with all options if multiple candidates are found."""
 
 	text: str = Field(description='The text to click on.')
 
@@ -82,8 +81,8 @@ class ScrollDown(BaseAction):
 
 
 @default_action
-class SearchText(BaseAction):
-	"""Searches for the given text on the current page and focuses on it."""
+class ScrollToText(BaseAction):
+	"""Searches for the given text on the current page and focuses on it. Will respond with all options if multiple candidates are found."""
 
 	text: str = Field(description='The text to search for.')
 
@@ -101,8 +100,28 @@ class SearchText(BaseAction):
 
 
 @default_action
+class ScrollToIthText(BaseAction):
+	"""Searches for the ith given text on the current page and focuses on it."""
+
+	text: str = Field(description='The text to search for.')
+	ith: int = Field(description='The index of the element to focus on.')
+
+	def execute(self, page: Page, task: Task) -> ActionResult:
+		targets = page.get_by_text(self.text).filter(visible=True)
+		if targets.count() == 0:
+			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
+		elif targets.count() < self.ith:
+			return ActionResult(status=ActionResultStatus.FAILURE, message='Not enough targets found: ' + str(targets.all()))
+		else:
+			targets.nth(self.ith).focus()
+			return ActionResult(
+				status=ActionResultStatus.SUCCESS, message='Searched for the ith given text on the current page and focused on it.'
+			)
+
+
+@default_action
 class TypeText(BaseAction):
-	"""Type text into the focused element."""
+	"""Type text into the focused element. Use a click action to focus on a text field, before using this."""
 
 	text: str = Field(description='The text to type into the focused element.')
 
@@ -119,32 +138,32 @@ class TypeText(BaseAction):
 			)
 
 
+# @default_action
+# class Fill(BaseAction):
+# 	"""Click on the first element that contains the given text and type the given content into it."""
+
+# 	text: str = Field(description='The text of the element to click on.')
+# 	content: str = Field(description='The content to fill into the selected field.')
+
+# 	def execute(self, page: Page, task: Task) -> ActionResult:
+# 		targets = page.get_by_text(self.text).filter(visible=True)
+# 		if targets.count() == 0:
+# 			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
+# 		else:
+# 			targets.first.click()
+# 			page.keyboard.type(self.content)
+# 			message = f'Clicked on the first element that contains {self.text} and filled the given content into it.'
+# 			if targets.count() > 1:
+# 				message += ' WARNING: Multiple targets found, selected first.'
+# 			return ActionResult(
+# 				status=ActionResultStatus.SUCCESS,
+# 				message=message,
+# 			)
+
+
 @default_action
-class Fill(BaseAction):
-	"""Click on the first element that contains the given text and type the given content into it."""
-
-	text: str = Field(description='The text of the element to click on.')
-	content: str = Field(description='The content to fill into the selected field.')
-
-	def execute(self, page: Page, task: Task) -> ActionResult:
-		targets = page.get_by_text(self.text).filter(visible=True)
-		if targets.count() == 0:
-			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
-		else:
-			targets.first.click()
-			page.keyboard.type(self.content)
-			message = f'Clicked on the first element that contains {self.text} and filled the given content into it.'
-			if targets.count() > 1:
-				message += ' WARNING: Multiple targets found, selected first.'
-			return ActionResult(
-				status=ActionResultStatus.SUCCESS,
-				message=message,
-			)
-
-
-@default_action
-class ClickCoord(BaseAction):
-	"""Clicks on the given coordinates."""
+class ClickByCoords(BaseAction):
+	"""Clicks on the given coordinates. Rather unreliable, so should be used as a last resort."""
 
 	x: int = Field(description='The x coordinate to click on.')
 	y: int = Field(description='The y coordinate to click on.')
