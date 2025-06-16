@@ -115,7 +115,7 @@ class Agent:
 			)
 
 			if step >= max_steps:
-				action_result = ActionResult(status=ActionResultStatus.ABORT, message='Max steps reached')
+				action_result = ActionResult(status=ActionResultStatus.ABORT, message='step limit reached')
 
 			if action_result.status in (ActionResultStatus.FINISH, ActionResultStatus.ABORT):
 				# dump the action history to a file
