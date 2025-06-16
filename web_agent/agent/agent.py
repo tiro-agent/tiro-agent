@@ -1,10 +1,11 @@
 import json
+import sys
 import time
 
 from pydantic_ai import Agent as ChatAgent
 from pydantic_ai import BinaryContent
 
-from web_agent.agent.actions.actions import ActionResultStatus, ActionResult
+from web_agent.agent.actions.actions import ActionResult, ActionResultStatus
 from web_agent.agent.actions.history import ActionsHistoryController, ActionsHistoryStep
 from web_agent.agent.actions.registry import ActionsRegistry
 from web_agent.agent.prompts import get_system_prompt
@@ -79,8 +80,8 @@ class Agent:
 
 				llm_error_count += 1
 				if llm_error_count > self.MAX_ERROR_COUNT:
-					print('Too many errors, aborting. Please try again.')
-					break
+					print('Too many errors, aborting. Please check your API key and try again.')
+					sys.exit()
 				print('Retrying...')
 				time.sleep(3)
 				continue
@@ -125,7 +126,11 @@ class Agent:
 					f.write(f'Task output dir: {task.output_dir}\n')
 					f.write(f'Action history: {self.action_history_controller.get_action_history_str()}\n')
 
-				final_result = action_result.data['answer'] if action_result.status == ActionResultStatus.FINISH else f'ABORTED: {action_result.message}'
+				final_result = (
+					action_result.data['answer']
+					if action_result.status == ActionResultStatus.FINISH
+					else f'ABORTED: {action_result.message}'
+				)
 
 				output_data = {
 					'task_id': task.identifier,
