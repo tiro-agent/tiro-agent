@@ -57,7 +57,13 @@ def main() -> None:
 			output_dir = f'output/{time_str}/{task["task_id"]}'
 			try:
 				result = agent.run(
-					Task(identifier=task['task_id'], description=task['confirmed_task'], url=task['website'], output_dir=output_dir, max_steps=40)
+					Task(
+						identifier=task['task_id'],
+						description=task['confirmed_task'],
+						url=task['website'],
+						output_dir=output_dir,
+						max_steps=40,
+					)
 				)
 				print('Result:', result)
 			except Exception as e:
