@@ -110,4 +110,5 @@ target/
 .DS_Store
 
 # Outputs
-output/
+output/*
+!output/analysis.ipynb
