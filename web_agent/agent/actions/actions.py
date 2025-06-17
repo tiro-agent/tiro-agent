@@ -65,7 +65,11 @@ class ClickByTextIth(BaseAction):
 	ith: int = Field(description='The index of the element to click on. Starts at 0, so 0 is the first element.')
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
-		targets = page.get_by_text(self.text).filter(visible=True)
+		text_targets = page.get_by_text(self.text).filter(visible=True)
+		placeholder_targets = page.get_by_placeholder(self.text).filter(visible=True)
+		label_targets = page.get_by_label(self.text).filter(visible=True)
+		targets = text_targets.or_(placeholder_targets).or_(label_targets)
+
 		if targets.count() == 0:
 			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
 		elif targets.count() < self.ith:
