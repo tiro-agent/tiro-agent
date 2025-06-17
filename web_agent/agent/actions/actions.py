@@ -178,6 +178,21 @@ class TypeText(BaseAction):
 				status=ActionResultStatus.FAILURE,
 				message=f'Could not type into the focused element: {e}',
 			)
+		
+
+@default_action
+class ClearInputField(BaseAction):
+	"""Clears the input field that is currently focused."""
+
+	page_filter = lambda page: page.evaluate('document.activeElement.hasAttribute("value") && document.activeElement.value != ""')
+
+	def execute(self, page: Page, task: Task) -> ActionResult:
+		try:
+			# Clear the input field by setting its value to an empty string
+			page.evaluate('document.activeElement.value = ""')
+			return ActionResult(status=ActionResultStatus.SUCCESS, message='Cleared the input field.')
+		except Exception as e:
+			return ActionResult(status=ActionResultStatus.FAILURE, message=f'Could not clear the input field: {e}')
 
 
 # @default_action
