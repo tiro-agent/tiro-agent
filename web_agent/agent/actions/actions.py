@@ -25,7 +25,7 @@ from web_agent.browser.browser import pretty_print_element
 
 @default_action
 class ClickByText(BaseAction):
-	"""Clicks the element that contains the given text. Will respond with all options if multiple candidates are found."""
+	"""Clicks the element that contains the given text. Will respond with all options if multiple candidates are found. If no elements are found, it tries looking for subtexts."""
 
 	text: str = Field(description='The text to click on.')
 
@@ -51,10 +51,10 @@ class ClickByText(BaseAction):
 				targets.click()
 			except TimeoutError:
 				return ActionResult(status=ActionResultStatus.FAILURE, message='Click timed out, element might not be clickable')
-			return ActionResult(status=ActionResultStatus.SUCCESS, message='Clicked on the first element that contains the given text.')
+			return ActionResult(status=ActionResultStatus.SUCCESS, message='Clicked on the element that contains the given text.')
 		else:
 			targets_str = str([f'{i} -  {pretty_print_element(target.element_handle())}' for i, target in enumerate(targets.all())])
-			return ActionResult(status=ActionResultStatus.FAILURE, message='Multiple targets found: ' + targets_str)
+			return ActionResult(status=ActionResultStatus.FAILURE, message='Multiple targets found: ' + targets_str + '\n\nPlease specify the index of the element to click on using the ClickByTextIth action.')
 
 
 @default_action
@@ -62,7 +62,7 @@ class ClickByTextIth(BaseAction):
 	"""Clicks on the ith element that contains the given text."""
 
 	text: str = Field(description='The text to click on.')
-	ith: int = Field(description='The index of the element to click on.')
+	ith: int = Field(description='The index of the element to click on. Starts at 0, so 0 is the first element.')
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
 		targets = page.get_by_text(self.text).filter(visible=True)
