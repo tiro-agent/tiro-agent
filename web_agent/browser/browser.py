@@ -11,11 +11,18 @@ def get_js_attr(node: JSHandle, attr: str) -> str:
 def pretty_print_element(node: JSHandle) -> str:
 	html_tag = get_js_attr(node, 'tagName').lower()
 	html_id = get_js_attr(node, 'id')
-	html_text = get_js_attr(node, 'innerText')
+	html_text = get_js_attr(node, 'innerText')[:50]
 
 	if html_tag == 'a':
 		html_href = get_js_attr(node, 'href')
 		return f'<a href="{html_href}" id="{html_id}">{html_text}</a>'
+	elif html_tag == 'input':
+		html_type = get_js_attr(node, 'type')
+		html_name = get_js_attr(node, 'name')
+		html_placeholder = get_js_attr(node, 'placeholder')
+		return f'<input type="{html_type}" id="{html_id}" name="{html_name}" placeholder="{html_placeholder}" value="{html_text}">'
+	elif html_tag == 'body':
+		return None # Body tag is not useful to print
 	else:
 		return f'<{html_tag} id="{html_id}">{html_text}</{html_tag}>'
 
@@ -30,7 +37,7 @@ class Browser:
 		self.browser = self.playwright.chromium.launch_persistent_context(
 			headless=self.headless,
 			channel='chrome',
-			user_data_dir='./.browser_user_data',
+			user_data_dir='./.browser_user_data'
 		)
 		self.page = self.browser.new_page()
 		# stealth_sync(self.page)   # https://github.com/microsoft/playwright/issues/33529
@@ -64,6 +71,7 @@ class Browser:
 			# 'description': self.page.meta.get('description', ''),
 			# 'is_scrollable': self.page.evaluate('document.body.scrollHeight > document.body.clientHeight')
 			# TODO: add more useful metadata
+			'focused_element': pretty_print_element(self.page.evaluate_handle('document.activeElement')),
 		}
 
 	def save_screenshot(self, screenshot_path: str) -> bytes:
