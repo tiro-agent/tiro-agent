@@ -34,9 +34,10 @@ def main() -> None:
 	parser.add_argument('--headless', action='store_true', help='Run in headless mode')
 	args = parser.parse_args()
 
+	start_i = 0
 	# Find task
 	if args.task_id is None:
-		matching_tasks = tasks[1:5]
+		matching_tasks = tasks[start_i:]
 	else:
 		matching_tasks = [t for t in tasks if t['task_id'] == args.task_id]
 
@@ -47,14 +48,15 @@ def main() -> None:
 	time_str = time.strftime('%Y-%m-%d_%H-%M-%S')
 
 	for i, task in enumerate(matching_tasks):
-		print(f'============= Task {i} =============')
+		nr = start_i + i
+		print(f'============= Task {nr} =============')
 		print('Id:', task['task_id'])
 		print('Task:', task['confirmed_task'])
 		print('Website:', task['website'])
 
 		with Browser(headless=args.headless) as browser:
 			agent = Agent(browser)
-			output_dir = f'output/{time_str}/{task["task_id"]}'
+			output_dir = f'output/{time_str}/{nr:03d}_{task["task_id"]}'
 			try:
 				result = agent.run(
 					Task(
@@ -67,7 +69,7 @@ def main() -> None:
 				)
 				print('Result:', result)
 			except Exception as e:
-				print(f'Task {i} failed with following exception:', e)
+				print(f'Task {nr} failed with following exception:', e)
 		print('====================================\n\n')
 
 
