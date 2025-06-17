@@ -25,6 +25,15 @@
       "type": "debugpy",
       "request": "launch",
       "module": "web_agent.main"
+    },
+    {
+      "name": "RUN: web-agent module with Logfire",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "web_agent.main",
+      "args": [
+        "--logfire"
+      ]
     }
   ]
 }
