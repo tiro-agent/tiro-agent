@@ -23,7 +23,7 @@ class Agent:
 		self.action_history_controller = ActionsHistoryController()
 		self.system_prompt = get_system_prompt()
 
-	def run(self, task: Task, max_steps=20) -> str:  # noqa: PLR0915
+	def run(self, task: Task, max_steps: int = 20) -> str:  # noqa: PLR0915
 		step = 0
 		output_format_error_count = 0
 		llm_error_count = 0
@@ -31,7 +31,12 @@ class Agent:
 		# STEP 0: SETUP LLM
 		system_prompt = self.system_prompt + f'TASK: {task.description}'
 		model_settings = ModelSettings(seed=42, temperature=0)
-		llm = ChatAgent(model='google-gla:gemini-2.5-flash-preview-05-20', system_prompt=system_prompt, output_type=AgentDecision, model_settings=model_settings)
+		llm = ChatAgent(
+			model='google-gla:gemini-2.5-flash-preview-05-20',
+			system_prompt=system_prompt,
+			output_type=AgentDecision,
+			model_settings=model_settings,
+		)
 
 		# STEP 1: LOAD THE URL
 		self.browser.load_url(task.url)

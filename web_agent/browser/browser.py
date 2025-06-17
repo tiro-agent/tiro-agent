@@ -1,12 +1,13 @@
 import types
 
-from playwright._impl._errors import TimeoutError, Error
-from playwright.sync_api import sync_playwright
+from playwright._impl._errors import Error, TimeoutError
 from playwright._impl._js_handle import JSHandle
+from playwright.sync_api import sync_playwright
 
 
 def get_js_attr(node: JSHandle, attr: str) -> str:
 	return node.evaluate(f'node => node.{attr}')
+
 
 def pretty_print_element(node: JSHandle) -> str:
 	html_tag = get_js_attr(node, 'tagName').lower()
@@ -22,7 +23,7 @@ def pretty_print_element(node: JSHandle) -> str:
 		html_placeholder = get_js_attr(node, 'placeholder')
 		return f'<input type="{html_type}" id="{html_id}" name="{html_name}" placeholder="{html_placeholder}" value="{html_text}">'
 	elif html_tag == 'body':
-		return None # Body tag is not useful to print
+		return None  # Body tag is not useful to print
 	else:
 		return f'<{html_tag} id="{html_id}">{html_text}</{html_tag}>'
 
@@ -52,9 +53,8 @@ class Browser:
 		except TimeoutError:
 			print('TimeoutError: Page did not indicate that it was loaded. Proceeding anyway.')
 		except Error:
-			print('Page couldn\'t load, moving on to next task.')
+			print("Page couldn't load, moving on to next task.")
 			raise Exception('Could not load the URL')
-
 
 	def clean_page(self) -> None:
 		try:
