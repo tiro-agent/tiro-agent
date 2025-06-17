@@ -46,6 +46,7 @@ class Agent:
 			screenshot_path = f'{task.output_dir}/{step}_full_screenshot.png'
 			screenshot = self.browser.save_screenshot(screenshot_path)
 			metadata = self.browser.get_metadata()
+			print('Metadata:', metadata)
 
 			# LOOP STEP 3: PAGE ANALYSIS
 			# TODO
@@ -58,7 +59,7 @@ class Agent:
 			available_actions_str = self.actions_controller.get_applicable_actions_str(self.browser.page)
 
 			prompt_str = '\n'
-			# prompt_str += f'Metadata: \n{metadata!s}\n\n'
+			prompt_str += f'Metadata: \n{metadata!s}\n\n'
 			prompt_str += f'Past actions:\n{past_actions_str}\n\n'
 			prompt_str += f'Available actions:\n{available_actions_str}\n\n'
 			prompt_str += 'Choose the next action to take.\n'
