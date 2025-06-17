@@ -150,7 +150,13 @@ class ScrollToIthText(BaseAction):
 
 @default_action
 class TypeText(BaseAction):
-	"""Type text into the focused element. Use a click action to focus on a text field, before using this."""
+	"""Type text into the focused element. You can see your currently focused element in the metadata. Use a click action to focus on a text field, if it is not yet focused.
+	
+	IMPORTANT USAGE NOTE:
+    For the TypeText action, 'press_enter' MUST be a boolean (True/False), not a string!
+    Example: TypeText(text="search term", press_enter=True)
+    INCORRECT: TypeText(text="search term", press_enter="press_enter")
+	"""
 
 	text: str = Field(description='The text to type into the focused element.')
 	press_enter: bool = Field(
