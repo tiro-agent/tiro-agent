@@ -4,6 +4,7 @@ import time
 
 import nest_asyncio
 from dotenv import load_dotenv
+import logfire
 
 from web_agent.agent.agent import Agent
 from web_agent.agent.schemas import Task
@@ -32,6 +33,7 @@ def main() -> None:
 	parser.add_argument('--task-id', type=str, help='Task to perform (all if not given)', required=False)
 	# parser.add_argument('--browser', type=str, help='Browser to use', required=True)
 	parser.add_argument('--headless', action='store_true', help='Run in headless mode')
+	parser.add_argument('--logfire', action='store_true', help='Enable logfire logging')
 	args = parser.parse_args()
 
 	start_i = 0
@@ -47,6 +49,10 @@ def main() -> None:
 	if len(matching_tasks) == 0:
 		print('ERROR: Task(s) not found')
 		return
+	
+	if args.logfire:
+		logfire.configure()
+		logfire.instrument_pydantic_ai()
 
 	time_str = time.strftime('%Y-%m-%d_%H-%M-%S')
 	#time_str = '2025-06-16_12-28-10'
