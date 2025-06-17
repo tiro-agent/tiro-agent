@@ -4,6 +4,7 @@ import time
 
 from pydantic_ai import Agent as ChatAgent
 from pydantic_ai import BinaryContent
+from pydantic_ai.settings import ModelSettings
 
 from web_agent.agent.actions.actions import ActionResult, ActionResultStatus
 from web_agent.agent.actions.history import ActionsHistoryController, ActionsHistoryStep
@@ -29,7 +30,8 @@ class Agent:
 
 		# STEP 0: SETUP LLM
 		system_prompt = self.system_prompt + f'TASK: {task.description}'
-		llm = ChatAgent(model='google-gla:gemini-2.5-flash-preview-05-20', system_prompt=system_prompt, output_type=AgentDecision)
+		model_settings = ModelSettings(seed=42, temperature=0)
+		llm = ChatAgent(model='google-gla:gemini-2.5-flash-preview-05-20', system_prompt=system_prompt, output_type=AgentDecision, model_settings=model_settings)
 
 		# STEP 1: LOAD THE URL
 		self.browser.load_url(task.url)
