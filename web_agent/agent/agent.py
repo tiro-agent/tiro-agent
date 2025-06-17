@@ -1,4 +1,5 @@
 import json
+import math
 import sys
 import time
 
@@ -90,9 +91,12 @@ class Agent:
 				if llm_error_count > self.MAX_ERROR_COUNT:
 					print('Too many errors, aborting. Please check your API key and try again.')
 					sys.exit()
-				print('Retrying...')
-				time.sleep(3)
+				seconds_to_wait = math.exp(llm_error_count - 1) * 10  # 10 sec first error, 27 sec second error, 73 sec third error, etc.
+				print(f'Retrying in {seconds_to_wait} seconds...')
+				time.sleep(seconds_to_wait)
 				continue
+
+			llm_error_count = 0
 
 			# LOOP STEP 7: ACTION PARSING
 			try:
@@ -126,6 +130,7 @@ class Agent:
 			if step >= max_steps:
 				action_result = ActionResult(status=ActionResultStatus.ABORT, message='step limit reached')
 
+			# LOOP STEP 9: TASK FINISHING
 			if action_result.status in (ActionResultStatus.FINISH, ActionResultStatus.ABORT):
 				# dump the action history to a file
 				with open(f'{task.output_dir}/action_history.txt', 'w') as f:
@@ -157,5 +162,10 @@ class Agent:
 
 				return final_result
 
+			# LOOP STEP 10: SELF-REVIEW
+			# evaluate the step success (look at pre and after screenshots) and the agent's performance & ADD A NOTE to the action history
+			# TODO
+
+			# LOOP STEP 11: NEXT STEP
 			time.sleep(3)
 			step += 1

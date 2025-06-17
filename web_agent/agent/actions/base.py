@@ -89,7 +89,7 @@ class BaseAction(BaseModel, ABC):
 	def get_default_actions(cls) -> list[type['BaseAction']]:
 		"""Get all action subclasses that are marked as default actions."""
 
-		def get_all_subclasses(cls):
+		def get_all_subclasses(cls: type['BaseAction']) -> set[type['BaseAction']]:
 			"""Recursively get all subclasses."""
 			result = set()
 			for subclass in cls.__subclasses__():
