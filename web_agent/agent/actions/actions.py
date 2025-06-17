@@ -153,12 +153,13 @@ class TypeText(BaseAction):
 	"""Type text into the focused element. Use a click action to focus on a text field, before using this."""
 
 	text: str = Field(description='The text to type into the focused element.')
+	page_filter = lambda page: page.evaluate('document.activeElement.tagName !== "BODY"')
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
 		try:
 			page.keyboard.type(self.text)
 			return ActionResult(
-				status=ActionResultStatus.UNKNOWN, message=f"Typed '{self.text}' into the focused element if there was any."
+				status=ActionResultStatus.SUCCESS, message=f"Typed '{self.text}' into the focused element."
 			)
 		except Exception as e:
 			return ActionResult(
