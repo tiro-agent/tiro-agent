@@ -37,7 +37,8 @@ class Browser:
 		self.browser = self.playwright.chromium.launch_persistent_context(
 			headless=self.headless,
 			channel='chrome',
-			user_data_dir='./.browser_user_data'
+			user_data_dir='./.browser_user_data',
+			viewport={'width': 1920, 'height': 1080},
 		)
 		self.page = self.browser.new_page()
 		# stealth_sync(self.page)   # https://github.com/microsoft/playwright/issues/33529
