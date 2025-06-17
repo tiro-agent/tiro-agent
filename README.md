@@ -39,6 +39,7 @@ uv run playwright install chrome
 3. Create a .env file with the required API keys, see [.env.example](.env.example)
 
 - GEMINI_API_KEY - set the [Gemini API](https://aistudio.google.com/apikey) key
+- LOGFIRE_TOKEN - if you want to use [Pydantic Logfire](https://pydantic.dev/logfire)
 - (CURRENTLY NOT USED) 2CAPTCHA_API_KEY - set the [2captcha](https://2captcha.com/) API key
 
 4. Run the script
