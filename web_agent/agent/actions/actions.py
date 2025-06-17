@@ -75,7 +75,10 @@ class ClickByTextIth(BaseAction):
 		elif targets.count() < self.ith:
 			return ActionResult(status=ActionResultStatus.FAILURE, message='Not enough targets found: ' + str(targets.all()))
 		else:
-			targets.nth(self.ith).click()
+			try:
+				targets.nth(self.ith).click()
+			except TimeoutError:
+				return ActionResult(status=ActionResultStatus.FAILURE, message='Click timed out, element might not be clickable')
 			return ActionResult(status=ActionResultStatus.SUCCESS, message='Clicked on the ith element that contains the given text.')
 
 
