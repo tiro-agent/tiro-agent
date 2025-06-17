@@ -30,7 +30,20 @@ class ClickByText(BaseAction):
 	text: str = Field(description='The text to click on.')
 
 	def execute(self, page: Page, task: Task) -> ActionResult:
-		targets = page.get_by_text(self.text).filter(visible=True)
+		text_targets = page.get_by_text(self.text).filter(visible=True)
+		placeholder_targets = page.get_by_placeholder(self.text).filter(visible=True)
+		label_targets = page.get_by_label(self.text).filter(visible=True)
+		targets = text_targets.or_(placeholder_targets).or_(label_targets)
+
+		if targets.count() == 0: # If no targets found, try to find subtexts
+			for subtext in self.text.split():
+				text_subtargets = page.get_by_text(subtext).filter(visible=True)
+				placeholder_subtargets = page.get_by_placeholder(subtext).filter(visible=True)
+				label_subtargets = page.get_by_label(subtext).filter(visible=True)
+				subtext_targets = text_subtargets.or_(placeholder_subtargets).or_(label_subtargets)
+				if subtext_targets.count() > 0:
+					targets = targets.or_(subtext_targets)
+
 		if targets.count() == 0:
 			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
 		elif targets.count() == 1:
