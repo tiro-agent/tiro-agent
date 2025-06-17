@@ -26,7 +26,7 @@ class ActionsHistoryController:
 		return self.action_history
 
 	def get_action_history_str(self) -> str:
-		return 'Prior actions: \n- ' + '\n- '.join(
+		return '- ' + '\n- '.join(
 			[
 				f'ACTION: {step.action.get_action_str()}, [{step.status.value.capitalize()}]{
 					", MESSAGE: " + step.message if step.status is not ActionResultStatus.SUCCESS else ""
