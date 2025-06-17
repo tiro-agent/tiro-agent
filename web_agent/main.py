@@ -2,9 +2,9 @@ import argparse
 import json
 import time
 
+import logfire
 import nest_asyncio
 from dotenv import load_dotenv
-import logfire
 
 from web_agent.agent.agent import Agent
 from web_agent.agent.schemas import Task
@@ -37,25 +37,25 @@ def main() -> None:
 	args = parser.parse_args()
 
 	start_i = 0
-	#revelant_tasks = ['824eb7bb0ef1ce40bfd49c12182d9428', '92a3d4236f167af4afdc08876a902ba6', '8f2611047de227a2ca8bda13f6e2e5fb', 'aa4b5cb7114fcc138ade82b4b9716d24', '6ebde509dca8f15c0fa1bd74f071e8d6', '0b51b4fa0295ae80ccd176ebdad6fff6', 'b64f938af842f6a1b4489d0e49a785a7', '8fdec8eeffd3491e6526cc78c028120b', 'a7a73c8fa75441fc76df9746c327bdd6', '816851ff92ff0219acf4364dcc2c4692', '8244409b2c82043f966cad05f9afe132', 'b3f8bd9198d9d157e0848109563c4b23', 'db1ffb5e60578597d1c3aa3c389ac7b1', '7be8cd8dba885cddd9af5320f49bc41b', '239a29bde438fe44fe17fe1390ef1634', '9f1cba613830ca1c6a58f9498c06e679', '75146b7b67388b9244e0f21a1527c022', '871e7771cecb989972f138ecc373107b', 'b69eb4de621e9e265676daac44938f3f', '8ae510355d978424f490798f900bfa2c', '4c186c6ed888d0c8d4cf4adb39443080', 'eb323dc584156d0eb3a2b90bb8c4b791', '354b4ddf048815f8fd4163d0d7e1aaa3', 'e4e097222d13a2560db6f6892612dab6']
+	# revelant_tasks = ['824eb7bb0ef1ce40bfd49c12182d9428', '92a3d4236f167af4afdc08876a902ba6', '8f2611047de227a2ca8bda13f6e2e5fb', 'aa4b5cb7114fcc138ade82b4b9716d24', '6ebde509dca8f15c0fa1bd74f071e8d6', '0b51b4fa0295ae80ccd176ebdad6fff6', 'b64f938af842f6a1b4489d0e49a785a7', '8fdec8eeffd3491e6526cc78c028120b', 'a7a73c8fa75441fc76df9746c327bdd6', '816851ff92ff0219acf4364dcc2c4692', '8244409b2c82043f966cad05f9afe132', 'b3f8bd9198d9d157e0848109563c4b23', 'db1ffb5e60578597d1c3aa3c389ac7b1', '7be8cd8dba885cddd9af5320f49bc41b', '239a29bde438fe44fe17fe1390ef1634', '9f1cba613830ca1c6a58f9498c06e679', '75146b7b67388b9244e0f21a1527c022', '871e7771cecb989972f138ecc373107b', 'b69eb4de621e9e265676daac44938f3f', '8ae510355d978424f490798f900bfa2c', '4c186c6ed888d0c8d4cf4adb39443080', 'eb323dc584156d0eb3a2b90bb8c4b791', '354b4ddf048815f8fd4163d0d7e1aaa3', 'e4e097222d13a2560db6f6892612dab6']
 
 	# Find task
 	if args.task_id is None:
 		matching_tasks = tasks[start_i:]
-		#matching_tasks = [t for t in matching_tasks if t['task_id'] in revelant_tasks]
+		# matching_tasks = [t for t in matching_tasks if t['task_id'] in revelant_tasks]
 	else:
 		matching_tasks = [t for t in tasks if t['task_id'] == args.task_id]
 
 	if len(matching_tasks) == 0:
 		print('ERROR: Task(s) not found')
 		return
-	
+
 	if args.logfire:
 		logfire.configure()
 		logfire.instrument_pydantic_ai()
 
 	time_str = time.strftime('%Y-%m-%d_%H-%M-%S')
-	#time_str = '2025-06-16_12-28-10'
+	# time_str = '2025-06-16_12-28-10'
 
 	for i, task in enumerate(matching_tasks):
 		nr = start_i + i

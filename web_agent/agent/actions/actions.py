@@ -35,7 +35,7 @@ class ClickByText(BaseAction):
 		label_targets = page.get_by_label(self.text).filter(visible=True)
 		targets = text_targets.or_(placeholder_targets).or_(label_targets)
 
-		if targets.count() == 0: # If no targets found, try to find subtexts
+		if targets.count() == 0:  # If no targets found, try to find subtexts
 			for subtext in self.text.split():
 				text_subtargets = page.get_by_text(subtext).filter(visible=True)
 				placeholder_subtargets = page.get_by_placeholder(subtext).filter(visible=True)
@@ -54,7 +54,12 @@ class ClickByText(BaseAction):
 			return ActionResult(status=ActionResultStatus.SUCCESS, message='Clicked on the element that contains the given text.')
 		else:
 			targets_str = str([f'{i} -  {pretty_print_element(target.element_handle())}' for i, target in enumerate(targets.all())])
-			return ActionResult(status=ActionResultStatus.FAILURE, message='Multiple targets found: ' + targets_str + '\n\nPlease specify the index of the element to click on using the ClickByTextIth action.')
+			return ActionResult(
+				status=ActionResultStatus.FAILURE,
+				message='Multiple targets found: '
+				+ targets_str
+				+ '\n\nPlease specify the index of the element to click on using the ClickByTextIth action.',
+			)
 
 
 @default_action
@@ -70,7 +75,7 @@ class ClickByTextIth(BaseAction):
 		label_targets = page.get_by_label(self.text).filter(visible=True)
 		targets = text_targets.or_(placeholder_targets).or_(label_targets)
 
-		if targets.count() == 0: # If no targets found, try to find subtexts
+		if targets.count() == 0:  # If no targets found, try to find subtexts
 			for subtext in self.text.split():
 				text_subtargets = page.get_by_text(subtext).filter(visible=True)
 				placeholder_subtargets = page.get_by_placeholder(subtext).filter(visible=True)
@@ -151,17 +156,17 @@ class ScrollToIthText(BaseAction):
 @default_action
 class TypeText(BaseAction):
 	"""Type text into the focused element. You can see your currently focused element in the metadata. Use a click action to focus on a text field, if it is not yet focused.
-	
+
 	IMPORTANT USAGE NOTE:
-    For the TypeText action, 'press_enter' MUST be a boolean (True/False), not a string!
-    Example: TypeText(text="search term", press_enter=True)
-    INCORRECT: TypeText(text="search term", press_enter="press_enter")
+	For the TypeText action, 'press_enter' MUST be a boolean (True/False), not a string!
+	Example: TypeText(text="search term", press_enter=True)
+	INCORRECT: TypeText(text="search term", press_enter="press_enter")
 	"""
 
 	text: str = Field(description='The text to type into the focused element.')
 	press_enter: bool = Field(
-		default=False, 
-		description='TRUE or FALSE only. Set to TRUE to press Enter after typing, FALSE otherwise. Do NOT use strings like "press_enter"!'
+		default=False,
+		description='TRUE or FALSE only. Set to TRUE to press Enter after typing, FALSE otherwise. Do NOT use strings like "press_enter"!',
 	)
 	page_filter = lambda page: page.evaluate('document.activeElement.tagName !== "BODY"')
 
@@ -170,15 +175,13 @@ class TypeText(BaseAction):
 			page.keyboard.type(self.text)
 			if self.press_enter:
 				page.keyboard.press('Enter')
-			return ActionResult(
-				status=ActionResultStatus.SUCCESS, message=f"Typed '{self.text}' into the focused element."
-			)
+			return ActionResult(status=ActionResultStatus.SUCCESS, message=f"Typed '{self.text}' into the focused element.")
 		except Exception as e:
 			return ActionResult(
 				status=ActionResultStatus.FAILURE,
 				message=f'Could not type into the focused element: {e}',
 			)
-		
+
 
 @default_action
 class ClearInputField(BaseAction):
