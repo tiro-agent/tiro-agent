@@ -30,7 +30,7 @@ class ActionsRegistry:
 		return [action for action in self.actions if action.is_applicable(page)]
 
 	def get_applicable_actions_str(self, page: Page) -> str:
-		return '\n'.join([action.get_action_definition_str() for action in self.get_applicable_actions(page)])
+		return '- ' + '\n- '.join([action.get_action_definition_str() for action in self.get_applicable_actions(page)])
 
 	def parse_action_str(self, action_str: str) -> BaseAction:
 		"""Parse an action string into a BaseAction instance."""
