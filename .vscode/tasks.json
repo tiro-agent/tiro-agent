@@ -18,6 +18,21 @@
       "detail": "Run the web-agent with uv"
     },
     {
+      "label": "RUN: uv run web-agent (logfire)",
+      "type": "shell",
+      "command": "uv",
+      "args": [
+        "run",
+        "python",
+        "-m",
+        "web_agent.main",
+        "--logfire"
+      ],
+      "group": "build",
+      "problemMatcher": [],
+      "detail": "Run the web-agent with uv"
+    },
+    {
       "label": "RUN: uv run opened module",
       "type": "shell",
       "command": "bash",
