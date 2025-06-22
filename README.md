@@ -24,25 +24,30 @@ For detailed information about the project structure, see the Notion docs.
 
 ## How to run
 
-1. Install dependencies (make sure you have [uv](https://docs.astral.sh/uv/) installed)
+### 1. Install dependencies (make sure you have [uv](https://docs.astral.sh/uv/) installed)
 
 ```bash
 uv sync
 ```
 
-2. Download the Chrome browser with the playwright cli
+### 2. Make sure you have the chrome browser installed on your machine
+
+- if you don't have it installed, we recommend you to download it from the [chrome website](https://www.google.com/chrome/)
 
 ```bash
-uv run playwright install chrome
+# Currently not needed, because we use the chrome browser installed on your machine
+# uv run playwright install # installs the defaults (chromium, firefox, webkit)
 ```
 
-3. Create a .env file with the required API keys, see [.env.example](.env.example)
+- do not install the chrome browser with playwright, as it will override your existing chrome installation (if you have it installed), as seen in the [docs](https://playwright.dev/python/docs/browsers#:~:text=Google%20Chrome%20or%20Microsoft%20Edge%20installations%20will%20be%20installed%20at%20the%20default%20global%20location%20of%20your%20operating%20system%20overriding%20your%20current%20browser%20installation.)
+
+### 3. Create a .env file with the required API keys, see [.env.example](.env.example)
 
 - GEMINI_API_KEY - set the [Gemini API](https://aistudio.google.com/apikey) key
 - LOGFIRE_TOKEN - if you want to use [Pydantic Logfire](https://pydantic.dev/logfire)
 - (CURRENTLY NOT USED) 2CAPTCHA_API_KEY - set the [2captcha](https://2captcha.com/) API key
 
-4. Run the script
+### 4. Run the script
 
 ```bash
 uv run python -m web_agent.main
@@ -53,7 +58,7 @@ uv run python -m web_agent.main
 - you can also use the vscode task to run the script (select `RUN: uv run opened module`) (see [.vscode/tasks.json](.vscode/tasks.json))
 - note: the `Run Python File` option in the top right corner is not working, due to the import structure of the project
 
-5. Run the tests
+### 5. Run the tests
 
 ```bash
 uv run -m pytest
@@ -62,7 +67,7 @@ uv run -m pytest
 - you can also use the vscode task to run the tests (select `TEST: uv run all tests (pytest)`) (see [.vscode/tasks.json](.vscode/tasks.json))
 - you can also click on the `Run and Debug` menu section and select `TEST: all files` (you can also see the task in [.vscode/launch.json](.vscode/launch.json))
 
-6. Run the formatter & linter
+### 6. Run the formatter & linter
 
 ```bash
 uv run ruff check --fix # check & fix linting
