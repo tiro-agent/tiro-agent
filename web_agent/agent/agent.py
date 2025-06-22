@@ -31,13 +31,7 @@ class Agent:
 
 		# STEP 0: SETUP LLM
 		system_prompt = self.system_prompt + f'TASK: {task.description}'
-		model_settings = ModelSettings(seed=42, temperature=0)
-		llm = ChatAgent(
-			model='google-gla:gemini-2.5-flash-preview-05-20',
-			system_prompt=system_prompt,
-			output_type=AgentDecision,
-			model_settings=model_settings,
-		)
+		llm = initialize_llm(system_prompt)
 
 		# STEP 1: LOAD THE URL
 		self.browser.load_url(task.url)
@@ -91,6 +85,10 @@ class Agent:
 				if llm_error_count > self.MAX_ERROR_COUNT:
 					print('Too many errors, aborting. Please check your API key and try again.')
 					sys.exit()
+
+				llm = initialize_llm(system_prompt)
+				print('Re-initializing LLM')
+
 				seconds_to_wait = math.exp(llm_error_count - 1) * 10  # 10 sec first error, 27 sec second error, 73 sec third error, etc.
 				print(f'Retrying in {seconds_to_wait} seconds...')
 				time.sleep(seconds_to_wait)
@@ -169,3 +167,14 @@ class Agent:
 			# LOOP STEP 11: NEXT STEP
 			time.sleep(3)
 			step += 1
+
+
+def initialize_llm(system_prompt: str) -> ChatAgent:
+	model_settings = ModelSettings(seed=42, temperature=0, timeout=20)
+	llm = ChatAgent(
+		model='google-gla:gemini-2.5-flash-preview-05-20',
+		system_prompt=system_prompt,
+		output_type=AgentDecision,
+		model_settings=model_settings,
+	)
+	return llm
