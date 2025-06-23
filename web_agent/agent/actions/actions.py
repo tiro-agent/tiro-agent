@@ -1,9 +1,7 @@
 from playwright._impl._errors import TimeoutError
-from playwright.sync_api import Page
 from pydantic import Field
 
-from web_agent.agent.actions.base import ActionResult, ActionResultStatus, BaseAction, default_action
-from web_agent.agent.schemas import Task
+from web_agent.agent.actions.base import ActionContext, ActionResult, ActionResultStatus, BaseAction, default_action
 from web_agent.browser.browser import pretty_print_element
 
 # @default_action
@@ -12,8 +10,8 @@ from web_agent.browser.browser import pretty_print_element
 
 # 	selector: str = Field(description='The selector to click on.')
 
-# 	def execute(self, page: Page, task: Task) -> ActionResult:
-# 		targets = page.get_by_text(self.selector).filter(visible=True)
+# 	def execute(self, context: ActionContext) -> ActionResult:
+# 		targets = context.page.get_by_text(self.selector).filter(visible=True)
 # 		if targets.count() == 0:
 # 			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
 # 		elif targets.count() == 1:
@@ -29,17 +27,17 @@ class ClickByText(BaseAction):
 
 	text: str = Field(description='The text to click on.')
 
-	def execute(self, page: Page, task: Task) -> ActionResult:
-		text_targets = page.get_by_text(self.text).filter(visible=True)
-		placeholder_targets = page.get_by_placeholder(self.text).filter(visible=True)
-		label_targets = page.get_by_label(self.text).filter(visible=True)
+	def execute(self, context: ActionContext) -> ActionResult:
+		text_targets = context.page.get_by_text(self.text).filter(visible=True)
+		placeholder_targets = context.page.get_by_placeholder(self.text).filter(visible=True)
+		label_targets = context.page.get_by_label(self.text).filter(visible=True)
 		targets = text_targets.or_(placeholder_targets).or_(label_targets)
 
 		if targets.count() == 0:  # If no targets found, try to find subtexts
 			for subtext in self.text.split():
-				text_subtargets = page.get_by_text(subtext).filter(visible=True)
-				placeholder_subtargets = page.get_by_placeholder(subtext).filter(visible=True)
-				label_subtargets = page.get_by_label(subtext).filter(visible=True)
+				text_subtargets = context.page.get_by_text(subtext).filter(visible=True)
+				placeholder_subtargets = context.page.get_by_placeholder(subtext).filter(visible=True)
+				label_subtargets = context.page.get_by_label(subtext).filter(visible=True)
 				subtext_targets = text_subtargets.or_(placeholder_subtargets).or_(label_subtargets)
 				if subtext_targets.count() > 0:
 					targets = targets.or_(subtext_targets)
@@ -69,17 +67,17 @@ class ClickByTextIth(BaseAction):
 	text: str = Field(description='The text to click on.')
 	ith: int = Field(description='The index of the element to click on. Starts at 0, so 0 is the first element.')
 
-	def execute(self, page: Page, task: Task) -> ActionResult:
-		text_targets = page.get_by_text(self.text).filter(visible=True)
-		placeholder_targets = page.get_by_placeholder(self.text).filter(visible=True)
-		label_targets = page.get_by_label(self.text).filter(visible=True)
+	def execute(self, context: ActionContext) -> ActionResult:
+		text_targets = context.page.get_by_text(self.text).filter(visible=True)
+		placeholder_targets = context.page.get_by_placeholder(self.text).filter(visible=True)
+		label_targets = context.page.get_by_label(self.text).filter(visible=True)
 		targets = text_targets.or_(placeholder_targets).or_(label_targets)
 
 		if targets.count() == 0:  # If no targets found, try to find subtexts
 			for subtext in self.text.split():
-				text_subtargets = page.get_by_text(subtext).filter(visible=True)
-				placeholder_subtargets = page.get_by_placeholder(subtext).filter(visible=True)
-				label_subtargets = page.get_by_label(subtext).filter(visible=True)
+				text_subtargets = context.page.get_by_text(subtext).filter(visible=True)
+				placeholder_subtargets = context.page.get_by_placeholder(subtext).filter(visible=True)
+				label_subtargets = context.page.get_by_label(subtext).filter(visible=True)
 				subtext_targets = text_subtargets.or_(placeholder_subtargets).or_(label_subtargets)
 				if subtext_targets.count() > 0:
 					targets = targets.or_(subtext_targets)
@@ -100,8 +98,8 @@ class ClickByTextIth(BaseAction):
 class ScrollUp(BaseAction):
 	"""Scrolls up on the page."""
 
-	def execute(self, page: Page, task: Task) -> ActionResult:
-		page.mouse.wheel(0, -700)
+	def execute(self, context: ActionContext) -> ActionResult:
+		context.page.mouse.wheel(0, -700)
 		return ActionResult(status=ActionResultStatus.UNKNOWN, message='Sent scroll up command.')
 
 
@@ -109,8 +107,8 @@ class ScrollUp(BaseAction):
 class ScrollDown(BaseAction):
 	"""Scrolls down on the page."""
 
-	def execute(self, page: Page, task: Task) -> ActionResult:
-		page.mouse.wheel(0, 700)
+	def execute(self, context: ActionContext) -> ActionResult:
+		context.page.mouse.wheel(0, 700)
 		return ActionResult(status=ActionResultStatus.UNKNOWN, message='Sent scroll down command.')
 
 
@@ -120,8 +118,8 @@ class ScrollToText(BaseAction):
 
 	text: str = Field(description='The text to search for.')
 
-	def execute(self, page: Page, task: Task) -> ActionResult:
-		targets = page.get_by_text(self.text).filter(visible=True)
+	def execute(self, context: ActionContext) -> ActionResult:
+		targets = context.page.get_by_text(self.text).filter(visible=True)
 		if targets.count() == 0:
 			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
 		elif targets.count() == 1:
@@ -140,8 +138,8 @@ class ScrollToIthText(BaseAction):
 	text: str = Field(description='The text to search for.')
 	ith: int = Field(description='The index of the element to focus on.')
 
-	def execute(self, page: Page, task: Task) -> ActionResult:
-		targets = page.get_by_text(self.text).filter(visible=True)
+	def execute(self, context: ActionContext) -> ActionResult:
+		targets = context.page.get_by_text(self.text).filter(visible=True)
 		if targets.count() == 0:
 			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
 		elif targets.count() < self.ith:
@@ -170,11 +168,11 @@ class TypeText(BaseAction):
 	)
 	page_filter = lambda page: page.evaluate('document.activeElement.tagName !== "BODY"')
 
-	def execute(self, page: Page, task: Task) -> ActionResult:
+	def execute(self, context: ActionContext) -> ActionResult:
 		try:
-			page.keyboard.type(self.text)
+			context.page.keyboard.type(self.text)
 			if self.press_enter:
-				page.keyboard.press('Enter')
+				context.page.keyboard.press('Enter')
 			return ActionResult(status=ActionResultStatus.SUCCESS, message=f"Typed '{self.text}' into the focused element.")
 		except Exception as e:
 			return ActionResult(
@@ -189,10 +187,10 @@ class ClearInputField(BaseAction):
 
 	page_filter = lambda page: page.evaluate('document.activeElement.hasAttribute("value") && document.activeElement.value != ""')
 
-	def execute(self, page: Page, task: Task) -> ActionResult:
+	def execute(self, context: ActionContext) -> ActionResult:
 		try:
 			# Clear the input field by setting its value to an empty string
-			page.evaluate('document.activeElement.value = ""')
+			context.page.evaluate('document.activeElement.value = ""')
 			return ActionResult(status=ActionResultStatus.SUCCESS, message='Cleared the input field.')
 		except Exception as e:
 			return ActionResult(status=ActionResultStatus.FAILURE, message=f'Could not clear the input field: {e}')
@@ -205,13 +203,13 @@ class ClearInputField(BaseAction):
 # 	text: str = Field(description='The text of the element to click on.')
 # 	content: str = Field(description='The content to fill into the selected field.')
 
-# 	def execute(self, page: Page, task: Task) -> ActionResult:
-# 		targets = page.get_by_text(self.text).filter(visible=True)
+# 	def execute(self, context: ActionContext) -> ActionResult:
+# 		targets = context.page.get_by_text(self.text).filter(visible=True)
 # 		if targets.count() == 0:
 # 			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
 # 		else:
 # 			targets.first.click()
-# 			page.keyboard.type(self.content)
+# 			context.page.keyboard.type(self.content)
 # 			message = f'Clicked on the first element that contains {self.text} and filled the given content into it.'
 # 			if targets.count() > 1:
 # 				message += ' WARNING: Multiple targets found, selected first.'
@@ -228,8 +226,8 @@ class ClickByCoords(BaseAction):
 	x: int = Field(description='The x coordinate to click on.')
 	y: int = Field(description='The y coordinate to click on.')
 
-	def execute(self, page: Page, task: Task) -> ActionResult:
-		page.mouse.click(self.x, self.y)
+	def execute(self, context: ActionContext) -> ActionResult:
+		context.page.mouse.click(self.x, self.y)
 		return ActionResult(status=ActionResultStatus.UNKNOWN, message='Clicked on the given coordinates.')
 
 
@@ -237,8 +235,8 @@ class ClickByCoords(BaseAction):
 class Back(BaseAction):
 	"""Go back to the previous page."""
 
-	def execute(self, page: Page, task: Task) -> ActionResult:
-		page.go_back()
+	def execute(self, context: ActionContext) -> ActionResult:
+		context.page.go_back()
 		return ActionResult(status=ActionResultStatus.SUCCESS, message='Go back to the previous page.')
 
 
@@ -246,10 +244,10 @@ class Back(BaseAction):
 class Reset(BaseAction):
 	"""Reset the browser to the initial starting page."""
 
-	def execute(self, page: Page, task: Task) -> ActionResult:
+	def execute(self, context: ActionContext) -> ActionResult:
 		try:
-			page.goto(task.url)
-			page.wait_for_load_state('networkidle')
+			context.page.goto(context.task.url)
+			context.page.wait_for_load_state('networkidle')
 		except TimeoutError:
 			return ActionResult(status=ActionResultStatus.INFO, message='Page did not indicate that it was loaded. Proceeding anyway.')
 
@@ -262,7 +260,7 @@ class Abort(BaseAction):
 
 	reason: str = Field(description='The reason for aborting the task.')
 
-	def execute(self, page: Page, task: Task) -> ActionResult:
+	def execute(self, context: ActionContext) -> ActionResult:
 		return ActionResult(status=ActionResultStatus.ABORT, message=f'Task aborted. Reason: {self.reason}')
 
 
@@ -272,7 +270,7 @@ class Finish(BaseAction):
 
 	answer: str = Field(description='The final answer to the user query.')
 
-	def execute(self, page: Page, task: Task) -> ActionResult:
+	def execute(self, context: ActionContext) -> ActionResult:
 		return ActionResult(
 			status=ActionResultStatus.FINISH,
 			message=f'Task finished. The answer is: {self.answer}',
