@@ -1,6 +1,5 @@
 import re
 from abc import ABC, abstractmethod
-from collections.abc import Callable
 from enum import Enum
 from typing import ClassVar
 from urllib.parse import urlparse
@@ -49,7 +48,14 @@ class BaseAction(BaseModel, ABC):
 
 	# Filters for applicability
 	domains: ClassVar[list[str] | None] = None
-	page_filter: ClassVar[Callable[[Page], bool] | None] = None
+
+	@classmethod
+	def page_filter(cls, page: Page) -> bool:
+		"""
+		Default page filter that always returns True, meaning no specific page filtering is applied.
+		Subclasses can override this method to add custom page-based applicability logic.
+		"""
+		return True
 
 	@abstractmethod
 	def execute(self, context: ActionContext) -> ActionResult:
@@ -71,7 +77,7 @@ class BaseAction(BaseModel, ABC):
 			domain = urlparse(page.url).netloc
 			if not any(check_domain_pattern_match(domain, pattern) for pattern in cls.domains):
 				return False
-		if cls.page_filter is not None and not cls.page_filter(page):
+		if not cls.page_filter(page):
 			return False
 		return True
 
