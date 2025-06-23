@@ -23,21 +23,23 @@ class Agent:
 		self.browser = browser
 		self.actions_controller = ActionsRegistry.create_default()
 		self.action_history_controller = ActionsHistoryController()
-		self.system_prompt = get_system_prompt()
 
 	def run(self, task: Task, max_steps: int = 20) -> str:  # noqa: PLR0915
 		step = 0
 		output_format_error_count = 0
 		llm_error_count = 0
 
-		# STEP 0: SETUP LLM
-		system_prompt = self.system_prompt + f'TASK: {task.description}'
-		llm = initialize_llm(system_prompt)
+		# STEP 0: Check limits & errors and finish the task if needed
+		if step >= max_steps:
+			return self._finish(task, ActionResult(status=ActionResultStatus.ABORT, message='Step limit reached.'))
 
-		# STEP 1: LOAD THE URL
+		# STEP 1: SETUP LLM
+		llm = self._initialize_llm(task)
+
+		# STEP 2: LOAD THE URL
 		self.browser.load_url(task.url)
 
-		# STEP 2: AGENT LOOP
+		# STEP 3: AGENT LOOP
 		while True:
 			# LOOP STEP 1: PAGE CLEANUP
 			self.browser.clean_page()
@@ -47,7 +49,6 @@ class Agent:
 			screenshot_path = f'{task.output_dir}/{step}_full_screenshot.png'
 			screenshot = self.browser.save_screenshot(screenshot_path)
 			metadata = self.browser.get_metadata()
-			print('Metadata:', metadata)
 
 			# LOOP STEP 3: PAGE ANALYSIS
 			# TODO
@@ -87,12 +88,8 @@ class Agent:
 					print('Too many errors, aborting. Please check your API key and try again.')
 					sys.exit()
 
-				llm = initialize_llm(system_prompt)
-				print('Re-initializing LLM')
-
-				seconds_to_wait = math.exp(llm_error_count - 1) * 10  # 10 sec first error, 27 sec second error, 73 sec third error, etc.
-				print(f'Retrying in {seconds_to_wait} seconds...')
-				time.sleep(seconds_to_wait)
+				self._exponential_backoff(llm_error_count)
+				llm = self._initialize_llm(task)
 				continue
 
 			llm_error_count = 0
@@ -126,40 +123,9 @@ class Agent:
 				)
 			)
 
-			if step >= max_steps:
-				action_result = ActionResult(status=ActionResultStatus.ABORT, message='step limit reached')
-
 			# LOOP STEP 9: TASK FINISHING
 			if action_result.status in (ActionResultStatus.FINISH, ActionResultStatus.ABORT):
-				# dump the action history to a file
-				with open(f'{task.output_dir}/action_history.txt', 'w') as f:
-					f.write(f'Task description: {task.description}\n')
-					f.write(f'Task url: {task.url}\n')
-					f.write(f'Task output dir: {task.output_dir}\n')
-					f.write(f'Action history: {self.action_history_controller.get_action_history_str()}\n')
-
-				final_result = (
-					action_result.data['answer']
-					if action_result.status == ActionResultStatus.FINISH
-					else f'ABORTED: {action_result.message}'
-				)
-
-				output_data = {
-					'task_id': task.identifier,
-					'task': task.description,
-					'final_result_response': final_result,
-					'action_history': [step.action.get_action_str() for step in self.action_history_controller.get_action_history()],
-					'thoughts': [step.thought for step in self.action_history_controller.get_action_history()],
-				}
-				with open(f'{task.output_dir}/result.json', 'w') as f:
-					json.dump(output_data, f, indent=4)
-
-				if action_result.status == ActionResultStatus.FINISH:
-					print('Task finished with answer:', action_result.data['answer'])
-				else:
-					print('Task aborted with reason:', action_result.message)
-
-				return final_result
+				return self._finish(task, action_result)
 
 			# LOOP STEP 10: SELF-REVIEW
 			# evaluate the step success (look at pre and after screenshots) and the agent's performance & ADD A NOTE to the action history
@@ -169,13 +135,46 @@ class Agent:
 			time.sleep(3)
 			step += 1
 
+	def _finish(self, task: Task, action_result: ActionResult) -> str:
+		with open(f'{task.output_dir}/action_history.txt', 'w') as f:
+			f.write(f'Task description: {task.description}\n')
+			f.write(f'Task url: {task.url}\n')
+			f.write(f'Task output dir: {task.output_dir}\n')
+			f.write(f'Action history: {self.action_history_controller.get_action_history_str()}\n')
 
-def initialize_llm(system_prompt: str) -> ChatAgent:
-	model_settings = ModelSettings(seed=42, temperature=0, timeout=20)
-	llm = ChatAgent(
-		model='google-gla:gemini-2.5-flash-preview-05-20',
-		system_prompt=system_prompt,
-		output_type=AgentDecision,
-		model_settings=model_settings,
-	)
-	return llm
+		final_result = (
+			action_result.data['answer'] if action_result.status == ActionResultStatus.FINISH else f'ABORTED: {action_result.message}'
+		)
+
+		output_data = {
+			'task_id': task.identifier,
+			'task': task.description,
+			'final_result_response': final_result,
+			'action_history': [step.action.get_action_str() for step in self.action_history_controller.get_action_history()],
+			'thoughts': [step.thought for step in self.action_history_controller.get_action_history()],
+		}
+		with open(f'{task.output_dir}/result.json', 'w') as f:
+			json.dump(output_data, f, indent=4)
+
+		if action_result.status == ActionResultStatus.FINISH:
+			print('Task finished with answer:', action_result.data['answer'])
+		else:
+			print('Task aborted with reason:', action_result.message)
+
+		return final_result
+
+	def _initialize_llm(self, task: Task) -> ChatAgent:
+		system_prompt = get_system_prompt() + f'TASK: {task.description}'
+		model_settings = ModelSettings(seed=42, temperature=0, timeout=20)
+		llm = ChatAgent(
+			model='google-gla:gemini-2.5-flash-preview-05-20',
+			system_prompt=system_prompt,
+			output_type=AgentDecision,
+			model_settings=model_settings,
+		)
+		return llm
+
+	def _exponential_backoff(self, error_count: int) -> None:
+		seconds_to_wait = math.exp(error_count - 1) * 10  # 10 sec first error, 27 sec second error, 73 sec third error, etc.
+		time.sleep(seconds_to_wait)
+		print(f'Retrying in {seconds_to_wait} seconds...')
