@@ -24,9 +24,20 @@ class ActionResultStatus(str, Enum):
 class ActionResult(BaseModel):
 	"""Represents the outcome of an executed action."""
 
-	status: ActionResultStatus = Field(..., description='The status of the action (e.g., "success", "failure", "info", "abort", "finish").')
-	message: str = Field(..., description='A detailed message about the outcome.')
+	status: ActionResultStatus = Field(description='The status of the action (e.g., "success", "failure", "info", "abort", "finish").')
+	message: str = Field(description='A detailed message about the outcome.')
 	data: dict = Field(default_factory=dict, description='Optional: Additional structured data from the action.')
+
+
+class ActionContext(BaseModel):
+	"""Represents the context for the action execution."""
+
+	page: Page
+	task: Task
+
+	model_config = {
+		'arbitrary_types_allowed': True,
+	}
 
 
 class BaseAction(BaseModel, ABC):
@@ -41,7 +52,7 @@ class BaseAction(BaseModel, ABC):
 	page_filter: ClassVar[Callable[[Page], bool] | None] = None
 
 	@abstractmethod
-	def execute(self, page: Page, task: Task) -> ActionResult:
+	def execute(self, context: ActionContext) -> ActionResult:
 		"""Abstract method to be implemented by subclasses."""
 		pass
 

@@ -8,6 +8,7 @@ from pydantic_ai import BinaryContent
 from pydantic_ai.settings import ModelSettings
 
 from web_agent.agent.actions.actions import ActionResult, ActionResultStatus
+from web_agent.agent.actions.base import ActionContext
 from web_agent.agent.actions.history import ActionsHistoryController, ActionsHistoryStep
 from web_agent.agent.actions.registry import ActionsRegistry
 from web_agent.agent.prompts import get_system_prompt
@@ -114,7 +115,7 @@ class Agent:
 			output_format_error_count = 0
 
 			# LOOP STEP 8: ACTION EXECUTION
-			action_result = action.execute(self.browser.page, task)
+			action_result = action.execute(ActionContext(page=self.browser.page, task=task))
 			self.action_history_controller.add_action(
 				ActionsHistoryStep(
 					thought=action_decision.thought,
