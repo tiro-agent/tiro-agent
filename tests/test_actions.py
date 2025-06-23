@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from typing import ClassVar
 
 import pytest
@@ -59,7 +58,6 @@ class TestBaseAction:
 		# test with no domains and no page filter
 		class DummyActionNoFilter(DummyClickTextAction):
 			domains: ClassVar[list[str] | None] = None
-			page_filter: ClassVar[Callable[[Page], bool] | None] = None
 
 		page = Page(url='https://www.google.com')
 		assert DummyActionNoFilter.is_applicable(page)
@@ -126,14 +124,18 @@ class TestBaseAction:
 	def test_is_applicable_page_filter(self) -> None:
 		# test with page filter (positive)
 		class DummyActionPageFilterPositive(DummyClickTextAction):
-			page_filter: ClassVar[Callable[[Page], bool] | None] = lambda page: page.url == 'https://google.com'
+			@classmethod
+			def page_filter(cls, page: Page) -> bool:
+				return page.url == 'https://google.com'
 
 		page = Page(url='https://google.com')
 		assert DummyActionPageFilterPositive.is_applicable(page)
 
 		# test with page filter (negative)
 		class DummyActionPageFilterNegative(DummyClickTextAction):
-			page_filter: ClassVar[Callable[[Page], bool] | None] = lambda page: page.url == 'https://google.com'
+			@classmethod
+			def page_filter(cls, page: Page) -> bool:
+				return page.url == 'https://google.com'
 
 		page = Page(url='https://test.com')
 		assert not DummyActionPageFilterNegative.is_applicable(page)
@@ -178,8 +180,8 @@ class TestActionsController:
 		page = Page(url='https://google.com')
 		actions_str = actions_controller.get_applicable_actions_str(page)
 		expected_actions_str = (
-			"dummy_click_text_action('text') - Clicks on the first element that contains the given text.\n"
-			+ "dummy_type_action('selector', 'text') - Types text into the focused element."
+			"- dummy_click_text_action('text') - Clicks on the first element that contains the given text.\n"
+			+ "- dummy_type_action('selector', 'text') - Types text into the focused element."
 		)
 		assert actions_str == expected_actions_str
 
@@ -189,9 +191,9 @@ class TestActionsController:
 		page = Page(url='https://google.com')
 		actions_str = actions_controller.get_applicable_actions_str(page)
 		expected_actions_str = (
-			'dummy_click_text_action(text) - Clicks on the first element that contains the given text.\n'
-			+ 'dummy_type_action(selector, text) - Types text into the focused element.'
-			+ 'dummy_click_coord_action(x, y) - Clicks on the given coordinates.'
+			'- dummy_click_text_action(text) - Clicks on the first element that contains the given text.\n'
+			+ '- dummy_type_action(selector, text) - Types text into the focused element.\n'
+			+ '- dummy_click_coord_action(x, y) - Clicks on the given coordinates.'
 		)
 		assert actions_str == expected_actions_str
 

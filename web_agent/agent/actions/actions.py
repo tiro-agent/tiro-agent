@@ -1,4 +1,5 @@
 from playwright._impl._errors import TimeoutError
+from playwright.async_api import Page
 from pydantic import Field
 
 from web_agent.agent.actions.base import ActionContext, ActionResult, ActionResultStatus, BaseAction, default_action
@@ -166,7 +167,10 @@ class TypeText(BaseAction):
 		default=False,
 		description='TRUE or FALSE only. Set to TRUE to press Enter after typing, FALSE otherwise. Do NOT use strings like "press_enter"!',
 	)
-	page_filter = lambda page: page.evaluate('document.activeElement.tagName !== "BODY"')
+
+	@classmethod
+	def page_filter(cls, page: Page) -> bool:
+		return page.evaluate('document.activeElement.tagName !== "BODY"')
 
 	def execute(self, context: ActionContext) -> ActionResult:
 		try:
@@ -185,7 +189,9 @@ class TypeText(BaseAction):
 class ClearInputField(BaseAction):
 	"""Clears the input field that is currently focused."""
 
-	page_filter = lambda page: page.evaluate('document.activeElement.hasAttribute("value") && document.activeElement.value != ""')
+	@classmethod
+	def page_filter(cls, page: Page) -> bool:
+		return page.evaluate('document.activeElement.hasAttribute("value") && document.activeElement.value != ""')
 
 	def execute(self, context: ActionContext) -> ActionResult:
 		try:
