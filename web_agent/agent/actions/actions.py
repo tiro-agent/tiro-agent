@@ -5,26 +5,10 @@ from pydantic import Field
 from web_agent.agent.actions.base import ActionContext, ActionResult, ActionResultStatus, BaseAction, default_action
 from web_agent.browser.browser import pretty_print_element
 
-# @default_action
-# class Click(BaseAction):
-# 	"""Clicks a specific element on the page."""
-
-# 	selector: str = Field(description='The selector to click on.')
-
-# 	def execute(self, context: ActionContext) -> ActionResult:
-# 		targets = context.page.get_by_text(self.selector).filter(visible=True)
-# 		if targets.count() == 0:
-# 			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
-# 		elif targets.count() == 1:
-# 			targets.click()
-# 			return ActionResult(status=ActionResultStatus.SUCCESS, message='Clicked on the first element that contains the given text.')
-# 		else:
-# 			return ActionResult(status=ActionResultStatus.FAILURE, message='Multiple targets found: ' + str(targets.all()))
-
 
 @default_action
 class ClickByText(BaseAction):
-	"""Clicks the element that contains the given text. Will respond with all options if multiple candidates are found. If no elements are found, it tries looking for subtexts."""
+	"""Clicks the element that contains the given text. Will respond with all options if multiple candidates are found. If no elements are found, it tries looking for subtexts."""  # noqa: E501
 
 	text: str = Field(description='The text to click on.')
 
@@ -160,7 +144,7 @@ class TypeText(BaseAction):
 	For the TypeText action, 'press_enter' MUST be a boolean (True/False), not a string!
 	Example: TypeText(text="search term", press_enter=True)
 	INCORRECT: TypeText(text="search term", press_enter="press_enter")
-	"""
+	"""  # noqa: E501
 
 	text: str = Field(description='The text to type into the focused element.')
 	press_enter: bool = Field(
@@ -200,29 +184,6 @@ class ClearInputField(BaseAction):
 			return ActionResult(status=ActionResultStatus.SUCCESS, message='Cleared the input field.')
 		except Exception as e:
 			return ActionResult(status=ActionResultStatus.FAILURE, message=f'Could not clear the input field: {e}')
-
-
-# @default_action
-# class Fill(BaseAction):
-# 	"""Click on the first element that contains the given text and type the given content into it."""
-
-# 	text: str = Field(description='The text of the element to click on.')
-# 	content: str = Field(description='The content to fill into the selected field.')
-
-# 	def execute(self, context: ActionContext) -> ActionResult:
-# 		targets = context.page.get_by_text(self.text).filter(visible=True)
-# 		if targets.count() == 0:
-# 			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
-# 		else:
-# 			targets.first.click()
-# 			context.page.keyboard.type(self.content)
-# 			message = f'Clicked on the first element that contains {self.text} and filled the given content into it.'
-# 			if targets.count() > 1:
-# 				message += ' WARNING: Multiple targets found, selected first.'
-# 			return ActionResult(
-# 				status=ActionResultStatus.SUCCESS,
-# 				message=message,
-# 			)
 
 
 @default_action
