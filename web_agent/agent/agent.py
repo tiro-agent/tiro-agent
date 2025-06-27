@@ -24,14 +24,14 @@ class Agent:
 		self.actions_controller = ActionsRegistry.create_default()
 		self.action_history_controller = ActionsHistoryController()
 
-	def run(self, task: Task, max_steps: int = 20) -> str:  # noqa: PLR0915
+	def run(self, task: Task, output_dir: str, max_steps: int = 20) -> str:  # noqa: PLR0915
 		step = 0
 		output_format_error_count = 0
 		llm_error_count = 0
 
 		# STEP 0: Check limits & errors and finish the task if needed
 		if step >= max_steps:
-			return self._finish(task, ActionResult(status=ActionResultStatus.ABORT, message='Step limit reached.'))
+			return self._finish(task, ActionResult(status=ActionResultStatus.ABORT, message='Step limit reached.'), output_dir)
 
 		# STEP 1: SETUP LLM
 		llm = self._initialize_llm(task)
@@ -45,8 +45,8 @@ class Agent:
 			self.browser.clean_page()
 			# TODO: add actual cleanup
 
-			# LOOP STEP 2: GET PAGE DATA
-			screenshot_path = f'{task.output_dir}/{step}_full_screenshot.png'
+			# LOOP STEP 2: SAVE SCREENSHOT AND GET PAGE DATA
+			screenshot_path = f'{output_dir}/trajectory/{step}_full_screenshot.png'
 			screenshot = self.browser.save_screenshot(screenshot_path)
 			metadata = self.browser.get_metadata()
 
@@ -125,7 +125,7 @@ class Agent:
 
 			# LOOP STEP 9: TASK FINISHING
 			if action_result.status in (ActionResultStatus.FINISH, ActionResultStatus.ABORT):
-				return self._finish(task, action_result)
+				return self._finish(task, action_result, output_dir)
 
 			# LOOP STEP 10: SELF-REVIEW
 			# evaluate the step success (look at pre and after screenshots) and the agent's performance & ADD A NOTE to the action history
@@ -135,11 +135,11 @@ class Agent:
 			time.sleep(3)
 			step += 1
 
-	def _finish(self, task: Task, action_result: ActionResult) -> str:
-		with open(f'{task.output_dir}/action_history.txt', 'w') as f:
+	def _finish(self, task: Task, action_result: ActionResult, output_dir: str) -> str:
+		with open(f'{output_dir}/action_history.txt', 'w') as f:
 			f.write(f'Task description: {task.description}\n')
 			f.write(f'Task url: {task.url}\n')
-			f.write(f'Task output dir: {task.output_dir}\n')
+			f.write(f'Task output dir: {output_dir}\n')
 			f.write(f'Action history: {self.action_history_controller.get_action_history_str()}\n')
 
 		final_result = (
@@ -153,7 +153,7 @@ class Agent:
 			'action_history': [step.action.get_action_str() for step in self.action_history_controller.get_action_history()],
 			'thoughts': [step.thought for step in self.action_history_controller.get_action_history()],
 		}
-		with open(f'{task.output_dir}/result.json', 'w') as f:
+		with open(f'{output_dir}/result.json', 'w') as f:
 			json.dump(output_data, f, indent=4)
 
 		if action_result.status == ActionResultStatus.FINISH:

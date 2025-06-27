@@ -1,5 +1,7 @@
 import argparse
 import json
+import os
+import sys
 import time
 
 import logfire
@@ -14,74 +16,108 @@ nest_asyncio.apply()
 load_dotenv()
 
 
-def main() -> None:
-	print('Hello from web-agent!')
+class AgentRunner:
+	def __init__(
+		self,
+		run_id: str | None = None,
+		start_index: int = 0,
+		relevant_task_ids: list[str] | None = None,
+		output_dir_prefix: str | None = None,
+	) -> None:
+		self.run_id = run_id
+		self.start_index = start_index
+		self.tasks = []
 
-	user_input = input("To avoid getting your IP blocked, it is recommended to use a VPN. Type 'y' to continue: ")
-	while user_input.lower() != 'y':
-		user_input = input("You did not confirm. Please type 'y' once your VPN is connected to continue: ")
+		if self.run_id is None:
+			self.run_id = time.strftime('%Y-%m-%d_%H-%M-%S')
 
-	with open('data/Online_Mind2Web.json') as f:
-		tasks = json.load(f)
+		if output_dir_prefix is None:
+			output_dir_prefix = 'output'
 
-	# some easy random tasks
-	# mta: 4091bdd3fa64a5b0d912bc08eaf9c824
-	# qatarairways: 005be9dd91c95669d6ddde9ae667125c (easy) (currently not working)
-	# gamestop: 62f1626ce249c31098854f8b38bdd6cf (medium) (has to use search - not that easy)
+		self.output_dir = f'{output_dir_prefix}/{self.run_id}'
 
-	parser = argparse.ArgumentParser(description='Web Agent')
-	parser.add_argument('--task-id', type=str, help='Task to perform (all if not given)', required=False)
-	# parser.add_argument('--browser', type=str, help='Browser to use', required=True)
-	parser.add_argument('--headless', action='store_true', help='Run in headless mode')
-	parser.add_argument('--logfire', action='store_true', help='Enable logfire logging')
-	args = parser.parse_args()
+		with open('data/Online_Mind2Web.json') as f:
+			self.tasks = json.load(f)
+			if relevant_task_ids is not None:
+				self.tasks = [t for t in self.tasks if t['task_id'] in relevant_task_ids]
 
-	start_i = 0
-	# revelant_tasks = ['824eb7bb0ef1ce40bfd49c12182d9428', '92a3d4236f167af4afdc08876a902ba6', '8f2611047de227a2ca8bda13f6e2e5fb', 'aa4b5cb7114fcc138ade82b4b9716d24', '6ebde509dca8f15c0fa1bd74f071e8d6', '0b51b4fa0295ae80ccd176ebdad6fff6', 'b64f938af842f6a1b4489d0e49a785a7', '8fdec8eeffd3491e6526cc78c028120b', 'a7a73c8fa75441fc76df9746c327bdd6', '816851ff92ff0219acf4364dcc2c4692', '8244409b2c82043f966cad05f9afe132', 'b3f8bd9198d9d157e0848109563c4b23', 'db1ffb5e60578597d1c3aa3c389ac7b1', '7be8cd8dba885cddd9af5320f49bc41b', '239a29bde438fe44fe17fe1390ef1634', '9f1cba613830ca1c6a58f9498c06e679', '75146b7b67388b9244e0f21a1527c022', '871e7771cecb989972f138ecc373107b', 'b69eb4de621e9e265676daac44938f3f', '8ae510355d978424f490798f900bfa2c', '4c186c6ed888d0c8d4cf4adb39443080', 'eb323dc584156d0eb3a2b90bb8c4b791', '354b4ddf048815f8fd4163d0d7e1aaa3', 'e4e097222d13a2560db6f6892612dab6']
+			if self.start_index is not None and self.start_index > len(self.tasks):
+				sys.exit('Start index is greater than the number of tasks')
 
-	# Find task
-	if args.task_id is None:
-		matching_tasks = tasks[start_i:]
-		# matching_tasks = [t for t in matching_tasks if t['task_id'] in revelant_tasks]
-	else:
-		matching_tasks = [t for t in tasks if t['task_id'] == args.task_id]
+	def run_all_tasks(self) -> None:
+		for i, task in enumerate(self.tasks):
+			if i < self.start_index:
+				continue
 
-	if len(matching_tasks) == 0:
-		print('ERROR: Task(s) not found')
-		return
+			task_output_dir = f'{self.output_dir}/{i:03d}_{task["task_id"]}'
 
-	if args.logfire:
-		logfire.configure()
-		logfire.instrument_pydantic_ai()
+			if os.path.exists(task_output_dir):
+				print(f'Task {i} already executed, skipping')
+				continue
 
-	time_str = time.strftime('%Y-%m-%d_%H-%M-%S')
-	# time_str = '2025-06-16_12-28-10'
+			task_object = Task(identifier=task['task_id'], description=task['confirmed_task'], url=task['website'])
+			self.run_task(task_object, task_output_dir, i)
 
-	for i, task in enumerate(matching_tasks):
-		nr = start_i + i
+	def run_task_by_id(self, task_id: str) -> None:
+		task = next((t for t in self.tasks if t['task_id'] == task_id), None)
+		if task is None:
+			sys.exit(f'Task with id {task_id} not found')
+
+		task_output_dir = f'{self.output_dir}/{task["task_id"]}'
+		task_object = Task(identifier=task['task_id'], description=task['confirmed_task'], url=task['website'])
+		self.run_task(task_object, task_output_dir, 0)
+
+	def run_task(self, task: Task, output_dir: str, nr: int) -> None:
 		print(f'============= Task {nr} =============')
-		print('Id:', task['task_id'])
-		print('Task:', task['confirmed_task'])
-		print('Website:', task['website'])
+		print('Id:', task.identifier)
+		print('Task:', task.description)
+		print('Website:', task.url)
 
-		with Browser(headless=args.headless) as browser:
+		with Browser() as browser:
 			agent = Agent(browser)
-			output_dir = f'output/{time_str}/{nr:03d}_{task["task_id"]}'
 			try:
-				result = agent.run(
-					Task(
-						identifier=task['task_id'],
-						description=task['confirmed_task'],
-						url=task['website'],
-						output_dir=output_dir,
-						max_steps=40,
-					)
-				)
+				result = agent.run(task, output_dir=output_dir)
 				print('Result:', result)
 			except Exception as e:
 				print(f'Task {nr} failed with following exception:', e)
 		print('====================================\n\n')
 
 
+def check_vpn() -> None:
+	user_input = input("To avoid getting your IP blocked, it is recommended to use a VPN. Type 'y' to continue: ")
+	while user_input.lower() != 'y':
+		user_input = input("You did not confirm. Please type 'y' once your VPN is connected to continue: ")
+
+
 if __name__ == '__main__':
-	main()
+	parser = argparse.ArgumentParser(description='Web Agent')
+	parser.add_argument('--run-id', type=str, help='Run id', required=False, default=None)
+	parser.add_argument('--start-index', type=int, help='Start index', required=False, default=0)
+	parser.add_argument('--task-id', type=str, help='Task to perform (all if not given)', required=False, default=None)
+	parser.add_argument('--relevant-task-ids', nargs='+', type=str, help='Relevant task ids', required=False, default=None)
+	parser.add_argument('--logfire', action='store_true', help='Enable logfire logging', required=False, default=False)
+	parser.add_argument('--disable-vpn-check', action='store_true', help='Disable VPN check', required=False, default=False)
+	args = parser.parse_args()
+
+	print('Hello from web-agent!')
+
+	if not args.disable_vpn_check:
+		check_vpn()
+
+	if args.logfire:
+		logfire.configure()
+		logfire.instrument_pydantic_ai()
+
+	# overwrite for testing
+	# args.relevant_task_ids = ['824eb7bb0ef1ce40bfd49c12182d9428', 'e4e097222d13a2560db6f6892612dab6']
+
+	runner = AgentRunner(
+		run_id=args.run_id,
+		relevant_task_ids=args.relevant_task_ids,
+		start_index=args.start_index,
+	)
+
+	if args.task_id is None:
+		runner.run_all_tasks()
+	else:
+		runner.run_task_by_id(args.task_id)

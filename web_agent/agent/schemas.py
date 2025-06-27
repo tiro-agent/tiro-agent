@@ -7,7 +7,6 @@ class Task(BaseModel):
 	identifier: str = Field(description='The id of the task.')
 	description: str = Field(description='The task to be completed.')
 	url: str = Field(description='The url to be loaded.')
-	output_dir: str = Field(description='The output directory.')
 
 
 class AgentDecision(BaseModel):
