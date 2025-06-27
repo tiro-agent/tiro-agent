@@ -2,7 +2,7 @@ import json
 import os
 from pathlib import Path
 
-run = '2025-06-24_01-44-52'
+run_id = '2025-06-24_01-44-52'
 script_dir = Path(__file__).parent.resolve()
 output_folder = (script_dir / '../output').resolve()
 
@@ -10,8 +10,8 @@ nr_success = 0
 nr_failed_step_limit = 0
 nr_failed_other = 0
 
-for task in os.listdir(f'{output_folder}/{run}'):
-	file_path = os.path.join(run, task, 'result.json')
+for task in os.listdir(f'{output_folder}/{run_id}'):
+	file_path = os.path.join(run_id, task, 'result.json')
 	if os.path.exists(file_path):
 		with open(file_path) as f:
 			result = json.load(f)
@@ -25,7 +25,7 @@ for task in os.listdir(f'{output_folder}/{run}'):
 			else:
 				nr_success += 1
 
-print(f'Statistics for run {run}:')
+print(f'Statistics for run {run_id}:')
 print(f'Number of successful tasks: {nr_success}')
 print(f'Number of failed tasks: {nr_failed_step_limit + nr_failed_other}')
 print(f'Number of failed tasks due to step limit: {nr_failed_step_limit}')

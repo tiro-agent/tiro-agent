@@ -24,13 +24,13 @@
       "name": "RUN: web-agent module",
       "type": "debugpy",
       "request": "launch",
-      "module": "web_agent.main"
+      "module": "web_agent"
     },
     {
       "name": "RUN: web-agent module with Logfire",
       "type": "debugpy",
       "request": "launch",
-      "module": "web_agent.main",
+      "module": "web_agent",
       "args": [
         "--logfire"
       ]

@@ -11,7 +11,7 @@
         "run",
         "python",
         "-m",
-        "web_agent.main"
+        "web_agent"
       ],
       "group": "build",
       "problemMatcher": [],
@@ -25,7 +25,7 @@
         "run",
         "python",
         "-m",
-        "web_agent.main",
+        "web_agent",
         "--logfire"
       ],
       "group": "build",
