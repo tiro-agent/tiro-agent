@@ -5,19 +5,17 @@ description = "An automated web agent with a stealth browser"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "2captcha-python>=1.5.1",
     "dotenv>=0.9.9",
     "nest-asyncio>=1.6.0",
     "playwright>=1.52.0",
-    "playwright-stealth>=1.0.6",
     "pydantic>=2.11.5",
     "pydantic-ai[logfire]>=0.2.12",
-    "pytest-playwright>=0.7.0",
-    "setuptools>=80.9.0",
 ]
 
 [dependency-groups]
 dev = [
+    "pytest>=8.3.5",
+    "pytest-playwright>=0.7.0",
     "ruff>=0.11.12",
     "web-agent",
 ]
