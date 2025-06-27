@@ -1,3 +1,5 @@
+from enum import Enum
+
 from pydantic import BaseModel, Field
 
 
@@ -16,3 +18,12 @@ class AgentDecision(BaseModel):
 	action: str = Field(
 		description="The function call to the action to perform next, chosen from the available actions. Example: click_by_text('text')"
 	)
+
+
+class SpecialErrors(Enum):
+	"""Special errors that the agent can encounter."""
+
+	URL_LOAD_ERROR = 'URL_LOAD_ERROR'
+	STEP_LIMIT_REACHED = 'STEP_LIMIT_REACHED'
+	API_TOO_MANY_ERRORS = 'API_TOO_MANY_ERRORS'
+	ACTION_PARSING_ERROR = 'ACTION_PARSING_ERROR'
