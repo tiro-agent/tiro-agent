@@ -19,6 +19,15 @@ dev = [
     "ruff>=0.11.12",
     "web-agent",
 ]
+web-judge = [
+    "backoff>=2.2.1",
+    "beautifulsoup4>=4.13.4",
+    "openai>=1.83.0",
+    "pillow>=11.2.1",
+]
+
+[tool.uv]
+default-groups = "all"
 
 # Ruff linting and formating
 [tool.ruff]
