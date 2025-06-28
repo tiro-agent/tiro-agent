@@ -7,8 +7,12 @@ import os
 import re
 from multiprocessing import synchronize
 
+from dotenv import load_dotenv
+
 from web_judge.methods.webjudge_online_mind2web import WebJudge_Online_Mind2Web_eval
 from web_judge.utils import OpenaiEngine, extract_predication
+
+load_dotenv()
 
 
 def auto_eval(
@@ -90,7 +94,7 @@ def parallel_eval(args: argparse.Namespace, num_workers: int = 3) -> None:
 	task_subsets = [task_dirs[i : i + chunk_size] for i in range(0, len(task_dirs), chunk_size)]
 
 	# Load model
-	model = OpenaiEngine(model=args.model, api_key=args.api_key)
+	model = OpenaiEngine(model=args.model)
 
 	lock = multiprocessing.Lock()
 	with multiprocessing.Manager() as manager:
@@ -114,9 +118,13 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Auto evaluation of web navigation tasks.')
 	parser.add_argument('--model', type=str, default='o4-mini')
 	parser.add_argument('--trajectories_dir', type=str, required=True, help='Path to trajectories directory')
-	parser.add_argument('--api_key', type=str, required=True, help='The api key')
 	parser.add_argument('--output_path', type=str, required=True, help='The output path')
-	parser.add_argument('--score_threshold', type=int, default=3)
+	parser.add_argument(
+		'--score_threshold',
+		type=int,
+		default=3,
+		help='The score is a minimum threshold an image must achieve out of 5 to be considered relevant and included in the evaluation.',
+	)
 	parser.add_argument('--num_worker', type=int, default=3)
 	args = parser.parse_args()
 

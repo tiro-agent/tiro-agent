@@ -62,7 +62,6 @@ def extract_predication(response, mode):
 class OpenaiEngine:
 	def __init__(
 		self,
-		api_key=None,
 		stop=[],
 		rate_limit=-1,
 		model=None,
@@ -95,9 +94,7 @@ class OpenaiEngine:
 		# convert rate limit to minmum request interval
 		self.request_interval = 0 if rate_limit == -1 else 60.0 / rate_limit
 		self.next_avil_time = [0] * len(self.api_keys)
-		self.client = OpenAI(
-			api_key=api_key,
-		)
+		self.client = OpenAI()
 
 	def log_error(details):
 		print(f'Retrying in {details["wait"]:0.1f} seconds due to {details["exception"]}')
