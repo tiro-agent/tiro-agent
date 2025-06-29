@@ -2,10 +2,27 @@ import json
 import os
 import sys
 import time
+from enum import Enum
 
 from web_agent.agent.agent import Agent
 from web_agent.agent.schemas import Task
 from web_agent.browser.browser import Browser
+
+
+class Level(Enum):
+	"""
+	Level of the task.
+
+	There are 300 tasks in total.
+	- Easy tasks: 83
+	- Medium tasks: 143
+	- Hard tasks: 74
+	"""
+
+	EASY = 'easy'
+	MEDIUM = 'medium'
+	HARD = 'hard'
+	ALL = 'all'
 
 
 class AgentRunner:
@@ -36,9 +53,12 @@ class AgentRunner:
 			if self.start_index is not None and self.start_index > len(self.tasks):
 				sys.exit('Start index is greater than the number of tasks')
 
-	def run_all_tasks(self) -> None:
+	def run_all_tasks(self, level: Level = Level.ALL) -> None:
 		for i, task in enumerate(self.tasks):
 			if i < self.start_index:
+				continue
+
+			if level.value != Level.ALL.value and task['level'] != level.value:
 				continue
 
 			task_output_dir = f'{self.output_dir}/{i:03d}_{task["task_id"]}'
