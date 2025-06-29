@@ -4,7 +4,7 @@ import logfire
 import nest_asyncio
 from dotenv import load_dotenv
 
-from web_agent.runner import AgentRunner, Level, check_vpn
+from web_agent.runner import AgentRunner, TaskLevel, check_vpn
 
 if __name__ == '__main__':
 	nest_asyncio.apply()
@@ -17,7 +17,7 @@ if __name__ == '__main__':
 	parser.add_argument('--relevant-task-ids', nargs='+', type=str, help='Relevant task ids', required=False, default=None)
 	parser.add_argument('--logfire', action='store_true', help='Enable logfire logging', required=False, default=False)
 	parser.add_argument('--disable-vpn-check', action='store_true', help='Disable VPN check', required=False, default=False)
-	parser.add_argument('--level', type=Level, help='Level', required=False, default=Level.ALL, choices=list(Level))
+	parser.add_argument('--level', type=TaskLevel, help='Level', required=False, default=TaskLevel.ALL, choices=list(TaskLevel))
 	args = parser.parse_args()
 
 	print('Hello from web-agent!')

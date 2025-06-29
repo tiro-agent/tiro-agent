@@ -9,7 +9,7 @@ from web_agent.agent.schemas import Task
 from web_agent.browser.browser import Browser
 
 
-class Level(Enum):
+class TaskLevel(Enum):
 	"""
 	Level of the task.
 
@@ -53,12 +53,12 @@ class AgentRunner:
 			if self.start_index is not None and self.start_index > len(self.tasks):
 				sys.exit('Start index is greater than the number of tasks')
 
-	def run_all_tasks(self, level: Level = Level.ALL) -> None:
+	def run_all_tasks(self, level: TaskLevel = TaskLevel.ALL) -> None:
 		for i, task in enumerate(self.tasks):
 			if i < self.start_index:
 				continue
 
-			if level.value != Level.ALL.value and task['level'] != level.value:
+			if level.value != TaskLevel.ALL.value and task['level'] != level.value:
 				continue
 
 			task_output_dir = f'{self.output_dir}/{i:03d}_{task["task_id"]}'
