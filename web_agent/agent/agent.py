@@ -1,8 +1,8 @@
+import asyncio
 import json
 import math
 import os
 import sys
-import time
 
 from pydantic_ai import Agent as ChatAgent
 from pydantic_ai import BinaryContent
@@ -31,7 +31,7 @@ class Agent:
 		self.action_history_controller = ActionsHistoryController()
 		self.api_key = api_key
 
-	def run(self, task: Task, output_dir: str, max_steps: int = 20) -> str:  # noqa: PLR0915
+	async def run(self, task: Task, output_dir: str, max_steps: int = 20) -> str:  # noqa: PLR0915
 		step = 0
 		output_format_error_count = 0
 		llm_error_count = 0
@@ -46,7 +46,7 @@ class Agent:
 
 		# STEP 2: LOAD THE URL
 		try:
-			self.browser.load_url(task.url)
+			await self.browser.load_url(task.url)
 		except Exception:
 			return self._handle_special_error(SpecialErrors.URL_LOAD_ERROR, task, output_dir)
 
@@ -59,13 +59,13 @@ class Agent:
 				return self._handle_special_error(SpecialErrors.STEP_LIMIT_REACHED, task, output_dir)
 
 			# LOOP STEP 1: PAGE CLEANUP
-			self.browser.clean_page()
+			await self.browser.clean_page()
 			# TODO: add actual cleanup
 
 			# LOOP STEP 2: SAVE SCREENSHOT AND GET PAGE DATA
 			screenshot_path = f'{output_dir}/trajectory/{step}_full_screenshot.png'
-			screenshot = self.browser.save_screenshot(screenshot_path)
-			metadata = self.browser.get_metadata()
+			screenshot = await self.browser.save_screenshot(screenshot_path)
+			metadata = await self.browser.get_metadata()
 
 			# LOOP STEP 3: PAGE ANALYSIS
 			# TODO
@@ -75,7 +75,7 @@ class Agent:
 
 			# LOOP STEP 5: GET AGENT PROMPT
 			past_actions_str = self.action_history_controller.get_action_history_str()
-			available_actions_str = self.actions_controller.get_applicable_actions_str(self.browser.page)
+			available_actions_str = await self.actions_controller.get_applicable_actions_str(self.browser.page)
 
 			prompt_str = '\n'
 			prompt_str += f'Metadata: \n{metadata!s}\n\n'
@@ -95,7 +95,7 @@ class Agent:
 
 			# LOOP STEP 6: GET AGENT DECISION
 			try:
-				action_decision: AgentDecision = llm.run_sync(prompt).output
+				action_decision: AgentDecision = (await llm.run(prompt)).output
 				print('Action: ', action_decision.action, ' - ', action_decision.thought)
 			except Exception as e:
 				print('Error getting action decision:', e)
@@ -105,7 +105,7 @@ class Agent:
 					print('Too many errors, aborting. Please check your API key and try again.')
 					sys.exit()
 
-				self._exponential_backoff(llm_error_count)
+				await self._exponential_backoff(llm_error_count)
 				llm = self._initialize_llm(task, self.api_key)
 				continue
 
@@ -129,7 +129,7 @@ class Agent:
 			output_format_error_count = 0
 
 			# LOOP STEP 8: ACTION EXECUTION
-			action_result = action.execute(ActionContext(page=self.browser.page, task=task))
+			action_result = await action.execute(ActionContext(page=self.browser.page, task=task))
 			self.action_history_controller.add_action(
 				ActionsHistoryStep(
 					thought=action_decision.thought,
@@ -149,7 +149,7 @@ class Agent:
 			# TODO
 
 			# LOOP STEP 11: NEXT STEP
-			time.sleep(3)
+			await asyncio.sleep(3)
 			step += 1
 
 	def _handle_special_error(self, error: SpecialErrors, task: Task, output_dir: str) -> str:
@@ -208,7 +208,7 @@ class Agent:
 		)
 		return llm
 
-	def _exponential_backoff(self, error_count: int) -> None:
+	async def _exponential_backoff(self, error_count: int) -> None:
 		seconds_to_wait = math.exp(error_count - 1) * 10  # 10 sec first error, 27 sec second error, 73 sec third error, etc.
-		time.sleep(seconds_to_wait)
+		await asyncio.sleep(seconds_to_wait)
 		print(f'Retrying in {seconds_to_wait} seconds...')

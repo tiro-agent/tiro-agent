@@ -53,7 +53,7 @@ class AgentRunner:
 			if self.start_index is not None and self.start_index > len(self.tasks):
 				sys.exit('Start index is greater than the number of tasks')
 
-	def run_all_tasks(self, level: TaskLevel = TaskLevel.ALL) -> None:
+	async def run_all_tasks(self, level: TaskLevel = TaskLevel.ALL) -> None:
 		for i, task in enumerate(self.tasks):
 			if i < self.start_index:
 				continue
@@ -68,27 +68,27 @@ class AgentRunner:
 				continue
 
 			task_object = Task(identifier=task['task_id'], description=task['confirmed_task'], url=task['website'])
-			self.run_task(task_object, task_output_dir, i)
+			await self.run_task(task_object, task_output_dir, i)
 
-	def run_task_by_id(self, task_id: str) -> None:
+	async def run_task_by_id(self, task_id: str) -> None:
 		task = next((t for t in self.tasks if t['task_id'] == task_id), None)
 		if task is None:
 			sys.exit(f'Task with id {task_id} not found')
 
 		task_output_dir = f'{self.output_dir}/{task["task_id"]}'
 		task_object = Task(identifier=task['task_id'], description=task['confirmed_task'], url=task['website'])
-		self.run_task(task_object, task_output_dir, 0)
+		await self.run_task(task_object, task_output_dir, 0)
 
-	def run_task(self, task: Task, output_dir: str, nr: int, api_key: str | None = None) -> None:
+	async def run_task(self, task: Task, output_dir: str, nr: int, api_key: str | None = None) -> None:
 		print(f'============= Task {nr} =============')
 		print('Id:', task.identifier)
 		print('Task:', task.description)
 		print('Website:', task.url)
 
-		with Browser() as browser:
+		async with Browser() as browser:
 			agent = Agent(browser, api_key=api_key)
 			try:
-				result = agent.run(task, output_dir=output_dir)
+				result = await agent.run(task, output_dir=output_dir)
 				print('Result:', result)
 			except Exception as e:
 				print(f'Task {nr} failed with following exception:', e)

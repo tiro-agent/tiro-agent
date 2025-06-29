@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 
 import logfire
 import nest_asyncio
@@ -6,7 +7,8 @@ from dotenv import load_dotenv
 
 from web_agent.runner import AgentRunner, TaskLevel, check_vpn
 
-if __name__ == '__main__':
+
+async def main() -> None:
 	nest_asyncio.apply()
 	load_dotenv()
 
@@ -39,6 +41,10 @@ if __name__ == '__main__':
 	)
 
 	if args.task_id is None:
-		runner.run_all_tasks(level=args.level)
+		await runner.run_all_tasks(level=args.level)
 	else:
-		runner.run_task_by_id(args.task_id)
+		await runner.run_task_by_id(args.task_id)
+
+
+if __name__ == '__main__':
+	asyncio.run(main())
