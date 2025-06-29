@@ -43,6 +43,7 @@ uv sync
 ### 3. Create a .env file with the required API keys, see [.env.example](.env.example)
 
 - GEMINI_API_KEY - set the [Gemini API](https://aistudio.google.com/apikey) key
+- GEMINI_API_KEY_2 (optional) - set the second [Gemini API](https://aistudio.google.com/apikey) key, to run in parallel
 - LOGFIRE_TOKEN (optional) - if you want to use [Pydantic Logfire](https://pydantic.dev/logfire)
 
 ### 4. Run the script

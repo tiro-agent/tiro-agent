@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import sys
@@ -36,6 +37,16 @@ class AgentRunner:
 		self.run_id = run_id
 		self.start_index = start_index
 		self.tasks = []
+		self.gemini_api_key = os.environ.get('GEMINI_API_KEY')
+		self.gemini_api_key_2 = os.environ.get('GEMINI_API_KEY_2')
+
+		if self.gemini_api_key is None:
+			sys.exit('GEMINI_API_KEY is not set')
+
+		self.api_key_queue = asyncio.Queue()
+		self.api_key_queue.put(self.gemini_api_key)
+		if self.gemini_api_key_2:
+			self.api_key_queue.put(self.gemini_api_key_2)
 
 		if self.run_id is None:
 			self.run_id = time.strftime('%Y-%m-%d_%H-%M-%S')
