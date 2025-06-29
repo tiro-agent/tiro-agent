@@ -25,6 +25,7 @@ KNOWN_PROBLEM_DOMAINS: list[dict[str, SpecialAgentErrors | AgentErrors]] = [
 
 class Agent:
 	MAX_ERROR_COUNT = 3
+	NUMBER_OF_PREVIOUS_SCREENSHOTS = 2
 
 	def __init__(self, browser: Browser, api_key: str | None = None) -> None:
 		self.browser = browser
@@ -36,6 +37,7 @@ class Agent:
 		step = 0
 		output_format_error_count = 0
 		llm_error_count = 0
+		previous_screenshots = []
 
 		# STEP 0: Check if the domain is a known problem domain
 		for known_problem_domain in KNOWN_PROBLEM_DOMAINS:
@@ -84,10 +86,21 @@ class Agent:
 			prompt_str += f'Available actions:\n{available_actions_str}\n\n'
 			prompt_str += 'Choose the next action to take.\n'
 
-			prompt = [
-				BinaryContent(data=screenshot, media_type='image/png'),
-				prompt_str,
-			]
+			if len(previous_screenshots) > 0:
+				screenshots_to_include = previous_screenshots[-self.NUMBER_OF_PREVIOUS_SCREENSHOTS :]
+				prompt = [
+					prompt_str,
+					'Previous screenshots:',
+					*[BinaryContent(data=screenshot, media_type='image/png') for screenshot in screenshots_to_include],
+					'Current screenshot:',
+					BinaryContent(data=screenshot, media_type='image/png'),
+				]
+			else:
+				prompt = [
+					prompt_str,
+					'Current screenshot:',
+					BinaryContent(data=screenshot, media_type='image/png'),
+				]
 
 			print('-' * 100)
 			print('Step number:', step)
@@ -148,6 +161,8 @@ class Agent:
 			# LOOP STEP 10: SELF-REVIEW
 			# evaluate the step success (look at pre and after screenshots) and the agent's performance & ADD A NOTE to the action history
 			# TODO
+
+			previous_screenshots.append(screenshot)
 
 			# LOOP STEP 11: NEXT STEP
 			await asyncio.sleep(3)
