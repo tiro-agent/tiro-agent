@@ -6,6 +6,7 @@ import time
 
 from pydantic_ai import Agent as ChatAgent
 from pydantic_ai import BinaryContent
+from pydantic_ai.providers.google_gla import GoogleGLAProvider
 from pydantic_ai.settings import ModelSettings
 
 from web_agent.agent.actions.actions import ActionResult, ActionResultStatus
@@ -24,10 +25,11 @@ KNOWN_PROBLEM_DOMAINS: list[dict[str, SpecialErrors]] = [
 class Agent:
 	MAX_ERROR_COUNT = 3
 
-	def __init__(self, browser: Browser) -> None:
+	def __init__(self, browser: Browser, api_key: str | None = None) -> None:
 		self.browser = browser
 		self.actions_controller = ActionsRegistry.create_default()
 		self.action_history_controller = ActionsHistoryController()
+		self.api_key = api_key
 
 	def run(self, task: Task, output_dir: str, max_steps: int = 20) -> str:  # noqa: PLR0915
 		step = 0
@@ -40,7 +42,7 @@ class Agent:
 				return self._handle_special_error(known_problem_domain['reason'], task, output_dir)
 
 		# STEP 1: SETUP LLM
-		llm = self._initialize_llm(task)
+		llm = self._initialize_llm(task, self.api_key)
 
 		# STEP 2: LOAD THE URL
 		try:
@@ -104,7 +106,7 @@ class Agent:
 					sys.exit()
 
 				self._exponential_backoff(llm_error_count)
-				llm = self._initialize_llm(task)
+				llm = self._initialize_llm(task, self.api_key)
 				continue
 
 			llm_error_count = 0
@@ -190,14 +192,19 @@ class Agent:
 
 		return final_result
 
-	def _initialize_llm(self, task: Task) -> ChatAgent:
+	def _initialize_llm(self, task: Task, api_key: str | None = None) -> ChatAgent:
 		system_prompt = get_system_prompt() + f'TASK: {task.description}'
 		model_settings = ModelSettings(seed=42, temperature=0, timeout=20)
+
+		# if api_key is not None, the key from os.environ.get('GEMINI_API_KEY') is used
+		model_provider = GoogleGLAProvider(api_key=api_key)
+
 		llm = ChatAgent(
-			model='google-gla:gemini-2.5-flash-preview-05-20',
+			model='gemini-2.5-flash-preview-05-20',
 			system_prompt=system_prompt,
 			output_type=AgentDecision,
 			model_settings=model_settings,
+			model_provider=model_provider,
 		)
 		return llm
 

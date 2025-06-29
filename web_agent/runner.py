@@ -79,14 +79,14 @@ class AgentRunner:
 		task_object = Task(identifier=task['task_id'], description=task['confirmed_task'], url=task['website'])
 		self.run_task(task_object, task_output_dir, 0)
 
-	def run_task(self, task: Task, output_dir: str, nr: int) -> None:
+	def run_task(self, task: Task, output_dir: str, nr: int, api_key: str | None = None) -> None:
 		print(f'============= Task {nr} =============')
 		print('Id:', task.identifier)
 		print('Task:', task.description)
 		print('Website:', task.url)
 
 		with Browser() as browser:
-			agent = Agent(browser)
+			agent = Agent(browser, api_key=api_key)
 			try:
 				result = agent.run(task, output_dir=output_dir)
 				print('Result:', result)
