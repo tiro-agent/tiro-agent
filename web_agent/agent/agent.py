@@ -1,5 +1,6 @@
 import json
 import math
+import os
 import sys
 import time
 
@@ -15,6 +16,10 @@ from web_agent.agent.prompts import get_system_prompt
 from web_agent.agent.schemas import AgentDecision, SpecialErrors, Task
 from web_agent.browser.browser import Browser
 
+KNOWN_PROBLEM_DOMAINS: list[dict[str, SpecialErrors]] = [
+	{'domain': 'https://www.gamestop.com/', 'reason': SpecialErrors.URL_BLOCKED},
+]
+
 
 class Agent:
 	MAX_ERROR_COUNT = 3
@@ -29,9 +34,10 @@ class Agent:
 		output_format_error_count = 0
 		llm_error_count = 0
 
-		# STEP 0: Check limits & errors and finish the task if needed
-		if step >= max_steps:
-			return self._handle_special_error(SpecialErrors.STEP_LIMIT_REACHED, task, output_dir)
+		# STEP 0: Check if the domain is a known problem domain
+		for known_problem_domain in KNOWN_PROBLEM_DOMAINS:
+			if known_problem_domain['domain'] in task.url:
+				return self._handle_special_error(known_problem_domain['reason'], task, output_dir)
 
 		# STEP 1: SETUP LLM
 		llm = self._initialize_llm(task)
@@ -42,8 +48,14 @@ class Agent:
 		except Exception:
 			return self._handle_special_error(SpecialErrors.URL_LOAD_ERROR, task, output_dir)
 
+		os.makedirs(output_dir + '/trajectory', exist_ok=True)
+
 		# STEP 3: AGENT LOOP
 		while True:
+			# LOOP STEP 0: Check limits & errors and finish the task if needed
+			if step >= max_steps:
+				return self._handle_special_error(SpecialErrors.STEP_LIMIT_REACHED, task, output_dir)
+
 			# LOOP STEP 1: PAGE CLEANUP
 			self.browser.clean_page()
 			# TODO: add actual cleanup
@@ -140,25 +152,15 @@ class Agent:
 
 	def _handle_special_error(self, error: SpecialErrors, task: Task, output_dir: str) -> str:
 		"""Handle a special error that the agent can encounter."""
-		match error:
-			case SpecialErrors.URL_LOAD_ERROR:
-				with open(f'{output_dir}/error.txt', 'w') as f:
-					f.write(SpecialErrors.URL_LOAD_ERROR.value)
-				return self._finish(task, ActionResult(status=ActionResultStatus.ABORT, message='Could not load the URL.'), output_dir)
-			case SpecialErrors.STEP_LIMIT_REACHED:
-				with open(f'{output_dir}/error.txt', 'w') as f:
-					f.write(SpecialErrors.STEP_LIMIT_REACHED.value)
-				return self._finish(task, ActionResult(status=ActionResultStatus.ABORT, message='Step limit reached.'), output_dir)
-			case SpecialErrors.API_TOO_MANY_ERRORS:
-				with open(f'{output_dir}/error.txt', 'w') as f:
-					f.write(SpecialErrors.API_TOO_MANY_ERRORS.value)
-				return self._finish(task, ActionResult(status=ActionResultStatus.ABORT, message='API too many errors.'), output_dir)
-			case SpecialErrors.ACTION_PARSING_ERROR:
-				with open(f'{output_dir}/error.txt', 'w') as f:
-					f.write(SpecialErrors.ACTION_PARSING_ERROR.value)
-				return self._finish(task, ActionResult(status=ActionResultStatus.ABORT, message='Action parsing error.'), output_dir)
-			case _:
-				raise ValueError(f'Unknown error: {error}')
+		print(f'Handling special error: {error}')
+
+		os.makedirs(output_dir, exist_ok=True)
+		with open(f'{output_dir}/error.txt', 'w') as f:
+			f.write(error.value)
+
+		return self._finish(
+			task, ActionResult(status=ActionResultStatus.ABORT, message=f'Aborted due to following error: {error.value}'), output_dir
+		)
 
 	def _finish(self, task: Task, action_result: ActionResult, output_dir: str) -> str:
 		with open(f'{output_dir}/action_history.txt', 'w') as f:
