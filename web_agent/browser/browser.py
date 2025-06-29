@@ -36,12 +36,11 @@ class Browser:
 
 	async def __aenter__(self) -> 'Browser':
 		self.playwright = await async_playwright().start()
-		self.browser = await self.playwright.chromium.launch_persistent_context(
+		browser = await self.playwright.chromium.launch(
 			headless=False,
 			channel='chrome',
-			user_data_dir='./.browser_user_data',
-			viewport={'width': 1920, 'height': 1080},
 		)
+		self.browser = await browser.new_context(viewport={'width': 1920, 'height': 1080})
 		self.page = await self.browser.new_page()
 		return self
 
