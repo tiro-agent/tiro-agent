@@ -26,21 +26,24 @@ class AgentDecision(BaseModel):
 class SpecialAgentErrors(Enum):
 	"""Special errors that the agent can encounter."""
 
-	URL_LOAD_ERROR = 'URL_LOAD_ERROR'
+	URL_BLOCKED = 'URL_BLOCKED'  # permanent error (manually set)
+	URL_LOAD_ERROR = 'URL_LOAD_ERROR'  # probably permanent error (set by playwright or manually)
 	STEP_LIMIT_REACHED = 'STEP_LIMIT_REACHED'
-	API_TOO_MANY_ERRORS = 'API_TOO_MANY_ERRORS'
-	ACTION_PARSING_ERROR = 'ACTION_PARSING_ERROR'
-	URL_BLOCKED = 'URL_BLOCKED'
-	LLM_ERROR = 'LLM_ERROR'
+	ACTION_PARSING_ERROR = 'ACTION_PARSING_ERROR'  # should be a rerun
+	LLM_ERROR = 'LLM_ERROR'  # should be a rerun
+	ABORTED_BY_LLM = 'ABORTED_BY_LLM'  # should define a better reason later (TODO: remove and add an auto trigger to get an AgentError)
 
 
 class AgentErrors(Enum):
 	"""Errors that the agent can encounter."""
 
-	CLICK_ERROR = 'CLICK_ERROR'
-	SCROLL_ERROR = 'SCROLL_ERROR'
 	OPTION_SELECTION_ERROR = 'OPTION_SELECTION_ERROR'
-	INPUT_ERROR = 'INPUT_ERROR'  # includes search errors
-	NAVIGATION_ERROR = 'NAVIGATION_ERROR'
 	FILTER_ERROR = 'FILTER_ERROR'
+	CLICK_ERROR = 'CLICK_ERROR'
+	NAVIGATION_ERROR = 'NAVIGATION_ERROR'
+	SCROLL_ERROR = 'SCROLL_ERROR'
+	INPUT_ERROR = 'INPUT_ERROR'  # includes search errors
+	HUMAN_VERIFICATION_ERROR = 'HUMAN_VERIFICATION_ERROR'
+	PAGE_LOAD_ERROR = 'PAGE_LOAD_ERROR'
+	PAGE_BLOCKED_ERROR = 'PAGE_BLOCKED_ERROR'
 	OTHER = 'OTHER'

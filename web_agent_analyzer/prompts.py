@@ -9,6 +9,9 @@ The possible causes are:
 - NAVIGATION_ERROR: the agent couldn't navigate to the correct page or the page was not found
 - SCROLL_ERROR: the agent was unable to scroll or scrolled infinetly whitout finding the element
 - INPUT_ERROR: the agent was unable to input text or the text was not found or inputted in the wrong field
+- HUMAN_VERIFICATION_ERROR: the agent was unable to pass a human verification check
+- PAGE_LOAD_ERROR: the agent was unable to load the page or the page was not found (e.g. 404 error)
+- PAGE_BLOCKED_ERROR: the agent was unable to load the page or the page was blocked by a bot protection (e.g. Cloudflare)
 - OTHER: the agent was unable to complete the task for other reasons (only use this if none of the other causes apply)
 
 You are given a task and steps that the agent took to complete the task (until step limit was reached), including the screenshots of the last few steps.
