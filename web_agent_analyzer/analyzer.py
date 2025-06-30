@@ -14,8 +14,7 @@ from web_agent_analyzer.schemas import Result, ResultSchema
 class ResultAnalyzer:
 	def __init__(self, run_id: str) -> None:
 		self.run_id = run_id
-		script_dir = Path(__file__).parent.resolve()
-		self.output_folder = (script_dir / '../../output').resolve()
+		self.output_folder = Path('output').resolve()
 		self.run_path = self.output_folder / run_id
 		self.analysis_folder = self.run_path / '#analysis'
 
@@ -39,8 +38,12 @@ class ResultAnalyzer:
 		generate_plots(self.results_cleaned, self.analysis_folder)
 
 	def evaluate_tasks_with_errors(self) -> None:
-		tasks_to_evaluate = self.results[self.results[ResultSchema.error_type] == SpecialAgentErrors.STEP_LIMIT_REACHED.value]
-		print(f'Found {len(tasks_to_evaluate)} tasks with STEP_LIMIT_REACHED to evaluate')
+		errors_to_evaluate = [
+			SpecialAgentErrors.STEP_LIMIT_REACHED.value,
+			SpecialAgentErrors.ABORTED_BY_LLM.value,
+		]
+		tasks_to_evaluate = self.results[self.results[ResultSchema.error_type].isin(errors_to_evaluate)]
+		print(f'Found {len(tasks_to_evaluate)} tasks with errors to evaluate')
 
 		if tasks_to_evaluate.empty:
 			return
@@ -66,7 +69,7 @@ class ResultAnalyzer:
 				ai_eval_str = f.read().strip()
 				ai_eval = ai_eval_str if ai_eval_str else None
 		else:
-			ai_eval_result = self.ai_evaluator.evaluate_task(task_result, task_path)
+			ai_eval_result = self.error_evaluator.evaluate_task_error(task_result, task_path)
 			ai_eval = ai_eval_result.value if ai_eval_result else None
 			if ai_eval:
 				with open(ai_eval_file_path, 'w') as f:
