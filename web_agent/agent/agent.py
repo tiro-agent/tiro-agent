@@ -19,6 +19,7 @@ from web_agent.browser.browser import Browser
 KNOWN_PROBLEM_DOMAINS: list[dict[str, SpecialAgentErrors | AgentErrors]] = [
 	{'domain': 'https://www.gamestop.com/', 'reason': SpecialAgentErrors.URL_BLOCKED},
 	{'domain': 'https://www.google.com/shopping?udm=28', 'reason': AgentErrors.CLICK_ERROR},
+	{'domain': 'https://www.thumbtack.com/', 'reason': SpecialAgentErrors.URL_LOAD_ERROR},
 ]
 
 
