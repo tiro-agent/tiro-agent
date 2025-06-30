@@ -14,11 +14,12 @@ from web_agent.agent.actions.base import ActionContext
 from web_agent.agent.actions.history import ActionsHistoryController, ActionsHistoryStep
 from web_agent.agent.actions.registry import ActionsRegistry
 from web_agent.agent.prompts import get_system_prompt
-from web_agent.agent.schemas import AgentDecision, SpecialErrors, Task
+from web_agent.agent.schemas import AgentDecision, AgentErrors, SpecialAgentErrors, Task
 from web_agent.browser.browser import Browser
 
-KNOWN_PROBLEM_DOMAINS: list[dict[str, SpecialErrors]] = [
-	{'domain': 'https://www.gamestop.com/', 'reason': SpecialErrors.URL_BLOCKED},
+KNOWN_PROBLEM_DOMAINS: list[dict[str, SpecialAgentErrors | AgentErrors]] = [
+	{'domain': 'https://www.gamestop.com/', 'reason': SpecialAgentErrors.URL_BLOCKED},
+	{'domain': 'https://www.google.com/shopping?udm=28', 'reason': AgentErrors.CLICK_ERROR},
 ]
 
 
@@ -39,7 +40,7 @@ class Agent:
 		# STEP 0: Check if the domain is a known problem domain
 		for known_problem_domain in KNOWN_PROBLEM_DOMAINS:
 			if known_problem_domain['domain'] in task.url:
-				return self._handle_special_error(known_problem_domain['reason'], task, output_dir)
+				return self._handle_error_finish(known_problem_domain['reason'], task, output_dir)
 
 		# STEP 1: SETUP LLM
 		llm = self._initialize_llm(task, self.api_key)
@@ -48,7 +49,7 @@ class Agent:
 		try:
 			await self.browser.load_url(task.url)
 		except Exception:
-			return self._handle_special_error(SpecialErrors.URL_LOAD_ERROR, task, output_dir)
+			return self._handle_error_finish(SpecialAgentErrors.URL_LOAD_ERROR, task, output_dir)
 
 		os.makedirs(output_dir + '/trajectory', exist_ok=True)
 
@@ -56,7 +57,7 @@ class Agent:
 		while True:
 			# LOOP STEP 0: Check limits & errors and finish the task if needed
 			if step >= max_steps:
-				return self._handle_special_error(SpecialErrors.STEP_LIMIT_REACHED, task, output_dir)
+				return self._handle_error_finish(SpecialAgentErrors.STEP_LIMIT_REACHED, task, output_dir)
 
 			# LOOP STEP 1: PAGE CLEANUP
 			await self.browser.clean_page()
@@ -122,7 +123,7 @@ class Agent:
 				output_format_error_count += 1
 				if output_format_error_count > self.MAX_ERROR_COUNT:
 					print('Too many errors, aborting')
-					return self._handle_special_error(SpecialErrors.ACTION_PARSING_ERROR, task, output_dir)
+					return self._handle_error_finish(SpecialAgentErrors.ACTION_PARSING_ERROR, task, output_dir)
 				print('Retrying...')
 				continue
 
@@ -152,7 +153,7 @@ class Agent:
 			await asyncio.sleep(3)
 			step += 1
 
-	def _handle_special_error(self, error: SpecialErrors, task: Task, output_dir: str) -> str:
+	def _handle_error_finish(self, error: SpecialAgentErrors | AgentErrors, task: Task, output_dir: str) -> str:
 		"""Handle a special error that the agent can encounter."""
 		print(f'Handling special error: {error}')
 

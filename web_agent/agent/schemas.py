@@ -20,7 +20,7 @@ class AgentDecision(BaseModel):
 	)
 
 
-class SpecialErrors(Enum):
+class SpecialAgentErrors(Enum):
 	"""Special errors that the agent can encounter."""
 
 	URL_LOAD_ERROR = 'URL_LOAD_ERROR'
@@ -28,3 +28,15 @@ class SpecialErrors(Enum):
 	API_TOO_MANY_ERRORS = 'API_TOO_MANY_ERRORS'
 	ACTION_PARSING_ERROR = 'ACTION_PARSING_ERROR'
 	URL_BLOCKED = 'URL_BLOCKED'
+
+
+class AgentErrors(Enum):
+	"""Errors that the agent can encounter."""
+
+	CLICK_ERROR = 'CLICK_ERROR'
+	SCROLL_ERROR = 'SCROLL_ERROR'
+	OPTION_SELECTION_ERROR = 'OPTION_SELECTION_ERROR'
+	INPUT_ERROR = 'INPUT_ERROR'  # includes search errors
+	WHITESCREEN_ERROR = 'WHITESCREEN_ERROR'
+	NAVIGATION_ERROR = 'NAVIGATION_ERROR'
+	FILTER_ERROR = 'FILTER_ERROR'
