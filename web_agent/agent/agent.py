@@ -2,7 +2,6 @@ import asyncio
 import json
 import math
 import os
-import sys
 
 from pydantic_ai import Agent as ChatAgent
 from pydantic_ai import BinaryContent
@@ -104,7 +103,7 @@ class Agent:
 				llm_error_count += 1
 				if llm_error_count > self.MAX_ERROR_COUNT:
 					print('Too many errors, aborting. Please check your API key and try again.')
-					sys.exit()
+					return self._handle_error_finish(SpecialAgentErrors.LLM_ERROR, task, output_dir)
 
 				await self._exponential_backoff(llm_error_count)
 				llm = self._initialize_llm(task, self.api_key)
@@ -160,6 +159,10 @@ class Agent:
 		os.makedirs(output_dir, exist_ok=True)
 		with open(f'{output_dir}/error.txt', 'w') as f:
 			f.write(error.value)
+
+		if error == SpecialAgentErrors.LLM_ERROR:
+			with open(f'{output_dir}/llm_error.txt', 'w') as f:
+				f.write(error.value)
 
 		return self._finish(
 			task, ActionResult(status=ActionResultStatus.ABORT, message=f'Aborted due to following error: {error.value}'), output_dir
