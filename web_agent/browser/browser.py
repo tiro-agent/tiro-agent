@@ -46,13 +46,20 @@ class Browser:
 
 	async def load_url(self, url: str) -> None:
 		try:
-			await self.page.goto(url)
+			response = await self.page.goto(url)
 			await self.page.wait_for_load_state('networkidle')
+
+			if response.status in [400, 401, 403, 404, 408, 429, 500, 502, 503, 504]:
+				print(f'Page returned status code {response.status}')
+				raise Exception(f'Page returned status code {response.status}')
 		except TimeoutError:
 			print('TimeoutError: Page did not indicate that it was loaded. Proceeding anyway.')
-		except Error:
+			if response.status in [400, 401, 403, 404, 408, 429, 500, 502, 503, 504]:
+				print(f'Page returned status code {response.status}')
+				raise Exception(f'Page returned status code {response.status}') from TimeoutError
+		except Exception as e:
 			print("Page couldn't load, moving on to next task.")
-			raise Exception('Could not load the URL') from Error
+			raise Exception('Could not load the URL') from e
 
 	async def clean_page(self) -> None:
 		try:
