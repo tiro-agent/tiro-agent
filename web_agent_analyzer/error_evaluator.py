@@ -1,4 +1,5 @@
 import json
+import time
 from pathlib import Path
 
 from pydantic_ai import Agent as ChatAgent
@@ -24,7 +25,7 @@ class ErrorEvaluator:
 
 		return task_error_evaluation.cause
 
-	def _init_llm(self) -> ChatAgent:
+	def _init_llm(self) -> None:
 		self.llm = ChatAgent(
 			model='google-gla:gemini-2.5-flash-preview-05-20',
 			system_prompt=get_ai_eval_prompt(),
@@ -32,8 +33,23 @@ class ErrorEvaluator:
 		)
 
 	def _run_llm(self, prompt: str | dict) -> TaskErrorEvaluation:
-		response = self.llm.run_sync(prompt)
-		return response.output
+		max_retries = 4
+		base_delay = 4
+
+		for attempt in range(max_retries):
+			try:
+				response = self.llm.run_sync(prompt)
+				return response.output
+			except Exception as e:
+				print(f'LLM call failed on attempt {attempt + 1}/{max_retries} with error: {e}')
+				if attempt < max_retries - 1:
+					delay = base_delay * (2**attempt)
+					print(f'Reinitializing LLM and retrying in {delay} seconds...')
+					time.sleep(delay)
+					self._init_llm()
+				else:
+					print('Max retries reached. Failed to get a response from the LLM.')
+					raise
 
 	def _get_task_prompt(self, task_path: Path) -> list[str | BinaryContent]:
 		with open(task_path / 'result.json') as f:
