@@ -203,7 +203,7 @@ class ClickByCoords(BaseAction):
 	y: int = Field(description='The y coordinate to click on.')
 
 	async def execute(self, context: ActionContext) -> ActionResult:
-		await context.page.mouse.click(self.x, self.y)
+		await context.page.mouse.click(self.x, self.y, delay=150)
 		return ActionResult(status=ActionResultStatus.UNKNOWN, message='Clicked on the given coordinates.')
 
 
