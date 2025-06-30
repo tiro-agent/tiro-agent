@@ -29,17 +29,78 @@ class ResultAnalyzer:
 			self.analysis_folder.mkdir(parents=True, exist_ok=True)
 
 		self.results = self._analysis()
+		self.results_cleaned = self._clean_results()
+		self.results_evaluated = None
 
 	def save_results(self) -> None:
 		self.results.to_csv(self.analysis_folder / 'results.csv', sep=';', index=False)
+
+	def generate_summary(self, print_summary: bool = True) -> None:
+		summary = ''
+		summary += 'SUMMARY\n'
+		summary += f'Found {len(self.results)} tasks\n'
+		summary += '-' * 100 + '\n'
+		summary += 'After cleaning (removing LLM_ERROR, URL_BLOCKED, URL_LOAD_ERROR)\n\n'
+		summary += f'Found {len(self.results_cleaned)} tasks after cleaning\n'
+		summary += f'Successfully completed tasks: {len(self.results_cleaned[self.results_cleaned["success"]])}\n'
+		summary += f'Success rate: {len(self.results_cleaned[self.results_cleaned["success"]]) / len(self.results_cleaned) * 100:.2f}%\n'
+		summary += '\nSuccess rate by level:\n'
+		for level in self.results_cleaned['level'].unique():
+			level_tasks = self.results_cleaned[self.results_cleaned['level'] == level]
+			successful_level_tasks = self.results_cleaned[(self.results_cleaned['level'] == level) & (self.results_cleaned['success'])]
+			success_rate = len(successful_level_tasks) / len(level_tasks) * 100
+			summary += f'{level}: {success_rate:.2f}% ({len(successful_level_tasks)}/{len(level_tasks)})\n'
+		summary += '\nSpecial error types:\n'
+		for error_type in self.results_cleaned['error_type'].unique():
+			if error_type is None:
+				continue
+			summary += f'{error_type}: {len(self.results_cleaned[self.results_cleaned["error_type"] == error_type])}\n'
+
+		summary += '-' * 100 + '\n'
+
+		llm_error_tasks = self.results[self.results['error_type'] == SpecialAgentErrors.LLM_ERROR.value]
+		summary += f'Found {len(llm_error_tasks)} tasks with LLM_ERROR\n'
+		for task_number in llm_error_tasks['task_number']:
+			summary += f'{task_number} '
+		summary += '\n' + '-' * 100 + '\n'
+
+		url_blocked_tasks = self.results[self.results['error_type'] == SpecialAgentErrors.URL_BLOCKED.value]
+		summary += f'Found {len(url_blocked_tasks)} tasks with URL_BLOCKED\n'
+		for task_number in url_blocked_tasks['task_number']:
+			summary += f'{task_number} '
+		summary += '\n' + '-' * 100 + '\n'
+
+		url_load_error_tasks = self.results[self.results['error_type'] == SpecialAgentErrors.URL_LOAD_ERROR.value]
+		summary += f'Found {len(url_load_error_tasks)} tasks with URL_LOAD_ERROR\n'
+		for task_number in url_load_error_tasks['task_number']:
+			summary += f'{task_number} '
+		summary += '\n' + '-' * 100 + '\n'
+
+		if print_summary:
+			print(summary)
+
+		with open(self.analysis_folder / 'summary.txt', 'w') as f:
+			f.write(summary)
 
 	def generate_plots(self) -> None:
 		self._generate_plot_success_rate()
 		self._generate_plot_success_rate_by_level()
 		self._generate_plot_error_types_pre_evaluation()
 
+	def _clean_results(self) -> pd.DataFrame:
+		# remove all the tasks that have a error type LLM_ERROR, URL_BLOCKED, URL_LOAD_ERROR
+		ignored_error_types = [
+			SpecialAgentErrors.LLM_ERROR.value,
+			SpecialAgentErrors.URL_BLOCKED.value,
+			SpecialAgentErrors.URL_LOAD_ERROR.value,
+		]
+		results_to_remove = self.results[self.results['error_type'].isin(ignored_error_types)]
+		results_cleaned = self.results[~self.results.index.isin(results_to_remove.index)]
+		return results_cleaned
+
 	def _analysis(self) -> pd.DataFrame:
 		results = []
+		unfinished_tasks = []
 
 		for task in os.listdir(self.run_path):
 			task_path: Path = self.run_path / task
@@ -64,6 +125,17 @@ class ResultAnalyzer:
 						error_type=error_type,
 					)
 					results.append(task_result)
+			else:
+				if task.startswith('#analysis'):
+					continue
+				unfinished_tasks.append(task)
+
+		if len(unfinished_tasks) > 0:
+			print(f'Found {len(unfinished_tasks)} unfinished tasks')
+			for task in unfinished_tasks:
+				task_number = task.split('_')[0]
+				print(f'{task_number}')
+			print('-' * 100)
 
 		results_df = self._results_to_df(results)
 
@@ -114,5 +186,6 @@ class ResultAnalyzer:
 if __name__ == '__main__':
 	run_id = 'try_threading_4'
 	results_analyzer = ResultAnalyzer(run_id)
+	results_analyzer.generate_summary()
 	results_analyzer.save_results()
 	results_analyzer.generate_plots()
