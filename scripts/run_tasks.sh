@@ -1,10 +1,29 @@
 #! /bin/bash
 
+# set run id
+run_id="try_multi_screenshot_1"
+
+# make sure the vpn is on, by prompting the user and he must reply "y"
+read -p "Please turn on the vpn and reply 'y' to continue: "
+if [ "$REPLY" != "y" ]; then
+    echo "VPN is not on, please turn it on and run the script again"
+    exit 1
+fi
+
 uv run -m web_agent \
---logfire
-# --level easy
-# --run-id "my_custom_run_1" \
-# --start-index 0 \
-# --relevant-task-ids 824eb7bb0ef1ce40bfd49c12182d9428 e4e097222d13a2560db6f6892612dab6 \
-# --task-id 824eb7bb0ef1ce40bfd49c12182d9428 \
-# --disable-vpn-check
+--logfire \
+--level easy \
+--run-id $run_id \
+--disable-vpn-check
+
+uv run -m web_agent \
+--logfire \
+--level medium \
+--run-id $run_id \
+--disable-vpn-check
+
+uv run -m web_agent \
+--logfire \
+--level hard \
+--run-id $run_id \
+--disable-vpn-check
