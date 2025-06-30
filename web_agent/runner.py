@@ -44,9 +44,14 @@ class AgentRunner:
 			sys.exit('GEMINI_API_KEY is not set')
 
 		self.api_key_queue = asyncio.Queue()
-		self.api_key_queue.put(self.gemini_api_key)
+		self.api_key_queue.put_nowait(self.gemini_api_key)
 		if self.gemini_api_key_2:
-			self.api_key_queue.put(self.gemini_api_key_2)
+			self.api_key_queue.put_nowait(self.gemini_api_key_2)
+
+		self.max_concurrent_tasks = self.api_key_queue.qsize()
+
+		# Create semaphore to limit concurrency to number of API keys
+		self.semaphore = asyncio.Semaphore(self.max_concurrent_tasks)
 
 		if self.run_id is None:
 			self.run_id = time.strftime('%Y-%m-%d_%H-%M-%S')
@@ -64,22 +69,55 @@ class AgentRunner:
 			if self.start_index is not None and self.start_index > len(self.tasks):
 				sys.exit('Start index is greater than the number of tasks')
 
+		print(f'Runner initialized with max concurrent tasks (API keys): {self.max_concurrent_tasks}')
+
 	async def run_all_tasks(self, level: TaskLevel = TaskLevel.ALL) -> None:
+		filtered_tasks = []
 		for i, task in enumerate(self.tasks):
 			if i < self.start_index:
 				continue
-
 			if level.value != TaskLevel.ALL.value and task['level'] != level.value:
 				continue
 
-			task_output_dir = f'{self.output_dir}/{i:03d}_{task["task_id"]}'
+			task_object = Task(
+				identifier=task['task_id'],
+				description=task['confirmed_task'],
+				url=task['website'],
+				level=task['level'],
+				number=i,
+			)
+			filtered_tasks.append(task_object)
 
-			if os.path.exists(task_output_dir):
-				print(f'Task {i} already executed, skipping')
-				continue
+		if not filtered_tasks:
+			print('No tasks to run')
+			return
 
-			task_object = Task(identifier=task['task_id'], description=task['confirmed_task'], url=task['website'])
-			await self.run_task(task_object, task_output_dir, i)
+		print(f'Running {len(filtered_tasks)} tasks with max {self.max_concurrent_tasks} concurrent tasks')
+
+		# Run tasks in parallel using asyncio.gather
+		if self.max_concurrent_tasks > 1:
+			await asyncio.gather(*[self._run_task_with_api_key(task_data) for task_data in filtered_tasks])
+		else:
+			# Fallback to sequential execution if only one API key
+			for task in filtered_tasks:
+				await self._run_task_with_api_key(task)
+
+	async def _run_task_with_api_key(self, task: Task) -> None:
+		"""Run a single task with proper API key management."""
+
+		task_output_dir = f'{self.output_dir}/{task.number:03d}_{task.identifier}'
+
+		if os.path.exists(task_output_dir):
+			print(f'Task {task.number} already executed, skipping')
+			return
+
+		# Acquire semaphore and get API key
+		async with self.semaphore:
+			api_key = await self.api_key_queue.get()
+			try:
+				await self.run_task(task, task_output_dir, api_key)
+			finally:
+				await self.api_key_queue.put(api_key)
 
 	async def run_task_by_id(self, task_id: str) -> None:
 		task = next((t for t in self.tasks if t['task_id'] == task_id), None)
@@ -87,11 +125,17 @@ class AgentRunner:
 			sys.exit(f'Task with id {task_id} not found')
 
 		task_output_dir = f'{self.output_dir}/{task["task_id"]}'
-		task_object = Task(identifier=task['task_id'], description=task['confirmed_task'], url=task['website'])
-		await self.run_task(task_object, task_output_dir, 0)
+		task_object = Task(
+			identifier=task['task_id'],
+			description=task['confirmed_task'],
+			url=task['website'],
+			level=task['level'],
+			number=0,
+		)
+		await self.run_task(task_object, task_output_dir)
 
-	async def run_task(self, task: Task, output_dir: str, nr: int, api_key: str | None = None) -> None:
-		print(f'============= Task {nr} =============')
+	async def run_task(self, task: Task, output_dir: str, api_key: str | None = None) -> None:
+		print(f'============= Task {task.number} =============')
 		print('Id:', task.identifier)
 		print('Task:', task.description)
 		print('Website:', task.url)
@@ -102,7 +146,7 @@ class AgentRunner:
 				result = await agent.run(task, output_dir=output_dir)
 				print('Result:', result)
 			except Exception as e:
-				print(f'Task {nr} failed with following exception:', e)
+				print(f'Task {task.number} failed with following exception:', e)
 		print('====================================\n\n')
 
 

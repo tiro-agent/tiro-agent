@@ -9,6 +9,8 @@ class Task(BaseModel):
 	identifier: str = Field(description='The id of the task.')
 	description: str = Field(description='The task to be completed.')
 	url: str = Field(description='The url to be loaded.')
+	level: str = Field(description='The level of the task.', enum=['easy', 'medium', 'hard'])
+	number: int = Field(description='The number of the task.')
 
 
 class AgentDecision(BaseModel):
