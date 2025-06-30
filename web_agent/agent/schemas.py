@@ -11,6 +11,7 @@ class Task(BaseModel):
 	url: str = Field(description='The url to be loaded.')
 	level: str = Field(description='The level of the task.', enum=['easy', 'medium', 'hard'])
 	number: int = Field(description='The number of the task.')
+	reference_length: int = Field(description='The reference length of the task.')
 
 
 class AgentDecision(BaseModel):

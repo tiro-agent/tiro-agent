@@ -20,6 +20,7 @@ async def main() -> None:
 	parser.add_argument('--logfire', action='store_true', help='Enable logfire logging', required=False, default=False)
 	parser.add_argument('--disable-vpn-check', action='store_true', help='Disable VPN check', required=False, default=False)
 	parser.add_argument('--level', type=TaskLevel, help='Level', required=False, default=TaskLevel.ALL, choices=list(TaskLevel))
+	parser.add_argument('--step-factor', type=float, help='Step factor', required=False, default=2.5)
 	args = parser.parse_args()
 
 	print('Hello from web-agent!')
@@ -38,6 +39,7 @@ async def main() -> None:
 		run_id=args.run_id,
 		relevant_task_ids=args.relevant_task_ids,
 		start_index=args.start_index,
+		step_factor=args.step_factor,
 	)
 
 	if args.task_id is None:

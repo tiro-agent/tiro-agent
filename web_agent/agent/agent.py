@@ -32,7 +32,7 @@ class Agent:
 		self.action_history_controller = ActionsHistoryController()
 		self.api_key = api_key
 
-	async def run(self, task: Task, output_dir: str, max_steps: int = 20) -> str:  # noqa: PLR0915
+	async def run(self, task: Task, output_dir: str, step_limit: int = 20) -> str:  # noqa: PLR0915
 		step = 0
 		output_format_error_count = 0
 		llm_error_count = 0
@@ -56,7 +56,7 @@ class Agent:
 		# STEP 3: AGENT LOOP
 		while True:
 			# LOOP STEP 0: Check limits & errors and finish the task if needed
-			if step >= max_steps:
+			if step >= step_limit:
 				return self._handle_error_finish(SpecialAgentErrors.STEP_LIMIT_REACHED, task, output_dir)
 
 			# LOOP STEP 1: PAGE CLEANUP

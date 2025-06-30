@@ -33,9 +33,11 @@ class AgentRunner:
 		start_index: int = 0,
 		relevant_task_ids: list[str] | None = None,
 		output_dir_prefix: str | None = None,
+		step_factor: int = 2.5,
 	) -> None:
 		self.run_id = run_id
 		self.start_index = start_index
+		self.step_factor = step_factor
 		self.tasks = []
 		self.gemini_api_key = os.environ.get('GEMINI_API_KEY')
 		self.gemini_api_key_2 = os.environ.get('GEMINI_API_KEY_2')
@@ -85,6 +87,7 @@ class AgentRunner:
 				url=task['website'],
 				level=task['level'],
 				number=task['number'],
+				reference_length=task['reference_length'],
 			)
 			filtered_tasks.append(task_object)
 
@@ -131,6 +134,7 @@ class AgentRunner:
 			url=task['website'],
 			level=task['level'],
 			number=task['number'],
+			reference_length=task['reference_length'],
 		)
 		await self.run_task(task_object, task_output_dir)
 
@@ -139,11 +143,15 @@ class AgentRunner:
 		print('Id:', task.identifier)
 		print('Task:', task.description)
 		print('Website:', task.url)
+		print('Level:', task.level)
+
+		step_limit = round(self.step_factor * task.reference_length)
+		print('Step limit:', step_limit)
 
 		async with Browser() as browser:
 			agent = Agent(browser, api_key=api_key)
 			try:
-				result = await agent.run(task, output_dir=output_dir)
+				result = await agent.run(task, output_dir=output_dir, step_limit=step_limit)
 				print('Result:', result)
 			except Exception as e:
 				print(f'Task {task.number} failed with following exception:', e)
