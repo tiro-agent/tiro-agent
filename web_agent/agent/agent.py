@@ -80,36 +80,18 @@ class Agent:
 			past_actions_str = self.action_history_controller.get_action_history_str()
 			available_actions_str = await self.actions_controller.get_applicable_actions_str(self.browser.page)
 
-			prompt_str = '\n'
-			prompt_str += f'Metadata: \n{metadata!s}\n\n'
-			prompt_str += f'Past actions:\n{past_actions_str}\n\n'
-			prompt_str += f'Available actions:\n{available_actions_str}\n\n'
-			prompt_str += 'Choose the next action to take.\n'
-
-			if len(previous_screenshots) > 0:
-				screenshots_to_include = previous_screenshots[-self.NUMBER_OF_PREVIOUS_SCREENSHOTS :]
-				prompt = [
-					prompt_str,
-					'Previous screenshots:',
-					*[BinaryContent(data=screenshot, media_type='image/png') for screenshot in screenshots_to_include],
-					'Current screenshot:',
-					BinaryContent(data=screenshot, media_type='image/png'),
-				]
-			else:
-				prompt = [
-					prompt_str,
-					'Current screenshot:',
-					BinaryContent(data=screenshot, media_type='image/png'),
-				]
+			prompt = self._build_user_prompt(metadata, past_actions_str, available_actions_str, previous_screenshots, screenshot)
 
 			print('-' * 100)
+			print('Task:', task.number)
 			print('Step number:', step)
 			print('Metadata:', metadata)
 			print('Past actions:\n', past_actions_str)
 
 			# LOOP STEP 6: GET AGENT DECISION
 			try:
-				action_decision: AgentDecision = (await llm.run(prompt)).output
+				agent_response = await llm.run(prompt)
+				action_decision: AgentDecision = agent_response.output
 				print('Action: ', action_decision.action, ' - ', action_decision.thought)
 			except Exception as e:
 				print('Error getting action decision:', e)
@@ -234,3 +216,35 @@ class Agent:
 		seconds_to_wait = math.exp(error_count - 1) * 10  # 10 sec first error, 27 sec second error, 73 sec third error, etc.
 		await asyncio.sleep(seconds_to_wait)
 		print(f'Retrying in {seconds_to_wait} seconds...')
+
+	def _build_user_prompt(
+		self,
+		metadata: dict,
+		past_actions_str: str,
+		available_actions_str: str,
+		previous_screenshots: list[str],
+		current_screenshot: str,
+	) -> list[BinaryContent | str]:
+		prompt_str = '\n'
+		prompt_str += f'Metadata: \n{metadata!s}\n\n'
+		prompt_str += f'Past actions:\n{past_actions_str}\n\n'
+		prompt_str += f'Available actions:\n{available_actions_str}\n\n'
+		prompt_str += 'Choose the next action to take.\n'
+
+		if len(previous_screenshots) > 0:
+			screenshots_to_include = previous_screenshots[-self.NUMBER_OF_PREVIOUS_SCREENSHOTS :]
+			prompt = [
+				prompt_str,
+				'Previous screenshots:',
+				*[BinaryContent(data=screenshot, media_type='image/png') for screenshot in screenshots_to_include],
+				'Current screenshot:',
+				BinaryContent(data=current_screenshot, media_type='image/png'),
+			]
+		else:
+			prompt = [
+				prompt_str,
+				'Current screenshot:',
+				BinaryContent(data=current_screenshot, media_type='image/png'),
+			]
+
+		return prompt

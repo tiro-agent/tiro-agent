@@ -1,0 +1,25 @@
+Task description: Compare available plans for the AeroAPI on Flightaware.
+Task url: https://www.flightaware.com/
+Task output dir: output/try_threading_4/001_ade4c09ad3fdb1607209750924cd232f
+Action history: - ACTION: click_by_text(text='I Accept'), [Failure], MESSAGE: Multiple targets found: ['0 -  <div id="onetrust-policy-text">We and our 908 partners store and access personal </div>', '1 -  <button id="onetrust-accept-btn-handler">I Accept</button>']
+
+Please specify the index of the element to click on using the ClickByTextIth action.
+- ACTION: click_by_text_ith(text='I Accept', ith='1'), [Success]
+- ACTION: click_by_text(text='Products'), [Failure], MESSAGE: Multiple targets found: ['0 -  <summary id="">Products</summary>', '1 -  <h2 id="">Innovative products powered by best-in-class data.</h2>', '2 -  <div id="">See all products</div>', '3 -  <h6 id="">PRODUCTS</h6>']
+
+Please specify the index of the element to click on using the ClickByTextIth action.
+- ACTION: click_by_text_ith(text='Products', ith='0'), [Success]
+- ACTION: click_by_text(text='AeroAPI'), [Failure], MESSAGE: Multiple targets found: ['0 -  <a href="https://www.flightaware.com/commercial/aeroapi/" id="">AeroAPI</a>', '1 -  <h3 id="">AeroAPI is a robust, query-based API giving develo</h3>', '2 -  <div id="">Integrate AeroAPI into your platform</div>', '3 -  <a href="https://www.flightaware.com/commercial/aeroapi/" id="">AeroAPI</a>']
+
+Please specify the index of the element to click on using the ClickByTextIth action.
+- ACTION: click_by_text_ith(text='AeroAPI', ith='0'), [Success]
+- ACTION: click_by_text(text='Compare Tiers Now'), [Success]
+- ACTION: scroll_down(), [Unknown], MESSAGE: Sent scroll down command.
+- ACTION: scroll_down(), [Unknown], MESSAGE: Sent scroll down command.
+- ACTION: scroll_down(), [Unknown], MESSAGE: Sent scroll down command.
+- ACTION: scroll_down(), [Unknown], MESSAGE: Sent scroll down command.
+- ACTION: click_by_text(text='Compare Tiers'), [Failure], MESSAGE: Multiple targets found: ['0 -  <a href="https://www.flightaware.com/commercial/aeroapi/#compare-plans-section" id="">Compare Tiers Now</a>', '1 -  <h2 id="">Compare Tiers</h2>', '2 -  <a href="https://www.flightaware.com/commercial/aeroapi/#compare-plans-section" id="">Compare Tiers</a>']
+
+Please specify the index of the element to click on using the ClickByTextIth action.
+- ACTION: click_by_text_ith(text='Compare Tiers', ith='2'), [Success]
+- ACTION: finish(answer='The available plans for AeroAPI on Flightaware are: Premium, Standard, and Personal. Premium costs $1,000/month, Standard costs $100/month, and Personal costs $0/month. All plans include Alerts, FlightAware Foresight, Historical Flight Data, and Static maps and imagery. Premium and Standard also include Aireon Space-Based ADS-B. Premium has a result set rate limit of 100 result sets/second and a history result set rate limit of 500,000 result sets/month. Standard has a result set rate limit of 5 result sets/second and a history result set rate limit of 500,000 result sets/month. Personal has a result set rate limit of 10 result sets/minute. Premium is authorized for business, business-to-consumer commercial purposes, and all Business-to-Business. Standard is authorized for business and business-to-consumer purposes. Personal is authorized for personal or academic purposes only.'), [Finish], MESSAGE: Task finished. The answer is: The available plans for AeroAPI on Flightaware are: Premium, Standard, and Personal. Premium costs $1,000/month, Standard costs $100/month, and Personal costs $0/month. All plans include Alerts, FlightAware Foresight, Historical Flight Data, and Static maps and imagery. Premium and Standard also include Aireon Space-Based ADS-B. Premium has a result set rate limit of 100 result sets/second and a history result set rate limit of 500,000 result sets/month. Standard has a result set rate limit of 5 result sets/second and a history result set rate limit of 500,000 result sets/month. Personal has a result set rate limit of 10 result sets/minute. Premium is authorized for business, business-to-consumer commercial purposes, and all Business-to-Business. Standard is authorized for business and business-to-consumer purposes. Personal is authorized for personal or academic purposes only.
