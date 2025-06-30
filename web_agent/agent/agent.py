@@ -25,6 +25,7 @@ KNOWN_PROBLEM_DOMAINS: list[dict[str, SpecialAgentErrors | AgentErrors]] = [
 
 class Agent:
 	MAX_ERROR_COUNT = 3
+	NUMBER_OF_PREVIOUS_SCREENSHOTS = 2
 
 	def __init__(self, browser: Browser, api_key: str | None = None) -> None:
 		self.browser = browser
@@ -36,6 +37,7 @@ class Agent:
 		step = 0
 		output_format_error_count = 0
 		llm_error_count = 0
+		previous_screenshots = []
 
 		# STEP 0: Check if the domain is a known problem domain
 		for known_problem_domain in KNOWN_PROBLEM_DOMAINS:
@@ -78,25 +80,18 @@ class Agent:
 			past_actions_str = self.action_history_controller.get_action_history_str()
 			available_actions_str = await self.actions_controller.get_applicable_actions_str(self.browser.page)
 
-			prompt_str = '\n'
-			prompt_str += f'Metadata: \n{metadata!s}\n\n'
-			prompt_str += f'Past actions:\n{past_actions_str}\n\n'
-			prompt_str += f'Available actions:\n{available_actions_str}\n\n'
-			prompt_str += 'Choose the next action to take.\n'
-
-			prompt = [
-				BinaryContent(data=screenshot, media_type='image/png'),
-				prompt_str,
-			]
+			prompt = self._build_user_prompt(metadata, past_actions_str, available_actions_str, previous_screenshots, screenshot)
 
 			print('-' * 100)
+			print('Task:', task.number)
 			print('Step number:', step)
 			print('Metadata:', metadata)
 			print('Past actions:\n', past_actions_str)
 
 			# LOOP STEP 6: GET AGENT DECISION
 			try:
-				action_decision: AgentDecision = (await llm.run(prompt)).output
+				agent_response = await llm.run(prompt)
+				action_decision: AgentDecision = agent_response.output
 				print('Action: ', action_decision.action, ' - ', action_decision.thought)
 			except Exception as e:
 				print('Error getting action decision:', e)
@@ -148,6 +143,8 @@ class Agent:
 			# LOOP STEP 10: SELF-REVIEW
 			# evaluate the step success (look at pre and after screenshots) and the agent's performance & ADD A NOTE to the action history
 			# TODO
+
+			previous_screenshots.append(screenshot)
 
 			# LOOP STEP 11: NEXT STEP
 			await asyncio.sleep(3)
@@ -219,3 +216,35 @@ class Agent:
 		seconds_to_wait = math.exp(error_count - 1) * 10  # 10 sec first error, 27 sec second error, 73 sec third error, etc.
 		await asyncio.sleep(seconds_to_wait)
 		print(f'Retrying in {seconds_to_wait} seconds...')
+
+	def _build_user_prompt(
+		self,
+		metadata: dict,
+		past_actions_str: str,
+		available_actions_str: str,
+		previous_screenshots: list[str],
+		current_screenshot: str,
+	) -> list[BinaryContent | str]:
+		prompt_str = '\n'
+		prompt_str += f'Metadata: \n{metadata!s}\n\n'
+		prompt_str += f'Past actions:\n{past_actions_str}\n\n'
+		prompt_str += f'Available actions:\n{available_actions_str}\n\n'
+		prompt_str += 'Choose the next action to take.\n'
+
+		if len(previous_screenshots) > 0:
+			screenshots_to_include = previous_screenshots[-self.NUMBER_OF_PREVIOUS_SCREENSHOTS :]
+			prompt = [
+				prompt_str,
+				'Previous screenshots:',
+				*[BinaryContent(data=screenshot, media_type='image/png') for screenshot in screenshots_to_include],
+				'Current screenshot:',
+				BinaryContent(data=current_screenshot, media_type='image/png'),
+			]
+		else:
+			prompt = [
+				prompt_str,
+				'Current screenshot:',
+				BinaryContent(data=current_screenshot, media_type='image/png'),
+			]
+
+		return prompt
