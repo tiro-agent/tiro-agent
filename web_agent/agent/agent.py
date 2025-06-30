@@ -179,6 +179,7 @@ class Agent:
 		output_data = {
 			'task_id': task.identifier,
 			'task': task.description,
+			'level': task.level,
 			'final_result_response': final_result,
 			'action_history': [step.action.get_action_str() for step in self.action_history_controller.get_action_history()],
 			'thoughts': [step.thought for step in self.action_history_controller.get_action_history()],
