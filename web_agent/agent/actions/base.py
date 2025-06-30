@@ -4,7 +4,7 @@ from enum import Enum
 from typing import ClassVar
 from urllib.parse import urlparse
 
-from playwright.sync_api import Page
+from playwright.async_api import Page
 from pydantic import BaseModel, Field
 
 from web_agent.agent.schemas import Task
@@ -50,7 +50,7 @@ class BaseAction(BaseModel, ABC):
 	domains: ClassVar[list[str] | None] = None
 
 	@classmethod
-	def page_filter(cls, page: Page) -> bool:
+	async def page_filter(cls, page: Page) -> bool:
 		"""
 		Default page filter that always returns True, meaning no specific page filtering is applied.
 		Subclasses can override this method to add custom page-based applicability logic.
@@ -58,7 +58,7 @@ class BaseAction(BaseModel, ABC):
 		return True
 
 	@abstractmethod
-	def execute(self, context: ActionContext) -> ActionResult:
+	async def execute(self, context: ActionContext) -> ActionResult:
 		"""Abstract method to be implemented by subclasses."""
 		pass
 
@@ -72,12 +72,12 @@ class BaseAction(BaseModel, ABC):
 		return re.sub(r'([a-zA-Z])([0-9])', r'\1_\2', s2).lower()
 
 	@classmethod
-	def is_applicable(cls, page: Page) -> bool:
+	async def is_applicable(cls, page: Page) -> bool:
 		if cls.domains is not None:
-			domain = urlparse(page.url).netloc
+			domain = urlparse(await page.url).netloc
 			if not any(check_domain_pattern_match(domain, pattern) for pattern in cls.domains):
 				return False
-		if not cls.page_filter(page):
+		if not await cls.page_filter(page):
 			return False
 		return True
 

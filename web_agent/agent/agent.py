@@ -1,11 +1,11 @@
+import asyncio
 import json
 import math
 import os
-import sys
-import time
 
 from pydantic_ai import Agent as ChatAgent
 from pydantic_ai import BinaryContent
+from pydantic_ai.providers.google_gla import GoogleGLAProvider
 from pydantic_ai.settings import ModelSettings
 
 from web_agent.agent.actions.actions import ActionResult, ActionResultStatus
@@ -13,23 +13,26 @@ from web_agent.agent.actions.base import ActionContext
 from web_agent.agent.actions.history import ActionsHistoryController, ActionsHistoryStep
 from web_agent.agent.actions.registry import ActionsRegistry
 from web_agent.agent.prompts import get_system_prompt
-from web_agent.agent.schemas import AgentDecision, SpecialErrors, Task
+from web_agent.agent.schemas import AgentDecision, AgentErrors, SpecialAgentErrors, Task
 from web_agent.browser.browser import Browser
 
-KNOWN_PROBLEM_DOMAINS: list[dict[str, SpecialErrors]] = [
-	{'domain': 'https://www.gamestop.com/', 'reason': SpecialErrors.URL_BLOCKED},
+KNOWN_PROBLEM_DOMAINS: list[dict[str, SpecialAgentErrors | AgentErrors]] = [
+	{'domain': 'https://www.gamestop.com/', 'reason': SpecialAgentErrors.URL_BLOCKED},
+	{'domain': 'https://www.google.com/shopping?udm=28', 'reason': AgentErrors.CLICK_ERROR},
+	{'domain': 'https://www.thumbtack.com/', 'reason': SpecialAgentErrors.URL_LOAD_ERROR},
 ]
 
 
 class Agent:
 	MAX_ERROR_COUNT = 3
 
-	def __init__(self, browser: Browser) -> None:
+	def __init__(self, browser: Browser, api_key: str | None = None) -> None:
 		self.browser = browser
 		self.actions_controller = ActionsRegistry.create_default()
 		self.action_history_controller = ActionsHistoryController()
+		self.api_key = api_key
 
-	def run(self, task: Task, output_dir: str, max_steps: int = 20) -> str:  # noqa: PLR0915
+	async def run(self, task: Task, output_dir: str, step_limit: int = 20) -> str:  # noqa: PLR0915
 		step = 0
 		output_format_error_count = 0
 		llm_error_count = 0
@@ -37,33 +40,33 @@ class Agent:
 		# STEP 0: Check if the domain is a known problem domain
 		for known_problem_domain in KNOWN_PROBLEM_DOMAINS:
 			if known_problem_domain['domain'] in task.url:
-				return self._handle_special_error(known_problem_domain['reason'], task, output_dir)
+				return self._handle_error_finish(known_problem_domain['reason'], task, output_dir)
 
 		# STEP 1: SETUP LLM
-		llm = self._initialize_llm(task)
+		llm = self._initialize_llm(task, self.api_key)
 
 		# STEP 2: LOAD THE URL
 		try:
-			self.browser.load_url(task.url)
+			await self.browser.load_url(task.url)
 		except Exception:
-			return self._handle_special_error(SpecialErrors.URL_LOAD_ERROR, task, output_dir)
+			return self._handle_error_finish(SpecialAgentErrors.URL_LOAD_ERROR, task, output_dir)
 
 		os.makedirs(output_dir + '/trajectory', exist_ok=True)
 
 		# STEP 3: AGENT LOOP
 		while True:
 			# LOOP STEP 0: Check limits & errors and finish the task if needed
-			if step >= max_steps:
-				return self._handle_special_error(SpecialErrors.STEP_LIMIT_REACHED, task, output_dir)
+			if step >= step_limit:
+				return self._handle_error_finish(SpecialAgentErrors.STEP_LIMIT_REACHED, task, output_dir)
 
 			# LOOP STEP 1: PAGE CLEANUP
-			self.browser.clean_page()
+			await self.browser.clean_page()
 			# TODO: add actual cleanup
 
 			# LOOP STEP 2: SAVE SCREENSHOT AND GET PAGE DATA
 			screenshot_path = f'{output_dir}/trajectory/{step}_full_screenshot.png'
-			screenshot = self.browser.save_screenshot(screenshot_path)
-			metadata = self.browser.get_metadata()
+			screenshot = await self.browser.save_screenshot(screenshot_path)
+			metadata = await self.browser.get_metadata()
 
 			# LOOP STEP 3: PAGE ANALYSIS
 			# TODO
@@ -73,7 +76,7 @@ class Agent:
 
 			# LOOP STEP 5: GET AGENT PROMPT
 			past_actions_str = self.action_history_controller.get_action_history_str()
-			available_actions_str = self.actions_controller.get_applicable_actions_str(self.browser.page)
+			available_actions_str = await self.actions_controller.get_applicable_actions_str(self.browser.page)
 
 			prompt_str = '\n'
 			prompt_str += f'Metadata: \n{metadata!s}\n\n'
@@ -93,7 +96,7 @@ class Agent:
 
 			# LOOP STEP 6: GET AGENT DECISION
 			try:
-				action_decision: AgentDecision = llm.run_sync(prompt).output
+				action_decision: AgentDecision = (await llm.run(prompt)).output
 				print('Action: ', action_decision.action, ' - ', action_decision.thought)
 			except Exception as e:
 				print('Error getting action decision:', e)
@@ -101,10 +104,10 @@ class Agent:
 				llm_error_count += 1
 				if llm_error_count > self.MAX_ERROR_COUNT:
 					print('Too many errors, aborting. Please check your API key and try again.')
-					sys.exit()
+					return self._handle_error_finish(SpecialAgentErrors.LLM_ERROR, task, output_dir)
 
-				self._exponential_backoff(llm_error_count)
-				llm = self._initialize_llm(task)
+				await self._exponential_backoff(llm_error_count)
+				llm = self._initialize_llm(task, self.api_key)
 				continue
 
 			llm_error_count = 0
@@ -120,14 +123,14 @@ class Agent:
 				output_format_error_count += 1
 				if output_format_error_count > self.MAX_ERROR_COUNT:
 					print('Too many errors, aborting')
-					return self._handle_special_error(SpecialErrors.ACTION_PARSING_ERROR, task, output_dir)
+					return self._handle_error_finish(SpecialAgentErrors.ACTION_PARSING_ERROR, task, output_dir)
 				print('Retrying...')
 				continue
 
 			output_format_error_count = 0
 
 			# LOOP STEP 8: ACTION EXECUTION
-			action_result = action.execute(ActionContext(page=self.browser.page, task=task))
+			action_result = await action.execute(ActionContext(page=self.browser.page, task=task))
 			self.action_history_controller.add_action(
 				ActionsHistoryStep(
 					thought=action_decision.thought,
@@ -147,16 +150,20 @@ class Agent:
 			# TODO
 
 			# LOOP STEP 11: NEXT STEP
-			time.sleep(3)
+			await asyncio.sleep(3)
 			step += 1
 
-	def _handle_special_error(self, error: SpecialErrors, task: Task, output_dir: str) -> str:
+	def _handle_error_finish(self, error: SpecialAgentErrors | AgentErrors, task: Task, output_dir: str) -> str:
 		"""Handle a special error that the agent can encounter."""
 		print(f'Handling special error: {error}')
 
 		os.makedirs(output_dir, exist_ok=True)
 		with open(f'{output_dir}/error.txt', 'w') as f:
 			f.write(error.value)
+
+		if error == SpecialAgentErrors.LLM_ERROR:
+			with open(f'{output_dir}/llm_error.txt', 'w') as f:
+				f.write(error.value)
 
 		return self._finish(
 			task, ActionResult(status=ActionResultStatus.ABORT, message=f'Aborted due to following error: {error.value}'), output_dir
@@ -174,8 +181,10 @@ class Agent:
 		)
 
 		output_data = {
+			'number': task.number,
 			'task_id': task.identifier,
 			'task': task.description,
+			'level': task.level,
 			'final_result_response': final_result,
 			'action_history': [step.action.get_action_str() for step in self.action_history_controller.get_action_history()],
 			'thoughts': [step.thought for step in self.action_history_controller.get_action_history()],
@@ -190,18 +199,23 @@ class Agent:
 
 		return final_result
 
-	def _initialize_llm(self, task: Task) -> ChatAgent:
+	def _initialize_llm(self, task: Task, api_key: str | None = None) -> ChatAgent:
 		system_prompt = get_system_prompt() + f'TASK: {task.description}'
 		model_settings = ModelSettings(seed=42, temperature=0, timeout=20)
+
+		# if api_key is not None, the key from os.environ.get('GEMINI_API_KEY') is used
+		model_provider = GoogleGLAProvider(api_key=api_key)
+
 		llm = ChatAgent(
-			model='google-gla:gemini-2.5-flash-preview-05-20',
+			model='gemini-2.5-flash-preview-05-20',
 			system_prompt=system_prompt,
 			output_type=AgentDecision,
 			model_settings=model_settings,
+			model_provider=model_provider,
 		)
 		return llm
 
-	def _exponential_backoff(self, error_count: int) -> None:
+	async def _exponential_backoff(self, error_count: int) -> None:
 		seconds_to_wait = math.exp(error_count - 1) * 10  # 10 sec first error, 27 sec second error, 73 sec third error, etc.
-		time.sleep(seconds_to_wait)
+		await asyncio.sleep(seconds_to_wait)
 		print(f'Retrying in {seconds_to_wait} seconds...')

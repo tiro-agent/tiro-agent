@@ -12,31 +12,34 @@ class ClickByText(BaseAction):
 
 	text: str = Field(description='The text to click on.')
 
-	def execute(self, context: ActionContext) -> ActionResult:
+	async def execute(self, context: ActionContext) -> ActionResult:
 		text_targets = context.page.get_by_text(self.text).filter(visible=True)
 		placeholder_targets = context.page.get_by_placeholder(self.text).filter(visible=True)
 		label_targets = context.page.get_by_label(self.text).filter(visible=True)
 		targets = text_targets.or_(placeholder_targets).or_(label_targets)
 
-		if targets.count() == 0:  # If no targets found, try to find subtexts
+		if await targets.count() == 0:  # If no targets found, try to find subtexts
 			for subtext in self.text.split():
 				text_subtargets = context.page.get_by_text(subtext).filter(visible=True)
 				placeholder_subtargets = context.page.get_by_placeholder(subtext).filter(visible=True)
 				label_subtargets = context.page.get_by_label(subtext).filter(visible=True)
 				subtext_targets = text_subtargets.or_(placeholder_subtargets).or_(label_subtargets)
-				if subtext_targets.count() > 0:
+				if await subtext_targets.count() > 0:
 					targets = targets.or_(subtext_targets)
 
-		if targets.count() == 0:
+		if await targets.count() == 0:
 			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
-		elif targets.count() == 1:
+		elif await targets.count() == 1:
 			try:
-				targets.click()
+				await targets.click()
 			except TimeoutError:
 				return ActionResult(status=ActionResultStatus.FAILURE, message='Click timed out, element might not be clickable')
 			return ActionResult(status=ActionResultStatus.SUCCESS, message='Clicked on the element that contains the given text.')
 		else:
-			targets_str = str([f'{i} -  {pretty_print_element(target.element_handle())}' for i, target in enumerate(targets.all())])
+			all_targets = await targets.all()
+			targets_str = str(
+				[f'{i} -  {await pretty_print_element(await target.element_handle())}' for i, target in enumerate(all_targets)]
+			)
 			return ActionResult(
 				status=ActionResultStatus.FAILURE,
 				message='Multiple targets found: '
@@ -52,28 +55,28 @@ class ClickByTextIth(BaseAction):
 	text: str = Field(description='The text to click on.')
 	ith: int = Field(description='The index of the element to click on. Starts at 0, so 0 is the first element.')
 
-	def execute(self, context: ActionContext) -> ActionResult:
+	async def execute(self, context: ActionContext) -> ActionResult:
 		text_targets = context.page.get_by_text(self.text).filter(visible=True)
 		placeholder_targets = context.page.get_by_placeholder(self.text).filter(visible=True)
 		label_targets = context.page.get_by_label(self.text).filter(visible=True)
 		targets = text_targets.or_(placeholder_targets).or_(label_targets)
 
-		if targets.count() == 0:  # If no targets found, try to find subtexts
+		if await targets.count() == 0:  # If no targets found, try to find subtexts
 			for subtext in self.text.split():
 				text_subtargets = context.page.get_by_text(subtext).filter(visible=True)
 				placeholder_subtargets = context.page.get_by_placeholder(subtext).filter(visible=True)
 				label_subtargets = context.page.get_by_label(subtext).filter(visible=True)
 				subtext_targets = text_subtargets.or_(placeholder_subtargets).or_(label_subtargets)
-				if subtext_targets.count() > 0:
+				if await subtext_targets.count() > 0:
 					targets = targets.or_(subtext_targets)
 
-		if targets.count() == 0:
+		if await targets.count() == 0:
 			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
-		elif targets.count() < self.ith:
-			return ActionResult(status=ActionResultStatus.FAILURE, message='Not enough targets found: ' + str(targets.all()))
+		elif await targets.count() < self.ith:
+			return ActionResult(status=ActionResultStatus.FAILURE, message='Not enough targets found: ' + str(await targets.all()))
 		else:
 			try:
-				targets.nth(self.ith).click()
+				await targets.nth(self.ith).click()
 			except TimeoutError:
 				return ActionResult(status=ActionResultStatus.FAILURE, message='Click timed out, element might not be clickable')
 			return ActionResult(status=ActionResultStatus.SUCCESS, message='Clicked on the ith element that contains the given text.')
@@ -83,8 +86,8 @@ class ClickByTextIth(BaseAction):
 class ScrollUp(BaseAction):
 	"""Scrolls up on the page."""
 
-	def execute(self, context: ActionContext) -> ActionResult:
-		context.page.mouse.wheel(0, -700)
+	async def execute(self, context: ActionContext) -> ActionResult:
+		await context.page.mouse.wheel(0, -700)
 		return ActionResult(status=ActionResultStatus.UNKNOWN, message='Sent scroll up command.')
 
 
@@ -92,8 +95,8 @@ class ScrollUp(BaseAction):
 class ScrollDown(BaseAction):
 	"""Scrolls down on the page."""
 
-	def execute(self, context: ActionContext) -> ActionResult:
-		context.page.mouse.wheel(0, 700)
+	async def execute(self, context: ActionContext) -> ActionResult:
+		await context.page.mouse.wheel(0, 700)
 		return ActionResult(status=ActionResultStatus.UNKNOWN, message='Sent scroll down command.')
 
 
@@ -103,17 +106,20 @@ class ScrollToText(BaseAction):
 
 	text: str = Field(description='The text to search for.')
 
-	def execute(self, context: ActionContext) -> ActionResult:
+	async def execute(self, context: ActionContext) -> ActionResult:
 		targets = context.page.get_by_text(self.text).filter(visible=True)
-		if targets.count() == 0:
+		if await targets.count() == 0:
 			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
-		elif targets.count() == 1:
-			targets.focus()
-			return ActionResult(
-				status=ActionResultStatus.SUCCESS, message='Searched for the given text on the current page and focused on it.'
-			)
+		elif await targets.count() == 1:
+			try:
+				await targets.focus()
+				return ActionResult(
+					status=ActionResultStatus.SUCCESS, message='Searched for the given text on the current page and focused on it.'
+				)
+			except TimeoutError:
+				return ActionResult(status=ActionResultStatus.FAILURE, message='Focus timed out, element might not be focusable')
 		else:
-			return ActionResult(status=ActionResultStatus.FAILURE, message='Multiple targets found: ' + str(targets.all()))
+			return ActionResult(status=ActionResultStatus.FAILURE, message='Multiple targets found: ' + str(await targets.all()))
 
 
 @default_action
@@ -123,17 +129,20 @@ class ScrollToIthText(BaseAction):
 	text: str = Field(description='The text to search for.')
 	ith: int = Field(description='The index of the element to focus on.')
 
-	def execute(self, context: ActionContext) -> ActionResult:
+	async def execute(self, context: ActionContext) -> ActionResult:
 		targets = context.page.get_by_text(self.text).filter(visible=True)
-		if targets.count() == 0:
+		if await targets.count() == 0:
 			return ActionResult(status=ActionResultStatus.FAILURE, message='Text not found on page')
-		elif targets.count() < self.ith:
-			return ActionResult(status=ActionResultStatus.FAILURE, message='Not enough targets found: ' + str(targets.all()))
+		elif await targets.count() < self.ith:
+			return ActionResult(status=ActionResultStatus.FAILURE, message='Not enough targets found: ' + str(await targets.all()))
 		else:
-			targets.nth(self.ith).focus()
-			return ActionResult(
-				status=ActionResultStatus.SUCCESS, message='Searched for the ith given text on the current page and focused on it.'
-			)
+			try:
+				await targets.nth(self.ith).focus()
+				return ActionResult(
+					status=ActionResultStatus.SUCCESS, message='Searched for the ith given text on the current page and focused on it.'
+				)
+			except TimeoutError:
+				return ActionResult(status=ActionResultStatus.FAILURE, message='Focus timed out, element might not be focusable')
 
 
 @default_action
@@ -153,14 +162,14 @@ class TypeText(BaseAction):
 	)
 
 	@classmethod
-	def page_filter(cls, page: Page) -> bool:
-		return page.evaluate('document.activeElement.tagName !== "BODY"')
+	async def page_filter(cls, page: Page) -> bool:
+		return await page.evaluate('document.activeElement.tagName !== "BODY"')
 
-	def execute(self, context: ActionContext) -> ActionResult:
+	async def execute(self, context: ActionContext) -> ActionResult:
 		try:
-			context.page.keyboard.type(self.text)
+			await context.page.keyboard.type(self.text)
 			if self.press_enter:
-				context.page.keyboard.press('Enter')
+				await context.page.keyboard.press('Enter')
 			return ActionResult(status=ActionResultStatus.SUCCESS, message=f"Typed '{self.text}' into the focused element.")
 		except Exception as e:
 			return ActionResult(
@@ -174,13 +183,13 @@ class ClearInputField(BaseAction):
 	"""Clears the input field that is currently focused."""
 
 	@classmethod
-	def page_filter(cls, page: Page) -> bool:
-		return page.evaluate('document.activeElement.hasAttribute("value") && document.activeElement.value != ""')
+	async def page_filter(cls, page: Page) -> bool:
+		return await page.evaluate('document.activeElement.hasAttribute("value") && document.activeElement.value != ""')
 
-	def execute(self, context: ActionContext) -> ActionResult:
+	async def execute(self, context: ActionContext) -> ActionResult:
 		try:
 			# Clear the input field by setting its value to an empty string
-			context.page.evaluate('document.activeElement.value = ""')
+			await context.page.evaluate('document.activeElement.value = ""')
 			return ActionResult(status=ActionResultStatus.SUCCESS, message='Cleared the input field.')
 		except Exception as e:
 			return ActionResult(status=ActionResultStatus.FAILURE, message=f'Could not clear the input field: {e}')
@@ -193,8 +202,8 @@ class ClickByCoords(BaseAction):
 	x: int = Field(description='The x coordinate to click on.')
 	y: int = Field(description='The y coordinate to click on.')
 
-	def execute(self, context: ActionContext) -> ActionResult:
-		context.page.mouse.click(self.x, self.y)
+	async def execute(self, context: ActionContext) -> ActionResult:
+		await context.page.mouse.click(self.x, self.y, delay=150)
 		return ActionResult(status=ActionResultStatus.UNKNOWN, message='Clicked on the given coordinates.')
 
 
@@ -202,8 +211,8 @@ class ClickByCoords(BaseAction):
 class Back(BaseAction):
 	"""Go back to the previous page."""
 
-	def execute(self, context: ActionContext) -> ActionResult:
-		context.page.go_back()
+	async def execute(self, context: ActionContext) -> ActionResult:
+		await context.page.go_back()
 		return ActionResult(status=ActionResultStatus.SUCCESS, message='Go back to the previous page.')
 
 
@@ -211,10 +220,10 @@ class Back(BaseAction):
 class Reset(BaseAction):
 	"""Reset the browser to the initial starting page."""
 
-	def execute(self, context: ActionContext) -> ActionResult:
+	async def execute(self, context: ActionContext) -> ActionResult:
 		try:
-			context.page.goto(context.task.url)
-			context.page.wait_for_load_state('networkidle')
+			await context.page.goto(context.task.url)
+			await context.page.wait_for_load_state('networkidle')
 		except TimeoutError:
 			return ActionResult(status=ActionResultStatus.INFO, message='Page did not indicate that it was loaded. Proceeding anyway.')
 
@@ -227,7 +236,7 @@ class Abort(BaseAction):
 
 	reason: str = Field(description='The reason for aborting the task.')
 
-	def execute(self, context: ActionContext) -> ActionResult:
+	async def execute(self, context: ActionContext) -> ActionResult:
 		return ActionResult(status=ActionResultStatus.ABORT, message=f'Task aborted. Reason: {self.reason}')
 
 
@@ -237,7 +246,7 @@ class Finish(BaseAction):
 
 	answer: str = Field(description='The final answer to the user query.')
 
-	def execute(self, context: ActionContext) -> ActionResult:
+	async def execute(self, context: ActionContext) -> ActionResult:
 		return ActionResult(
 			status=ActionResultStatus.FINISH,
 			message=f'Task finished. The answer is: {self.answer}',

@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import sys
@@ -9,7 +10,7 @@ from web_agent.agent.schemas import Task
 from web_agent.browser.browser import Browser
 
 
-class Level(Enum):
+class TaskLevel(Enum):
 	"""
 	Level of the task.
 
@@ -32,10 +33,27 @@ class AgentRunner:
 		start_index: int = 0,
 		relevant_task_ids: list[str] | None = None,
 		output_dir_prefix: str | None = None,
+		step_factor: int = 2.5,
 	) -> None:
 		self.run_id = run_id
 		self.start_index = start_index
+		self.step_factor = step_factor
 		self.tasks = []
+		self.gemini_api_key = os.environ.get('GEMINI_API_KEY')
+		self.gemini_api_key_2 = os.environ.get('GEMINI_API_KEY_2')
+
+		if self.gemini_api_key is None:
+			sys.exit('GEMINI_API_KEY is not set')
+
+		self.api_key_queue = asyncio.Queue()
+		self.api_key_queue.put_nowait(self.gemini_api_key)
+		if self.gemini_api_key_2:
+			self.api_key_queue.put_nowait(self.gemini_api_key_2)
+
+		self.max_concurrent_tasks = self.api_key_queue.qsize()
+
+		# Create semaphore to limit concurrency to number of API keys
+		self.semaphore = asyncio.Semaphore(self.max_concurrent_tasks)
 
 		if self.run_id is None:
 			self.run_id = time.strftime('%Y-%m-%d_%H-%M-%S')
@@ -53,45 +71,90 @@ class AgentRunner:
 			if self.start_index is not None and self.start_index > len(self.tasks):
 				sys.exit('Start index is greater than the number of tasks')
 
-	def run_all_tasks(self, level: Level = Level.ALL) -> None:
-		for i, task in enumerate(self.tasks):
-			if i < self.start_index:
+		print(f'Runner initialized with max concurrent tasks (API keys): {self.max_concurrent_tasks}')
+
+	async def run_all_tasks(self, level: TaskLevel = TaskLevel.ALL) -> None:
+		filtered_tasks = []
+		for task in self.tasks:
+			if task['number'] < self.start_index:
+				continue
+			if level.value != TaskLevel.ALL.value and task['level'] != level.value:
 				continue
 
-			if level.value != Level.ALL.value and task['level'] != level.value:
-				continue
+			task_object = Task(
+				identifier=task['task_id'],
+				description=task['confirmed_task'],
+				url=task['website'],
+				level=task['level'],
+				number=task['number'],
+				reference_length=task['reference_length'],
+			)
+			filtered_tasks.append(task_object)
 
-			task_output_dir = f'{self.output_dir}/{i:03d}_{task["task_id"]}'
+		if not filtered_tasks:
+			print('No tasks to run')
+			return
 
-			if os.path.exists(task_output_dir):
-				print(f'Task {i} already executed, skipping')
-				continue
+		print(f'Running {len(filtered_tasks)} tasks with max {self.max_concurrent_tasks} concurrent tasks')
 
-			task_object = Task(identifier=task['task_id'], description=task['confirmed_task'], url=task['website'])
-			self.run_task(task_object, task_output_dir, i)
+		# Run tasks in parallel using asyncio.gather
+		if self.max_concurrent_tasks > 1:
+			await asyncio.gather(*[self._run_task_with_api_key(task_data) for task_data in filtered_tasks])
+		else:
+			# Fallback to sequential execution if only one API key
+			for task in filtered_tasks:
+				await self._run_task_with_api_key(task)
 
-	def run_task_by_id(self, task_id: str) -> None:
+	async def _run_task_with_api_key(self, task: Task) -> None:
+		"""Run a single task with proper API key management."""
+
+		task_output_dir = f'{self.output_dir}/{task.number:03d}_{task.identifier}'
+
+		if os.path.exists(task_output_dir):
+			print(f'Task {task.number} already executed, skipping')
+			return
+
+		# Acquire semaphore and get API key
+		async with self.semaphore:
+			api_key = await self.api_key_queue.get()
+			try:
+				await self.run_task(task, task_output_dir, api_key)
+			finally:
+				await self.api_key_queue.put(api_key)
+
+	async def run_task_by_id(self, task_id: str) -> None:
 		task = next((t for t in self.tasks if t['task_id'] == task_id), None)
 		if task is None:
 			sys.exit(f'Task with id {task_id} not found')
 
 		task_output_dir = f'{self.output_dir}/{task["task_id"]}'
-		task_object = Task(identifier=task['task_id'], description=task['confirmed_task'], url=task['website'])
-		self.run_task(task_object, task_output_dir, 0)
+		task_object = Task(
+			identifier=task['task_id'],
+			description=task['confirmed_task'],
+			url=task['website'],
+			level=task['level'],
+			number=task['number'],
+			reference_length=task['reference_length'],
+		)
+		await self.run_task(task_object, task_output_dir)
 
-	def run_task(self, task: Task, output_dir: str, nr: int) -> None:
-		print(f'============= Task {nr} =============')
+	async def run_task(self, task: Task, output_dir: str, api_key: str | None = None) -> None:
+		print(f'============= Task {task.number} =============')
 		print('Id:', task.identifier)
 		print('Task:', task.description)
 		print('Website:', task.url)
+		print('Level:', task.level)
 
-		with Browser() as browser:
-			agent = Agent(browser)
+		step_limit = round(self.step_factor * task.reference_length)
+		print('Step limit:', step_limit)
+
+		async with Browser() as browser:
+			agent = Agent(browser, api_key=api_key)
 			try:
-				result = agent.run(task, output_dir=output_dir)
+				result = await agent.run(task, output_dir=output_dir, step_limit=step_limit)
 				print('Result:', result)
 			except Exception as e:
-				print(f'Task {nr} failed with following exception:', e)
+				print(f'Task {task.number} failed with following exception:', e)
 		print('====================================\n\n')
 
 

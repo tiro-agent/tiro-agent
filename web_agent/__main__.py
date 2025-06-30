@@ -1,12 +1,14 @@
 import argparse
+import asyncio
 
 import logfire
 import nest_asyncio
 from dotenv import load_dotenv
 
-from web_agent.runner import AgentRunner, Level, check_vpn
+from web_agent.runner import AgentRunner, TaskLevel, check_vpn
 
-if __name__ == '__main__':
+
+async def main() -> None:
 	nest_asyncio.apply()
 	load_dotenv()
 
@@ -17,7 +19,8 @@ if __name__ == '__main__':
 	parser.add_argument('--relevant-task-ids', nargs='+', type=str, help='Relevant task ids', required=False, default=None)
 	parser.add_argument('--logfire', action='store_true', help='Enable logfire logging', required=False, default=False)
 	parser.add_argument('--disable-vpn-check', action='store_true', help='Disable VPN check', required=False, default=False)
-	parser.add_argument('--level', type=Level, help='Level', required=False, default=Level.ALL, choices=list(Level))
+	parser.add_argument('--level', type=TaskLevel, help='Level', required=False, default=TaskLevel.ALL, choices=list(TaskLevel))
+	parser.add_argument('--step-factor', type=float, help='Step factor', required=False, default=2.5)
 	args = parser.parse_args()
 
 	print('Hello from web-agent!')
@@ -36,9 +39,14 @@ if __name__ == '__main__':
 		run_id=args.run_id,
 		relevant_task_ids=args.relevant_task_ids,
 		start_index=args.start_index,
+		step_factor=args.step_factor,
 	)
 
 	if args.task_id is None:
-		runner.run_all_tasks(level=args.level)
+		await runner.run_all_tasks(level=args.level)
 	else:
-		runner.run_task_by_id(args.task_id)
+		await runner.run_task_by_id(args.task_id)
+
+
+if __name__ == '__main__':
+	asyncio.run(main())

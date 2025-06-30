@@ -1,4 +1,4 @@
-from playwright.sync_api import Page
+from playwright.async_api import Page
 
 # Import all actions to make sure they're loaded for __subclasses__() to work
 from web_agent.agent.actions import actions as _  # noqa: F401
@@ -26,11 +26,15 @@ class ActionsRegistry:
 	def register_action(self, action: type[BaseAction]) -> None:
 		self.actions.append(action)
 
-	def get_applicable_actions(self, page: Page) -> list[type[BaseAction]]:
-		return [action for action in self.actions if action.is_applicable(page)]
+	async def get_applicable_actions(self, page: Page) -> list[type[BaseAction]]:
+		applicable_actions = []
+		for action in self.actions:
+			if await action.is_applicable(page):
+				applicable_actions.append(action)
+		return applicable_actions
 
-	def get_applicable_actions_str(self, page: Page) -> str:
-		return '- ' + '\n- '.join([action.get_action_definition_str() for action in self.get_applicable_actions(page)])
+	async def get_applicable_actions_str(self, page: Page) -> str:
+		return '- ' + '\n- '.join([action.get_action_definition_str() for action in await self.get_applicable_actions(page)])
 
 	def parse_action_str(self, action_str: str) -> BaseAction:
 		"""Parse an action string into a BaseAction instance."""
