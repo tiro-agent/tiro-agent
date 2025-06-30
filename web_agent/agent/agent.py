@@ -181,6 +181,7 @@ class Agent:
 		)
 
 		output_data = {
+			'number': task.number,
 			'task_id': task.identifier,
 			'task': task.description,
 			'level': task.level,

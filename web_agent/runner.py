@@ -73,8 +73,8 @@ class AgentRunner:
 
 	async def run_all_tasks(self, level: TaskLevel = TaskLevel.ALL) -> None:
 		filtered_tasks = []
-		for i, task in enumerate(self.tasks):
-			if i < self.start_index:
+		for task in self.tasks:
+			if task['number'] < self.start_index:
 				continue
 			if level.value != TaskLevel.ALL.value and task['level'] != level.value:
 				continue
@@ -84,7 +84,7 @@ class AgentRunner:
 				description=task['confirmed_task'],
 				url=task['website'],
 				level=task['level'],
-				number=i,
+				number=task['number'],
 			)
 			filtered_tasks.append(task_object)
 
@@ -130,7 +130,7 @@ class AgentRunner:
 			description=task['confirmed_task'],
 			url=task['website'],
 			level=task['level'],
-			number=0,
+			number=task['number'],
 		)
 		await self.run_task(task_object, task_output_dir)
 
