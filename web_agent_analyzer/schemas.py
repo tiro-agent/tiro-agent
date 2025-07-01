@@ -11,9 +11,10 @@ class Result(BaseModel):
 	level: str
 	success: bool
 	ai_success_eval: bool | None = None
-	error_type: str | None = None
-	ai_error_type: AgentErrors | None = None
-	human_error_type: AgentErrors | None = None
+	error_type: str | None = None  # final evaluation of the error (human > AI > run)
+	run_error_type: str | None = None  # error type from the run
+	ai_error_type: str | None = None  # error type from the AI evaluation
+	human_error_type: str | None = None  # error type from the human evaluation
 
 
 class ResultSchema(pa.DataFrameModel):
@@ -23,6 +24,7 @@ class ResultSchema(pa.DataFrameModel):
 	success: Series[bool]
 	ai_success_eval: Series[bool] = pa.Field(nullable=True, coerce=True)
 	error_type: Series[str] = pa.Field(nullable=True)
+	run_error_type: Series[str] = pa.Field(nullable=True)
 	ai_error_type: Series[str] = pa.Field(nullable=True)
 	human_error_type: Series[str] = pa.Field(nullable=True)
 

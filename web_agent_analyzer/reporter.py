@@ -25,25 +25,25 @@ def generate_summary(
 		success_rate = len(successful_level_tasks) / len(level_tasks) * 100
 		summary += f'{level}: {success_rate:.2f}% ({len(successful_level_tasks)}/{len(level_tasks)})\n'
 	summary += '\nSpecial error types:\n'
-	for error_type in results_cleaned[ResultSchema.error_type].unique():
+	for error_type in results_cleaned[ResultSchema.run_error_type].unique():
 		if error_type is None:
 			continue
-		summary += f'{error_type}: {len(results_cleaned[results_cleaned[ResultSchema.error_type] == error_type])}\n'
+		summary += f'{error_type}: {len(results_cleaned[results_cleaned[ResultSchema.run_error_type] == error_type])}\n'
 	summary += '-' * 100 + '\n'
 
-	llm_error_tasks = results[results[ResultSchema.error_type] == SpecialAgentErrors.LLM_ERROR.value]
+	llm_error_tasks = results[results[ResultSchema.run_error_type] == SpecialAgentErrors.LLM_ERROR.value]
 	summary += f'Found {len(llm_error_tasks)} tasks with LLM_ERROR\n'
 	for task_number in llm_error_tasks[ResultSchema.task_number]:
 		summary += f'{task_number} '
 	summary += '\n' + '-' * 100 + '\n'
 
-	url_blocked_tasks = results[results[ResultSchema.error_type] == SpecialAgentErrors.URL_BLOCKED.value]
+	url_blocked_tasks = results[results[ResultSchema.run_error_type] == SpecialAgentErrors.URL_BLOCKED.value]
 	summary += f'Found {len(url_blocked_tasks)} tasks with URL_BLOCKED\n'
 	for task_number in url_blocked_tasks[ResultSchema.task_number]:
 		summary += f'{task_number} '
 	summary += '\n' + '-' * 100 + '\n'
 
-	url_load_error_tasks = results[results[ResultSchema.error_type] == SpecialAgentErrors.URL_LOAD_ERROR.value]
+	url_load_error_tasks = results[results[ResultSchema.run_error_type] == SpecialAgentErrors.URL_LOAD_ERROR.value]
 	summary += f'Found {len(url_load_error_tasks)} tasks with URL_LOAD_ERROR\n'
 	for task_number in url_load_error_tasks[ResultSchema.task_number]:
 		summary += f'{task_number} '
@@ -100,4 +100,19 @@ def _generate_plot_error_types_pre_evaluation(results: DataFrame[ResultSchema], 
 		plt.pie(error_counts.values, labels=error_counts.index, autopct='%1.1f%%')
 		plt.title('Distribution of Error Types (Failed Tasks Only)')
 		plt.savefig(analysis_folder / 'error_types_pre_evaluation.png')
+		plt.close()
+
+
+def generate_plot_error_types_post_evaluation(results: DataFrame[ResultSchema], analysis_folder: Path) -> None:
+	# results are already post-evaluation
+	failed_tasks = results[results[ResultSchema.error_type].notna()]
+	if len(failed_tasks) == 0:
+		print('No errors found - all tasks were successful!')
+		return
+	error_counts = failed_tasks[ResultSchema.error_type].value_counts()
+	if len(error_counts) > 0:
+		plt.figure(figsize=(10, 5))
+		plt.pie(error_counts.values, labels=error_counts.index, autopct='%1.1f%%')
+		plt.title('Distribution of Error Types (Failed Tasks Only) (Post-Evaluation)')
+		plt.savefig(analysis_folder / 'error_types_post_evaluation.png')
 		plt.close()

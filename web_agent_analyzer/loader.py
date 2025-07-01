@@ -34,7 +34,7 @@ def load_results(run_path: Path) -> DataFrame[ResultSchema]:
 					identifier=result_json_data['task_id'],
 					level=result_json_data['level'],
 					success=True if error_type is None else False,
-					error_type=error_type,
+					run_error_type=error_type,
 				)
 				results.append(task_result)
 		else:
@@ -60,7 +60,7 @@ def clean_results(results: DataFrame[ResultSchema]) -> DataFrame[ResultSchema]:
 		SpecialAgentErrors.URL_BLOCKED.value,
 		SpecialAgentErrors.URL_LOAD_ERROR.value,
 	]
-	results_to_remove = results[results[ResultSchema.error_type].isin(ignored_error_types)]
+	results_to_remove = results[results[ResultSchema.run_error_type].isin(ignored_error_types)]
 	results_cleaned = results[~results.index.isin(results_to_remove.index)]
 	return results_cleaned
 
