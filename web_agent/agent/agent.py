@@ -17,9 +17,10 @@ from web_agent.agent.schemas import AgentDecision, AgentErrors, SpecialAgentErro
 from web_agent.browser.browser import Browser
 
 KNOWN_PROBLEM_DOMAINS: list[dict[str, SpecialAgentErrors | AgentErrors]] = [
-	{'domain': 'https://www.gamestop.com/', 'reason': SpecialAgentErrors.URL_BLOCKED},
+	{'domain': 'https://www.gamestop.com/', 'reason': SpecialAgentErrors.URL_BLOCKED},  # not immediately, but blocked by bot protection
+	{'domain': 'https://www.kbb.com/', 'reason': SpecialAgentErrors.URL_BLOCKED},  # not immediately, but blocked by bot protection
 	{'domain': 'https://www.google.com/shopping?udm=28', 'reason': AgentErrors.CLICK_ERROR},
-	{'domain': 'https://www.thumbtack.com/', 'reason': SpecialAgentErrors.URL_LOAD_ERROR},
+	{'domain': 'https://www.thumbtack.com/', 'reason': SpecialAgentErrors.URL_LOAD_ERROR},  # return 404 permanently
 ]
 
 
@@ -176,6 +177,10 @@ class Agent:
 		final_result = (
 			action_result.data['answer'] if action_result.status == ActionResultStatus.FINISH else f'ABORTED: {action_result.message}'
 		)
+
+		if action_result.status == ActionResultStatus.ABORT:
+			with open(f'{output_dir}/error.txt', 'w') as f:
+				f.write(SpecialAgentErrors.ABORTED_BY_LLM.value)
 
 		output_data = {
 			'number': task.number,
