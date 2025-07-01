@@ -7,7 +7,7 @@ from tqdm import tqdm
 from web_agent.agent.schemas import AgentErrors, SpecialAgentErrors
 from web_agent_analyzer.error_evaluator import ErrorEvaluator
 from web_agent_analyzer.loader import clean_results, load_results
-from web_agent_analyzer.reporter import generate_plot_error_types_post_evaluation, generate_plots, generate_summary
+from web_agent_analyzer.reporter import generate_plots, generate_summary
 from web_agent_analyzer.schemas import Result, ResultSchema
 
 
@@ -26,7 +26,9 @@ class ResultAnalyzer:
 
 		self.results: DataFrame[ResultSchema] = load_results(self.run_path)
 		self.results_cleaned: DataFrame[ResultSchema] = clean_results(self.results)
+		self.pre_evaluation_results: DataFrame[ResultSchema] = self.results_cleaned.copy()
 		self.error_evaluator = ErrorEvaluator()
+		self.is_evaluated = False
 
 	def save_results(self, filename: str = 'results.csv') -> None:
 		self.results.to_csv(self.analysis_folder / filename, sep=';', index=False)
@@ -35,10 +37,10 @@ class ResultAnalyzer:
 		generate_summary(self.results, self.results_cleaned, self.analysis_folder, print_summary)
 
 	def generate_plots(self) -> None:
-		generate_plots(self.results_cleaned, self.analysis_folder)
-
-	def generate_plots_post_evaluation(self) -> None:
-		generate_plot_error_types_post_evaluation(self.results, self.analysis_folder)
+		if self.is_evaluated:
+			generate_plots(self.pre_evaluation_results, self.results, self.analysis_folder)
+		else:
+			print('Results are not evaluated, skipping plots')
 
 	def evaluate_tasks_with_errors(self) -> None:
 		errors_to_evaluate = [
@@ -56,6 +58,7 @@ class ResultAnalyzer:
 			ai_eval_executed = self._evaluate_single_task_error(task_result)
 			if ai_eval_executed:
 				time.sleep(4)
+		self.is_evaluated = True
 		print('Results evaluated')
 
 	def _evaluate_single_task_error(self, task_result: Result) -> bool:

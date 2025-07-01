@@ -56,10 +56,14 @@ def generate_summary(
 		f.write(summary)
 
 
-def generate_plots(results: DataFrame[ResultSchema], analysis_folder: Path) -> None:
-	_generate_plot_success_rate(results, analysis_folder)
-	_generate_plot_success_rate_by_level(results, analysis_folder)
-	_generate_plot_error_types_pre_evaluation(results, analysis_folder)
+def generate_plots(
+	pre_evaluation_results: DataFrame[ResultSchema], post_evaluation_results: DataFrame[ResultSchema], analysis_folder: Path
+) -> None:
+	_generate_plot_success_rate(pre_evaluation_results, analysis_folder)
+	_generate_plot_success_rate_by_level(pre_evaluation_results, analysis_folder)
+	_generate_plot_error_types_pre_evaluation(pre_evaluation_results, analysis_folder)
+	_generate_plot_error_types_post_evaluation(post_evaluation_results, analysis_folder)
+	_generate_plot_error_types_post_evaluation_by_level(post_evaluation_results, analysis_folder)
 
 
 def _generate_plot_success_rate(results: DataFrame[ResultSchema], analysis_folder: Path) -> None:
@@ -103,7 +107,7 @@ def _generate_plot_error_types_pre_evaluation(results: DataFrame[ResultSchema], 
 		plt.close()
 
 
-def generate_plot_error_types_post_evaluation(results: DataFrame[ResultSchema], analysis_folder: Path) -> None:
+def _generate_plot_error_types_post_evaluation(results: DataFrame[ResultSchema], analysis_folder: Path) -> None:
 	# results are already post-evaluation
 	failed_tasks = results[results[ResultSchema.error_type].notna()]
 	if len(failed_tasks) == 0:
@@ -116,3 +120,25 @@ def generate_plot_error_types_post_evaluation(results: DataFrame[ResultSchema], 
 		plt.title('Distribution of Error Types (Failed Tasks Only) (Post-Evaluation)')
 		plt.savefig(analysis_folder / 'error_types_post_evaluation.png')
 		plt.close()
+
+
+def _generate_plot_error_types_post_evaluation_by_level(results: DataFrame[ResultSchema], analysis_folder: Path) -> None:
+	unique_levels = results[ResultSchema.level].unique()
+	if len(unique_levels) == 0 or unique_levels[0] is None:
+		return
+	for level in unique_levels:
+		level_df = results[results[ResultSchema.level] == level]
+		if len(level_df) == 0:
+			continue
+
+		failed_tasks = level_df[level_df[ResultSchema.error_type].notna()]
+		if len(failed_tasks) == 0:
+			print(f'No errors found for level {level} - all tasks were successful!')
+			continue
+		error_counts = failed_tasks[ResultSchema.error_type].value_counts()
+		if len(error_counts) > 0:
+			plt.figure(figsize=(10, 5))
+			plt.pie(error_counts.values, labels=error_counts.index, autopct='%1.1f%%')
+			plt.title(f'Distribution of Error Types for {level.capitalize()} Level Tasks (Post-Evaluation)')
+			plt.savefig(analysis_folder / f'error_types_post_evaluation_by_level_{level}.png')
+			plt.close()
