@@ -37,6 +37,12 @@ class SpecialAgentErrors(Enum):
 class AgentErrors(Enum):
 	"""Errors that the agent can encounter."""
 
+	# these are the final errors after an evaluation of the step errors for example
+	# TODO: find a better way to combine those with the special errors (maybe make it one enum)
+	# (maybe remove dublicate actions (URL_BLOCKED -> PAGE_BLOCKED_ERROR, URL_LOAD_ERROR -> PAGE_LOAD_ERROR))
+	# (affects the agent analyzer)
+	# (issue ex.: CLICK_action error set during runis not propagated to the agent analyzer)
+
 	OPTION_SELECTION_ERROR = 'OPTION_SELECTION_ERROR'
 	FILTER_ERROR = 'FILTER_ERROR'
 	CLICK_ERROR = 'CLICK_ERROR'
