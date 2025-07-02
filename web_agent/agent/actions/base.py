@@ -21,12 +21,24 @@ class ActionResultStatus(str, Enum):
 	ERROR = 'error'
 
 
+class ContextChangeTypes(str, Enum):
+	SCREENSHOT = 'screenshot'
+
+
+class ContextChange(BaseModel):
+	"""Represents the context changes from the action."""
+
+	action: ContextChangeTypes
+	data: dict | None = None
+
+
 class ActionResult(BaseModel):
 	"""Represents the outcome of an executed action."""
 
 	status: ActionResultStatus = Field(description='The status of the action (e.g., "success", "failure", "info", "abort", "finish").')
 	message: str = Field(description='A detailed message about the outcome.')
 	data: dict = Field(default_factory=dict, description='Optional: Additional structured data from the action.')
+	context_change: ContextChange = Field(default=None, description='The context change from the action.')
 
 
 class ActionContext(BaseModel):
