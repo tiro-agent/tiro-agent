@@ -1,3 +1,4 @@
+import pandas as pd
 import pandera.pandas as pa
 from pandera.typing import Series
 from pydantic import BaseModel
@@ -10,6 +11,7 @@ class Result(BaseModel):
 	identifier: str
 	level: str
 	success: bool
+	steps: int | None = None
 	ai_success_eval: bool | None = None
 	error_type: str | None = None  # final evaluation of the error (human > AI > run)
 	run_error_type: str | None = None  # error type from the run
@@ -22,7 +24,8 @@ class ResultSchema(pa.DataFrameModel):
 	identifier: Series[str]
 	level: Series[str]
 	success: Series[bool]
-	ai_success_eval: Series[bool] = pa.Field(nullable=True, coerce=True)
+	steps: Series[pd.Int64Dtype] = pa.Field(nullable=True)
+	ai_success_eval: Series[bool] = pa.Field(nullable=True)
 	error_type: Series[str] = pa.Field(nullable=True)
 	run_error_type: Series[str] = pa.Field(nullable=True)
 	ai_error_type: Series[str] = pa.Field(nullable=True)

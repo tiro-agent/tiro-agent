@@ -29,14 +29,22 @@ def load_results(run_path: Path) -> DataFrame[ResultSchema]:
 		if results_file_path.exists():
 			with open(results_file_path) as f:
 				result_json_data = json.load(f)
-				task_result = Result(
-					task_number=result_json_data['number'],
-					identifier=result_json_data['task_id'],
-					level=result_json_data['level'],
-					success=True if error_type is None else False,
-					run_error_type=error_type,
-				)
-				results.append(task_result)
+
+			screenshots_file_path = task_path / 'trajectory'
+			if screenshots_file_path.exists():
+				steps = len(os.listdir(screenshots_file_path))
+			else:
+				steps = None
+
+			task_result = Result(
+				task_number=result_json_data['number'],
+				identifier=result_json_data['task_id'],
+				level=result_json_data['level'],
+				success=True if error_type is None else False,
+				steps=steps,
+				run_error_type=error_type,
+			)
+			results.append(task_result)
 		else:
 			if task.startswith('#analysis'):
 				continue

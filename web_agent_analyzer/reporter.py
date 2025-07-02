@@ -18,9 +18,12 @@ def generate_summary(results: DataFrame[ResultSchema], analysis_folder: Path, pr
 	for error_type in errors_removed:
 		summary += f'{error_type}: {len(results[results[ResultSchema.error_type] == error_type])}\n'
 	summary += '\n\nLLM_ERROR includes action parsing error.\n'
+
 	summary += '-' * 100 + '\n'
 	summary += 'After cleaning: \n\n'
 	summary += f'Found {len(results_cleaned)} tasks after cleaning\n'
+	summary += '-' * 100 + '\n'
+
 	summary += f'Successfully completed tasks: {len(results_cleaned[results_cleaned[ResultSchema.success]])}\n'
 	summary += f'Success rate: {len(results_cleaned[results_cleaned[ResultSchema.success]]) / len(results_cleaned) * 100:.2f}%\n'
 	summary += '\nSuccess rate by level:\n'
@@ -29,6 +32,7 @@ def generate_summary(results: DataFrame[ResultSchema], analysis_folder: Path, pr
 		successful_level_tasks = results_cleaned[(results_cleaned[ResultSchema.level] == level) & (results_cleaned[ResultSchema.success])]
 		success_rate = len(successful_level_tasks) / len(level_tasks) * 100
 		summary += f'{level}: {success_rate:.2f}% ({len(successful_level_tasks)}/{len(level_tasks)})\n'
+
 	summary += '\nError types:\n'
 	for error_type in results_cleaned[ResultSchema.error_type].unique():
 		if error_type is None:
@@ -36,8 +40,26 @@ def generate_summary(results: DataFrame[ResultSchema], analysis_folder: Path, pr
 		summary += f'{error_type}: {len(results_cleaned[results_cleaned[ResultSchema.error_type] == error_type])}\n'
 	summary += '-' * 100 + '\n'
 
-	summary += 'Tasks for each error type:\n\n'
+	summary += f'Average steps: {results_cleaned[ResultSchema.steps].mean():.2f}\n'
+	summary += 'Average steps by level:\n'
+	for level in results_cleaned[ResultSchema.level].unique():
+		level_tasks = results_cleaned[results_cleaned[ResultSchema.level] == level]
+		if len(level_tasks) == 0:
+			continue
+		summary += f'{level}: {level_tasks[ResultSchema.steps].mean():.2f}\n'
+	summary += '\n'
 
+	summary += f'Average steps (success only): {results_cleaned[results_cleaned[ResultSchema.success]][ResultSchema.steps].mean():.2f}\n'
+	summary += 'Average steps (success only) by level:\n'
+	for level in results_cleaned[ResultSchema.level].unique():
+		level_tasks = results_cleaned[results_cleaned[ResultSchema.level] == level]
+		if len(level_tasks) == 0:
+			continue
+		summary += f'{level}: {level_tasks[level_tasks[ResultSchema.success]][ResultSchema.steps].mean():.2f}\n'
+
+	summary += '-' * 100 + '\n'
+
+	summary += 'Tasks for each error type:\n\n'
 	for error_type in results[ResultSchema.error_type].unique():
 		if error_type is None:
 			continue
