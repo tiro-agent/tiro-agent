@@ -51,6 +51,8 @@ def load_results(run_path: Path) -> DataFrame[ResultSchema]:
 
 	results_df = _results_to_df(results)
 
+	results_df = results_df.sort_values(by='task_number', ascending=True)
+
 	return ResultSchema.validate(results_df)
 
 

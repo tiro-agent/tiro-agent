@@ -3,7 +3,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from pandera.typing import DataFrame
 
-from web_agent.agent.schemas import AgentErrors
 from web_agent_analyzer.loader import clean_results
 from web_agent_analyzer.schemas import ResultSchema
 
@@ -37,23 +36,15 @@ def generate_summary(results: DataFrame[ResultSchema], analysis_folder: Path, pr
 		summary += f'{error_type}: {len(results_cleaned[results_cleaned[ResultSchema.error_type] == error_type])}\n'
 	summary += '-' * 100 + '\n'
 
-	llm_error_tasks = results[results[ResultSchema.error_type] == AgentErrors.LLM_ERROR.value]
-	summary += f'Found {len(llm_error_tasks)} tasks with LLM_ERROR\n'
-	for task_number in llm_error_tasks[ResultSchema.task_number]:
-		summary += f'{task_number} '
-	summary += '\n' + '-' * 100 + '\n'
+	summary += 'Tasks for each error type:\n\n'
 
-	url_blocked_tasks = results[results[ResultSchema.error_type] == AgentErrors.PAGE_BLOCKED_ERROR.value]
-	summary += f'Found {len(url_blocked_tasks)} tasks with URL_BLOCKED\n'
-	for task_number in url_blocked_tasks[ResultSchema.task_number]:
-		summary += f'{task_number} '
-	summary += '\n' + '-' * 100 + '\n'
-
-	url_load_error_tasks = results[results[ResultSchema.error_type] == AgentErrors.PAGE_LOAD_ERROR.value]
-	summary += f'Found {len(url_load_error_tasks)} tasks with URL_LOAD_ERROR\n'
-	for task_number in url_load_error_tasks[ResultSchema.task_number]:
-		summary += f'{task_number} '
-	summary += '\n' + '-' * 100 + '\n'
+	for error_type in results[ResultSchema.error_type].unique():
+		if error_type is None:
+			continue
+		summary += f'Found {len(results[results[ResultSchema.error_type] == error_type])} tasks with {error_type}\n'
+		for task_number in results[results[ResultSchema.error_type] == error_type][ResultSchema.task_number]:
+			summary += f'{task_number} '
+		summary += '\n\n'
 
 	if print_summary:
 		print(summary)
