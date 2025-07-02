@@ -65,13 +65,26 @@ const mouseHelper = function(option) {
         });
     };
 
-    document.addEventListener('mousemove', update);
-    document.addEventListener('mousedown', function() {
+    const mouseDownHandler = function() {
         imageDown.style.display = 'block';
-    });
-    document.addEventListener('mouseup', function() {
+    };
+    const mouseUpHandler = function() {
         imageDown.style.display = 'none';
-    });
+    };
+
+    document.addEventListener('mousemove', update);
+    document.addEventListener('mousedown', mouseDownHandler);
+    document.addEventListener('mouseup', mouseUpHandler);
+
+    // Add a destroy function to remove the helper
+    window['mouse-helper-destroy'] = function() {
+        if (container && container.parentNode) {
+            container.parentNode.removeChild(container);
+        }
+        document.removeEventListener('mousemove', update);
+        document.removeEventListener('mousedown', mouseDownHandler);
+        document.removeEventListener('mouseup', mouseUpHandler);
+    };
 
     return true;
 };
