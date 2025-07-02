@@ -32,6 +32,7 @@ class AgentRunner:
 		run_id: str | None = None,
 		start_index: int = 0,
 		relevant_task_ids: list[str] | None = None,
+		relevant_task_numbers: list[int] | None = None,
 		output_dir_prefix: str | None = None,
 		step_factor: int = 2.5,
 	) -> None:
@@ -63,10 +64,15 @@ class AgentRunner:
 
 		self.output_dir = f'{output_dir_prefix}/{self.run_id}'
 
+		if relevant_task_numbers is not None and relevant_task_ids is not None:
+			raise ValueError('Cannot use both relevant-task-numbers and relevant-task-ids')
+
 		with open('data/Online_Mind2Web.json') as f:
 			self.tasks = json.load(f)
 			if relevant_task_ids is not None:
 				self.tasks = [t for t in self.tasks if t['task_id'] in relevant_task_ids]
+			elif relevant_task_numbers is not None:
+				self.tasks = [t for t in self.tasks if t['number'] in relevant_task_numbers]
 
 			if self.start_index is not None and self.start_index > len(self.tasks):
 				sys.exit('Start index is greater than the number of tasks')

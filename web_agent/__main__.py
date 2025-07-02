@@ -17,6 +17,7 @@ async def main() -> None:
 	parser.add_argument('--start-index', type=int, help='Start index', required=False, default=0)
 	parser.add_argument('--task-id', type=str, help='Task to perform (all if not given)', required=False, default=None)
 	parser.add_argument('--relevant-task-ids', nargs='+', type=str, help='Relevant task ids', required=False, default=None)
+	parser.add_argument('--relevant-task-numbers', nargs='+', type=int, help='Relevant task numbers', required=False, default=None)
 	parser.add_argument('--logfire', action='store_true', help='Enable logfire logging', required=False, default=False)
 	parser.add_argument('--disable-vpn-check', action='store_true', help='Disable VPN check', required=False, default=False)
 	parser.add_argument('--level', type=TaskLevel, help='Level', required=False, default=TaskLevel.ALL, choices=list(TaskLevel))
@@ -24,6 +25,9 @@ async def main() -> None:
 	args = parser.parse_args()
 
 	print('Hello from web-agent!')
+
+	if args.relevant_task_ids is not None and args.relevant_task_numbers is not None:
+		raise ValueError('Cannot use both --relevant-task-ids and --relevant-task-numbers')
 
 	if not args.disable_vpn_check:
 		check_vpn()
@@ -38,6 +42,7 @@ async def main() -> None:
 	runner = AgentRunner(
 		run_id=args.run_id,
 		relevant_task_ids=args.relevant_task_ids,
+		relevant_task_numbers=args.relevant_task_numbers,
 		start_index=args.start_index,
 		step_factor=args.step_factor,
 	)
