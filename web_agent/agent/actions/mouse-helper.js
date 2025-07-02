@@ -1,7 +1,7 @@
 // Source: https://github.com/cenfun/mouse-helper (MIT License)
 // Modified by us
 
-const mouseHelper = function(option) {
+window['mouse-helper'] = function(option) {
     if (!document.body) {
         console.log('Failed to create mouse helper, document.body not ready');
         return false;
@@ -35,12 +35,12 @@ const mouseHelper = function(option) {
     container.style.cssText = `top: ${o.top}; left: ${o.left}; opacity: ${o.opacity}; position: absolute; z-index: 99999; user-select: none; pointer-events: none;`;
 
     const imageDown = document.createElement('img');
-    imageDown.src = mouseDown;
+    imageDown.src = `data:image/svg+xml;utf8,${encodeURIComponent(mouseDown)}`;
     imageDown.style.cssText = 'position: absolute; top: -10px; left: -10px; width: 20px; height: 20px; display: none;';
     container.appendChild(imageDown);
 
     const imageNormal = document.createElement('img');
-    imageNormal.src = mouseNormal;
+    imageNormal.src = `data:image/svg+xml;utf8,${encodeURIComponent(mouseNormal)}`;
     imageNormal.style.cssText = 'position: absolute; top: 0; left: -3px; width: 20px; height: 20px; display: none;';
     container.appendChild(imageNormal);
 
@@ -88,5 +88,3 @@ const mouseHelper = function(option) {
 
     return true;
 };
-
-module.exports = mouseHelper;
