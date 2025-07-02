@@ -32,4 +32,4 @@ Do not output anything besides the structured JSON object.
   "action": "click_text('Log in')"
 }
 ```
-"""
+"""  # noqa: E501

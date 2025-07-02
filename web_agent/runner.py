@@ -27,7 +27,7 @@ class TaskLevel(Enum):
 
 
 class AgentRunner:
-	def __init__(
+	def __init__(  # noqa: PLR0913
 		self,
 		run_id: str | None = None,
 		start_index: int = 0,
