@@ -42,7 +42,16 @@ class ResultAnalyzer:
 		else:
 			print('Results are not evaluated, skipping plots')
 
-	def evaluate_tasks_with_errors(self) -> None:
+	def evaluate_all_tasks(self) -> None:
+		self._evaluate_tasks_with_errors()
+		for _, task_row in tqdm(self.results.iterrows(), desc='Evaluating tasks', total=len(self.results)):
+			task_result = Result(**task_row.to_dict())
+			final_error_type = self._get_final_error_type(task_result)
+			self.results.loc[task_row.name, ResultSchema.error_type] = final_error_type
+		self.is_evaluated = True
+		print('Results evaluated')
+
+	def _evaluate_tasks_with_errors(self) -> None:
 		errors_to_evaluate = [
 			SpecialAgentErrors.STEP_LIMIT_REACHED.value,
 			SpecialAgentErrors.ABORTED_BY_LLM.value,
@@ -95,7 +104,7 @@ class ResultAnalyzer:
 		self.results.loc[task_index, ResultSchema.error_type] = self._get_final_error_type(task_result)
 		return ai_eval_executed
 
-	def _get_final_error_type(self, task_result: Result) -> str:  # noqa PLR0911
+	def _get_final_error_type(self, task_result: Result) -> str | None:  # noqa PLR0911
 		if task_result.human_error_type:
 			return task_result.human_error_type
 		if task_result.ai_error_type:
@@ -109,4 +118,5 @@ class ResultAnalyzer:
 				return task_result.run_error_type
 			else:
 				return AgentErrors.OTHER.value
-		return AgentErrors.OTHER.value
+		else:
+			return None
