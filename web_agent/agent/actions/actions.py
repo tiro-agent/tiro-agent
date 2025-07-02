@@ -4,7 +4,15 @@ from playwright._impl._errors import TimeoutError
 from playwright.async_api import Page
 from pydantic import Field
 
-from web_agent.agent.actions.base import ActionContext, ActionResult, ActionResultStatus, BaseAction, default_action
+from web_agent.agent.actions.base import (
+	ActionContext,
+	ActionResult,
+	ActionResultStatus,
+	BaseAction,
+	ContextChange,
+	ContextChangeTypes,
+	default_action,
+)
 from web_agent.browser.browser import pretty_print_element
 
 
@@ -229,43 +237,41 @@ class ClickByCoords(BaseAction):
 	y: int = Field(description='The y coordinate to click on.')
 
 	async def execute(self, context: ActionContext) -> ActionResult:
-		try:
-			js_handle = await context.page.evaluate_handle('([x, y]) => document.elementFromPoint(x, y)', [self.x, self.y])
-			element = js_handle.as_element()
+		# evaluate the mouse-helper.js file to show the mouse pointer in the screenshots
 
-			if element:
-				try:
-					await element.click(delay=150)
-					return ActionResult(
-						status=ActionResultStatus.SUCCESS,
-						message=f'Clicked on the element at the given coordinates. Element: {await pretty_print_element(element)}',
-					)
-				except Exception as e:
-					# Fallback for when element click fails
-					await context.page.mouse.click(self.x, self.y, delay=150)
-					return ActionResult(
-						status=ActionResultStatus.UNKNOWN,
-						message=f'Element click failed with: {e}. Fell back to raw coordinate click.',
-					)
-			else:
-				# Fallback for when no element is found
-				await context.page.mouse.click(self.x, self.y, delay=150)
-				return ActionResult(
-					status=ActionResultStatus.UNKNOWN, message='No element found at coordinates, used raw coordinate click.'
-				)
-		except Exception as e:
-			# Fallback for top-level errors
-			try:
-				await context.page.mouse.click(self.x, self.y, delay=150)
-				return ActionResult(
-					status=ActionResultStatus.UNKNOWN,
-					message=f'Could not find element to click. Fell back to raw coordinate click. Error: {e}',
-				)
-			except Exception as e2:
-				return ActionResult(
-					status=ActionResultStatus.FAILURE,
-					message=f'Could not click on the given coordinates. Both element click and raw click failed. Error: {e2}',
-				)
+		pre_action_screenshot = await context.page.screenshot()
+
+		with open('web_agent/agent/actions/mouse-helper.js') as f:
+			js_code = f.read()
+
+		await context.page.evaluate(js_code)
+		await context.page.evaluate("window['mouse-helper']();")
+		await context.page.wait_for_timeout(300)
+		await context.page.mouse.move(self.x, self.y)
+		await context.page.wait_for_timeout(300)
+		screenshot = await context.page.screenshot()
+
+		await context.page.mouse.click(self.x, self.y, delay=150)
+
+		await context.page.evaluate("window['mouse-helper-destroy']();")
+
+		post_action_screenshot = await context.page.screenshot()
+
+		if pre_action_screenshot == post_action_screenshot:
+			return ActionResult(
+				status=ActionResultStatus.FAILURE,
+				message='Clicked on the given coordinates. The mouse pointer is visible in the screenshot.'
+				+ ' But it does not appear to have changed anything on the page.'
+				+ ' If the desired outcome was not achieved, try to slightly adjust the coordinates, and try again.',
+				context_change=ContextChange(action=ContextChangeTypes.SCREENSHOT, data={'screenshot': screenshot}),
+			)
+		else:
+			return ActionResult(
+				status=ActionResultStatus.UNKNOWN,
+				message='Clicked on the given coordinates. The mouse pointer is visible in the screenshot.'
+				+ ' If the desired outcome was not achieved, try to slightly adjust the coordinates, and try again.',
+				context_change=ContextChange(action=ContextChangeTypes.SCREENSHOT, data={'screenshot': screenshot}),
+			)
 
 
 @default_action

@@ -9,7 +9,7 @@ from pydantic_ai.providers.google_gla import GoogleGLAProvider
 from pydantic_ai.settings import ModelSettings
 
 from web_agent.agent.actions.actions import ActionResult, ActionResultStatus
-from web_agent.agent.actions.base import ActionContext
+from web_agent.agent.actions.base import ActionContext, ContextChangeTypes
 from web_agent.agent.actions.history import ActionsHistoryController, ActionsHistoryStep
 from web_agent.agent.actions.registry import ActionsRegistry
 from web_agent.agent.prompts import get_system_prompt
@@ -139,6 +139,22 @@ class Agent:
 
 			# LOOP STEP 6: ACTION EXECUTION
 			action_result = await action.execute(ActionContext(page=self.browser.page, task=task))
+
+			if action_result.context_change:
+				if action_result.context_change.action == ContextChangeTypes.SCREENSHOT:
+					print('Context change requested: screenshot')
+
+					# drop the screenshot from the previous_screenshots list
+					previous_screenshots.pop()
+					previous_screenshots.append(action_result.context_change.data['screenshot'])
+
+					# replace the screenshot file with the new one
+					os.remove(screenshot_path)
+
+					# save the new screenshot
+					with open(screenshot_path, 'wb') as f:
+						f.write(action_result.context_change.data['screenshot'])
+
 			self.action_history_controller.add_action(
 				ActionsHistoryStep(
 					thought=action_decision.thought,
