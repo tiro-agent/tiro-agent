@@ -1,44 +1,38 @@
 import types
 
 from playwright._impl._errors import Error, TimeoutError
-from playwright._impl._js_handle import JSHandle
-from playwright.async_api import Playwright, async_playwright
+from playwright.async_api import ElementHandle, Playwright, async_playwright
 
 
-async def get_js_attr(node: JSHandle, attr: str) -> str:
+async def pretty_print_element(element: ElementHandle) -> str:
 	"""
-	Returns the value of a given attribute of a JSHandle.
+	Returns a pretty-printed HTML representation of a given ElementHandle, which is easier to read for humans and LLMs.
 
-	:param node: The JSHandle of the element.
-	:param attr: The attribute to get the value of.
-	:return: The value of the attribute.
-	"""
-	return await node.evaluate(f'node => node.{attr}')
-
-
-async def pretty_print_element(node: JSHandle) -> str | None:
-	"""
-	Returns a pretty-printed HTML representation of a given JSHandle, which is easier to read for humans and LLMs.
-
-	:param node: The JSHandle of the element to pretty-print.
+	:param element: The ElementHandle of the element to pretty-print.
 	:return: A string containing the pretty-printed HTML.
 	"""
-	html_tag = (await get_js_attr(node, 'tagName')).lower()
-	html_id = await get_js_attr(node, 'id')
-	html_text = (await get_js_attr(node, 'innerText'))[:50]
+	element_tag = (await (await element.get_property('tagName')).json_value()).lower()
+	element_text = (await element.text_content()) or ''
+	element_text = ' '.join(element_text.split())[:200]
 
-	if html_tag == 'a':
-		html_href = await get_js_attr(node, 'href')
-		return f'<a href="{html_href}" id="{html_id}">{html_text}</a>'
-	elif html_tag == 'input':
-		html_type = await get_js_attr(node, 'type')
-		html_name = await get_js_attr(node, 'name')
-		html_placeholder = await get_js_attr(node, 'placeholder')
-		return f'<input type="{html_type}" id="{html_id}" name="{html_name}" placeholder="{html_placeholder}" value="{html_text}">'
-	elif html_tag == 'body':
-		return None  # Body tag is not useful to print as it indicates the entire webpage.
-	else:
-		return f'<{html_tag} id="{html_id}">{html_text}</{html_tag}>'
+	if not element_tag:
+		return element_text
+
+	pretty_string = f'<{element_tag}'
+	element_id = await element.get_attribute('id')
+	if element_id:
+		pretty_string += f' id="{element_id}"'
+
+	aria_label = await element.get_attribute('aria-label')
+	if aria_label:
+		pretty_string += f' aria-label="{aria_label}"'
+
+	pretty_string += '>'
+	if element_text:
+		pretty_string += f'{element_text}'
+
+	pretty_string += f'</{element_tag}>'
+	return pretty_string
 
 
 class Browser:

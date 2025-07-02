@@ -39,9 +39,13 @@ class ClickByText(BaseAction):
 			return ActionResult(status=ActionResultStatus.SUCCESS, message='Clicked on the element that contains the given text.')
 		else:
 			all_targets = await targets.all()
-			targets_str = str(
-				[f'{i} -  {await pretty_print_element(await target.element_handle())}' for i, target in enumerate(all_targets)]
-			)
+			pretty_targets = []
+			for i, target in enumerate(all_targets):
+				element_handle = await target.element_handle()
+				if element_handle:
+					pretty_targets.append(f'{i} -  {await pretty_print_element(element_handle)}')
+
+			targets_str = str(pretty_targets)
 			return ActionResult(
 				status=ActionResultStatus.FAILURE,
 				message='Multiple targets found: '
@@ -225,8 +229,43 @@ class ClickByCoords(BaseAction):
 	y: int = Field(description='The y coordinate to click on.')
 
 	async def execute(self, context: ActionContext) -> ActionResult:
-		await context.page.mouse.click(self.x, self.y, delay=150)
-		return ActionResult(status=ActionResultStatus.UNKNOWN, message='Clicked on the given coordinates.')
+		try:
+			js_handle = await context.page.evaluate_handle('([x, y]) => document.elementFromPoint(x, y)', [self.x, self.y])
+			element = js_handle.as_element()
+
+			if element:
+				try:
+					await element.click(delay=150)
+					return ActionResult(
+						status=ActionResultStatus.SUCCESS,
+						message=f'Clicked on the element at the given coordinates. Element: {await pretty_print_element(element)}',
+					)
+				except Exception as e:
+					# Fallback for when element click fails
+					await context.page.mouse.click(self.x, self.y, delay=150)
+					return ActionResult(
+						status=ActionResultStatus.UNKNOWN,
+						message=f'Element click failed with: {e}. Fell back to raw coordinate click.',
+					)
+			else:
+				# Fallback for when no element is found
+				await context.page.mouse.click(self.x, self.y, delay=150)
+				return ActionResult(
+					status=ActionResultStatus.UNKNOWN, message='No element found at coordinates, used raw coordinate click.'
+				)
+		except Exception as e:
+			# Fallback for top-level errors
+			try:
+				await context.page.mouse.click(self.x, self.y, delay=150)
+				return ActionResult(
+					status=ActionResultStatus.UNKNOWN,
+					message=f'Could not find element to click. Fell back to raw coordinate click. Error: {e}',
+				)
+			except Exception as e2:
+				return ActionResult(
+					status=ActionResultStatus.FAILURE,
+					message=f'Could not click on the given coordinates. Both element click and raw click failed. Error: {e2}',
+				)
 
 
 @default_action
