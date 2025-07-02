@@ -18,6 +18,7 @@ class ActionResultStatus(str, Enum):
 	INFO = 'info'
 	ABORT = 'abort'
 	FINISH = 'finish'
+	ERROR = 'error'
 
 
 class ActionResult(BaseModel):

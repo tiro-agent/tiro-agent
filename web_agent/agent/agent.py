@@ -164,7 +164,7 @@ class Agent:
 				f.write(error.value)
 
 		return self._finish(
-			task, ActionResult(status=ActionResultStatus.ABORT, message=f'Aborted due to following error: {error.value}'), output_dir
+			task, ActionResult(status=ActionResultStatus.ERROR, message=f'Aborted due to following error: {error.value}'), output_dir
 		)
 
 	def _finish(self, task: Task, action_result: ActionResult, output_dir: str) -> str:
