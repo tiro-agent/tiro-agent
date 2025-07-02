@@ -23,21 +23,27 @@ class AgentDecision(BaseModel):
 	)
 
 
-class SpecialAgentErrors(Enum):
-	"""Special errors that the agent can encounter."""
+class SpecialRunErrors(Enum):
+	"""Special errors that can occur during a run of the agent."""
 
-	URL_BLOCKED = 'URL_BLOCKED'  # permanent error (manually set)
-	URL_LOAD_ERROR = 'URL_LOAD_ERROR'  # probably permanent error (set by playwright or manually)
-	STEP_LIMIT_REACHED = 'STEP_LIMIT_REACHED'
-	ACTION_PARSING_ERROR = 'ACTION_PARSING_ERROR'  # should be a rerun
+	URL_LOAD_ERROR = 'URL_LOAD_ERROR'  # probably permanent error, set by playwright
+	STEP_LIMIT_ERROR = 'STEP_LIMIT_ERROR'  # in the evaluation the script determines a more specific error
+	LLM_ACTION_PARSING_ERROR = 'LLM_ACTION_PARSING_ERROR'  # should be a rerun
 	LLM_ERROR = 'LLM_ERROR'  # should be a rerun
-	ABORTED_BY_LLM = 'ABORTED_BY_LLM'  # should define a better reason later (TODO: remove and add an auto trigger to get an AgentError)
+	LLM_ABORTED_ERROR = 'LLM_ABORTED_ERROR'  # in the evaluation the script determines a more specific error
 
 
 class AgentErrors(Enum):
-	"""Errors that the agent can encounter."""
+	"""
+	Final errors that the agent can encounter.
 
-	# these are the final errors after an evaluation of the step errors for example
+	These are all the errors an agent can encounter after an evaluation.
+	During the evaluation the STEP_LIMIT_ERRORs & LLM_ACTION_PARSING_ERRORs are evaluated and set to a more specific error.
+
+	The AgentErrors include all the errors that can occur during a run of the agent.
+	LLM_ERROR includes LLM_ACTION_PARSING_ERROR & LLM_ERROR from the SpecialRunErrors.
+	"""
+
 	# TODO: find a better way to combine those with the special errors (maybe make it one enum)
 	# (maybe remove dublicate actions (URL_BLOCKED -> PAGE_BLOCKED_ERROR, URL_LOAD_ERROR -> PAGE_LOAD_ERROR))
 	# (affects the agent analyzer)
@@ -50,6 +56,7 @@ class AgentErrors(Enum):
 	SCROLL_ERROR = 'SCROLL_ERROR'
 	INPUT_ERROR = 'INPUT_ERROR'  # includes search errors
 	HUMAN_VERIFICATION_ERROR = 'HUMAN_VERIFICATION_ERROR'
-	PAGE_LOAD_ERROR = 'PAGE_LOAD_ERROR'
-	PAGE_BLOCKED_ERROR = 'PAGE_BLOCKED_ERROR'
+	PAGE_LOAD_ERROR = 'PAGE_LOAD_ERROR'  # probably permanent error (set by playwright, or by evaluator)
+	PAGE_BLOCKED_ERROR = 'PAGE_BLOCKED_ERROR'  # usually permanent error (manually set, or by evaluator)
+	LLM_ERROR = 'LLM_ERROR'  # should be a rerun - includes LLM_ACTION_PARSING_ERROR
 	OTHER = 'OTHER'

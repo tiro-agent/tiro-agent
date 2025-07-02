@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 from pandera.typing import DataFrame
 
-from web_agent.agent.schemas import SpecialAgentErrors
+from web_agent.agent.schemas import AgentErrors
 from web_agent_analyzer.schemas import Result, ResultSchema
 
 
@@ -54,15 +54,16 @@ def load_results(run_path: Path) -> DataFrame[ResultSchema]:
 	return ResultSchema.validate(results_df)
 
 
-def clean_results(results: DataFrame[ResultSchema]) -> DataFrame[ResultSchema]:
+def clean_results(results: DataFrame[ResultSchema]) -> tuple[list[str], DataFrame[ResultSchema]]:
 	ignored_error_types = [
-		SpecialAgentErrors.LLM_ERROR.value,
-		SpecialAgentErrors.URL_BLOCKED.value,
-		SpecialAgentErrors.URL_LOAD_ERROR.value,
+		AgentErrors.PAGE_BLOCKED_ERROR.value,
+		AgentErrors.PAGE_LOAD_ERROR.value,
+		AgentErrors.HUMAN_VERIFICATION_ERROR.value,
+		AgentErrors.LLM_ERROR.value,
 	]
-	results_to_remove = results[results[ResultSchema.run_error_type].isin(ignored_error_types)]
+	results_to_remove = results[results[ResultSchema.error_type].isin(ignored_error_types)]
 	results_cleaned = results[~results.index.isin(results_to_remove.index)]
-	return results_cleaned
+	return ignored_error_types, results_cleaned
 
 
 def _results_to_df(results: list[Result]) -> pd.DataFrame:

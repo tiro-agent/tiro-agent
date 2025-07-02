@@ -4,9 +4,9 @@ from pathlib import Path
 from pandera.typing import DataFrame
 from tqdm import tqdm
 
-from web_agent.agent.schemas import AgentErrors, SpecialAgentErrors
+from web_agent.agent.schemas import AgentErrors, SpecialRunErrors
 from web_agent_analyzer.error_evaluator import ErrorEvaluator
-from web_agent_analyzer.loader import clean_results, load_results
+from web_agent_analyzer.loader import load_results
 from web_agent_analyzer.reporter import generate_plots, generate_summary
 from web_agent_analyzer.schemas import Result, ResultSchema
 
@@ -25,48 +25,48 @@ class ResultAnalyzer:
 			self.analysis_folder.mkdir(parents=True, exist_ok=True)
 
 		self.results: DataFrame[ResultSchema] = load_results(self.run_path)
-		self.results_cleaned: DataFrame[ResultSchema] = clean_results(self.results)
-		self.pre_evaluation_results: DataFrame[ResultSchema] = self.results_cleaned.copy()
 		self.error_evaluator = ErrorEvaluator()
 		self.is_evaluated = False
 
 	def save_results(self, filename: str = 'results.csv') -> None:
+		if not self.is_evaluated:
+			raise ValueError('Results are not evaluated, skipping saving')
+
 		self.results.to_csv(self.analysis_folder / filename, sep=';', index=False)
 
 	def generate_summary(self, print_summary: bool = True) -> None:
-		generate_summary(self.results, self.results_cleaned, self.analysis_folder, print_summary)
+		if not self.is_evaluated:
+			raise ValueError('Results are not evaluated, skipping summary')
+
+		generate_summary(self.results, self.analysis_folder, print_summary)
 
 	def generate_plots(self) -> None:
-		if self.is_evaluated:
-			generate_plots(self.pre_evaluation_results, self.results, self.analysis_folder)
-		else:
-			print('Results are not evaluated, skipping plots')
+		if not self.is_evaluated:
+			raise ValueError('Results are not evaluated, skipping plots')
+
+		generate_plots(self.results, self.analysis_folder)
 
 	def evaluate_all_tasks(self) -> None:
-		self._evaluate_tasks_with_errors()
-		for _, task_row in tqdm(self.results.iterrows(), desc='Evaluating tasks', total=len(self.results)):
-			task_result = Result(**task_row.to_dict())
-			final_error_type = self._get_final_error_type(task_result)
-			self.results.loc[task_row.name, ResultSchema.error_type] = final_error_type
-		self.is_evaluated = True
-		print('Results evaluated')
+		if self.is_evaluated:
+			raise ValueError('Results are already evaluated, skipping evaluation')
 
-	def _evaluate_tasks_with_errors(self) -> None:
 		errors_to_evaluate = [
-			SpecialAgentErrors.STEP_LIMIT_REACHED.value,
-			SpecialAgentErrors.ABORTED_BY_LLM.value,
+			SpecialRunErrors.STEP_LIMIT_ERROR.value,
+			SpecialRunErrors.LLM_ABORTED_ERROR.value,
 		]
-		tasks_to_evaluate = self.results[self.results[ResultSchema.run_error_type].isin(errors_to_evaluate)]
-		print(f'Found {len(tasks_to_evaluate)} tasks with errors to evaluate')
 
-		if tasks_to_evaluate.empty:
-			return
-
-		for _, task_row in tqdm(tasks_to_evaluate.iterrows(), desc='Evaluating tasks', total=len(tasks_to_evaluate)):
+		for _, task_row in tqdm(self.results.iterrows(), desc='Evaluating all tasks', total=len(self.results)):
 			task_result = Result(**task_row.to_dict())
-			ai_eval_executed = self._evaluate_single_task_error(task_result)
-			if ai_eval_executed:
-				time.sleep(4)
+
+			if task_result.run_error_type in errors_to_evaluate:
+				ai_eval_executed = self._evaluate_single_task_error(task_result)
+				if ai_eval_executed:
+					time.sleep(4)
+				continue
+			else:
+				final_error_type = self._get_final_error_type(task_result)
+				self.results.loc[task_row.name, ResultSchema.error_type] = final_error_type
+
 		self.is_evaluated = True
 		print('Results evaluated')
 
@@ -110,10 +110,12 @@ class ResultAnalyzer:
 		if task_result.ai_error_type:
 			return task_result.ai_error_type
 		if task_result.run_error_type:
-			if task_result.run_error_type == SpecialAgentErrors.URL_BLOCKED.value:
-				return AgentErrors.PAGE_BLOCKED_ERROR.value
-			elif task_result.run_error_type == SpecialAgentErrors.URL_LOAD_ERROR.value:
+			if task_result.run_error_type == SpecialRunErrors.URL_LOAD_ERROR.value:
 				return AgentErrors.PAGE_LOAD_ERROR.value
+			elif task_result.run_error_type == SpecialRunErrors.LLM_ERROR.value:
+				return AgentErrors.LLM_ERROR.value
+			elif task_result.run_error_type == SpecialRunErrors.LLM_ACTION_PARSING_ERROR.value:
+				return AgentErrors.LLM_ERROR.value
 			elif task_result.run_error_type in AgentErrors.__members__:
 				return task_result.run_error_type
 			else:

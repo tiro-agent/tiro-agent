@@ -3,18 +3,24 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from pandera.typing import DataFrame
 
-from web_agent.agent.schemas import SpecialAgentErrors
+from web_agent.agent.schemas import AgentErrors
+from web_agent_analyzer.loader import clean_results
 from web_agent_analyzer.schemas import ResultSchema
 
 
-def generate_summary(
-	results: DataFrame[ResultSchema], results_cleaned: DataFrame[ResultSchema], analysis_folder: Path, print_summary: bool = True
-) -> None:
+def generate_summary(results: DataFrame[ResultSchema], analysis_folder: Path, print_summary: bool = True) -> None:
+	errors_removed, results_cleaned = clean_results(results)
+
 	summary = ''
 	summary += 'SUMMARY\n'
 	summary += f'Found {len(results)} tasks\n'
 	summary += '-' * 100 + '\n'
-	summary += 'After cleaning (removing LLM_ERROR, URL_BLOCKED, URL_LOAD_ERROR)\n\n'
+	summary += 'Errors removed:\n\n'
+	for error_type in errors_removed:
+		summary += f'{error_type}: {len(results[results[ResultSchema.error_type] == error_type])}\n'
+	summary += '\n\nLLM_ERROR includes action parsing error.\n'
+	summary += '-' * 100 + '\n'
+	summary += 'After cleaning: \n\n'
 	summary += f'Found {len(results_cleaned)} tasks after cleaning\n'
 	summary += f'Successfully completed tasks: {len(results_cleaned[results_cleaned[ResultSchema.success]])}\n'
 	summary += f'Success rate: {len(results_cleaned[results_cleaned[ResultSchema.success]]) / len(results_cleaned) * 100:.2f}%\n'
@@ -24,26 +30,26 @@ def generate_summary(
 		successful_level_tasks = results_cleaned[(results_cleaned[ResultSchema.level] == level) & (results_cleaned[ResultSchema.success])]
 		success_rate = len(successful_level_tasks) / len(level_tasks) * 100
 		summary += f'{level}: {success_rate:.2f}% ({len(successful_level_tasks)}/{len(level_tasks)})\n'
-	summary += '\nSpecial error types:\n'
-	for error_type in results_cleaned[ResultSchema.run_error_type].unique():
+	summary += '\nError types:\n'
+	for error_type in results_cleaned[ResultSchema.error_type].unique():
 		if error_type is None:
 			continue
-		summary += f'{error_type}: {len(results_cleaned[results_cleaned[ResultSchema.run_error_type] == error_type])}\n'
+		summary += f'{error_type}: {len(results_cleaned[results_cleaned[ResultSchema.error_type] == error_type])}\n'
 	summary += '-' * 100 + '\n'
 
-	llm_error_tasks = results[results[ResultSchema.run_error_type] == SpecialAgentErrors.LLM_ERROR.value]
+	llm_error_tasks = results[results[ResultSchema.error_type] == AgentErrors.LLM_ERROR.value]
 	summary += f'Found {len(llm_error_tasks)} tasks with LLM_ERROR\n'
 	for task_number in llm_error_tasks[ResultSchema.task_number]:
 		summary += f'{task_number} '
 	summary += '\n' + '-' * 100 + '\n'
 
-	url_blocked_tasks = results[results[ResultSchema.run_error_type] == SpecialAgentErrors.URL_BLOCKED.value]
+	url_blocked_tasks = results[results[ResultSchema.error_type] == AgentErrors.PAGE_BLOCKED_ERROR.value]
 	summary += f'Found {len(url_blocked_tasks)} tasks with URL_BLOCKED\n'
 	for task_number in url_blocked_tasks[ResultSchema.task_number]:
 		summary += f'{task_number} '
 	summary += '\n' + '-' * 100 + '\n'
 
-	url_load_error_tasks = results[results[ResultSchema.run_error_type] == SpecialAgentErrors.URL_LOAD_ERROR.value]
+	url_load_error_tasks = results[results[ResultSchema.error_type] == AgentErrors.PAGE_LOAD_ERROR.value]
 	summary += f'Found {len(url_load_error_tasks)} tasks with URL_LOAD_ERROR\n'
 	for task_number in url_load_error_tasks[ResultSchema.task_number]:
 		summary += f'{task_number} '
@@ -56,58 +62,71 @@ def generate_summary(
 		f.write(summary)
 
 
-def generate_plots(
-	pre_evaluation_results: DataFrame[ResultSchema], post_evaluation_results: DataFrame[ResultSchema], analysis_folder: Path
-) -> None:
-	_generate_plot_success_rate(pre_evaluation_results, analysis_folder)
-	_generate_plot_success_rate_by_level(pre_evaluation_results, analysis_folder)
-	_generate_plot_error_types_pre_evaluation(pre_evaluation_results, analysis_folder)
-	_generate_plot_error_types_post_evaluation(post_evaluation_results, analysis_folder)
-	_generate_plot_error_types_post_evaluation_by_level(post_evaluation_results, analysis_folder)
+def generate_plots(results: DataFrame[ResultSchema], analysis_folder: Path) -> None:
+	_, results_cleaned = clean_results(results)
+	_generate_plot_success_rate(results_cleaned, analysis_folder)
+	_generate_plot_success_rate_by_level(results_cleaned, analysis_folder)
+	_generate_plot_run_error_types(results, analysis_folder)
+	_generate_plot_final_error_types(results, analysis_folder)
+	_generate_plot_final_error_types_by_level(results, analysis_folder)
 
 
-def _generate_plot_success_rate(results: DataFrame[ResultSchema], analysis_folder: Path) -> None:
-	success_counts = results[ResultSchema.success].value_counts()
-	if len(success_counts) == 0:
+def _generate_plot_success_rate(results_cleaned: DataFrame[ResultSchema], analysis_folder: Path) -> None:
+	successful_tasks_count = results_cleaned[results_cleaned[ResultSchema.success]].shape[0]
+	failed_tasks_count = results_cleaned[~results_cleaned[ResultSchema.success]].shape[0]
+
+	if successful_tasks_count == 0 and failed_tasks_count == 0:
 		return
+
+	sizes = [failed_tasks_count, successful_tasks_count]
+	labels = ['Failed', 'Success']
+
 	plt.figure(figsize=(10, 5))
-	plt.pie(success_counts.values, labels=['Failed', 'Success'], autopct='%1.1f%%')
+	plt.pie(sizes, labels=labels, autopct='%1.1f%%')
 	plt.title('Success Rate')
 	plt.savefig(analysis_folder / 'success_rate.png')
 	plt.close()
 
 
-def _generate_plot_success_rate_by_level(results: DataFrame[ResultSchema], analysis_folder: Path) -> None:
-	unique_levels = results[ResultSchema.level].unique()
+def _generate_plot_success_rate_by_level(results_cleaned: DataFrame[ResultSchema], analysis_folder: Path) -> None:
+	unique_levels = results_cleaned[ResultSchema.level].unique()
 	if len(unique_levels) == 0 or unique_levels[0] is None:
 		return
 	for level in unique_levels:
-		level_df = results[results[ResultSchema.level] == level]
+		level_df = results_cleaned[results_cleaned[ResultSchema.level] == level]
 		if len(level_df) == 0:
 			continue
-		success_counts = level_df[ResultSchema.success].value_counts()
+		successful_level_tasks_count = level_df[level_df[ResultSchema.success]].shape[0]
+		failed_level_tasks_count = level_df[~level_df[ResultSchema.success]].shape[0]
+
+		if successful_level_tasks_count == 0 and failed_level_tasks_count == 0:
+			continue
+
+		sizes = [failed_level_tasks_count, successful_level_tasks_count]
+		labels = ['Failed', 'Success']
+
 		plt.figure(figsize=(10, 5))
-		plt.pie(success_counts.values, labels=['Failed', 'Success'], autopct='%1.1f%%')
+		plt.pie(sizes, labels=labels, autopct='%1.1f%%')
 		plt.title(f'Success Rate for {level.capitalize()} Level Tasks')
 		plt.savefig(analysis_folder / f'success_rate_by_level_{level}.png')
 		plt.close()
 
 
-def _generate_plot_error_types_pre_evaluation(results: DataFrame[ResultSchema], analysis_folder: Path) -> None:
-	failed_tasks = results[results[ResultSchema.error_type].notna()]
+def _generate_plot_run_error_types(results: DataFrame[ResultSchema], analysis_folder: Path) -> None:
+	failed_tasks = results[results[ResultSchema.run_error_type].notna()]
 	if len(failed_tasks) == 0:
 		print('No errors found - all tasks were successful!')
 		return
-	error_counts = failed_tasks[ResultSchema.error_type].value_counts()
+	error_counts = failed_tasks[ResultSchema.run_error_type].value_counts()
 	if len(error_counts) > 0:
 		plt.figure(figsize=(10, 5))
 		plt.pie(error_counts.values, labels=error_counts.index, autopct='%1.1f%%')
-		plt.title('Distribution of Error Types (Failed Tasks Only)')
-		plt.savefig(analysis_folder / 'error_types_pre_evaluation.png')
+		plt.title('Distribution of Run Error Types (Failed Tasks Only)')
+		plt.savefig(analysis_folder / 'run_error_types.png')
 		plt.close()
 
 
-def _generate_plot_error_types_post_evaluation(results: DataFrame[ResultSchema], analysis_folder: Path) -> None:
+def _generate_plot_final_error_types(results: DataFrame[ResultSchema], analysis_folder: Path) -> None:
 	# results are already post-evaluation
 	failed_tasks = results[results[ResultSchema.error_type].notna()]
 	if len(failed_tasks) == 0:
@@ -117,12 +136,12 @@ def _generate_plot_error_types_post_evaluation(results: DataFrame[ResultSchema],
 	if len(error_counts) > 0:
 		plt.figure(figsize=(10, 5))
 		plt.pie(error_counts.values, labels=error_counts.index, autopct='%1.1f%%')
-		plt.title('Distribution of Error Types (Failed Tasks Only) (Post-Evaluation)')
-		plt.savefig(analysis_folder / 'error_types_post_evaluation.png')
+		plt.title('Distribution of Final Error Types (Failed Tasks Only)')
+		plt.savefig(analysis_folder / 'final_error_types.png')
 		plt.close()
 
 
-def _generate_plot_error_types_post_evaluation_by_level(results: DataFrame[ResultSchema], analysis_folder: Path) -> None:
+def _generate_plot_final_error_types_by_level(results: DataFrame[ResultSchema], analysis_folder: Path) -> None:
 	unique_levels = results[ResultSchema.level].unique()
 	if len(unique_levels) == 0 or unique_levels[0] is None:
 		return

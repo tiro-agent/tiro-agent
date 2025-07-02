@@ -13,14 +13,14 @@ from web_agent.agent.actions.base import ActionContext
 from web_agent.agent.actions.history import ActionsHistoryController, ActionsHistoryStep
 from web_agent.agent.actions.registry import ActionsRegistry
 from web_agent.agent.prompts import get_system_prompt
-from web_agent.agent.schemas import AgentDecision, AgentErrors, SpecialAgentErrors, Task
+from web_agent.agent.schemas import AgentDecision, AgentErrors, SpecialRunErrors, Task
 from web_agent.browser.browser import Browser
 
-KNOWN_PROBLEM_DOMAINS: list[dict[str, SpecialAgentErrors | AgentErrors]] = [
-	{'domain': 'https://www.gamestop.com/', 'reason': SpecialAgentErrors.URL_BLOCKED},  # not immediately, but blocked by bot protection
-	{'domain': 'https://www.kbb.com/', 'reason': SpecialAgentErrors.URL_BLOCKED},  # not immediately, but blocked by bot protection
-	{'domain': 'https://www.google.com/shopping?udm=28', 'reason': AgentErrors.CLICK_ERROR},
-	{'domain': 'https://www.thumbtack.com/', 'reason': SpecialAgentErrors.URL_LOAD_ERROR},  # return 404 permanently
+KNOWN_PROBLEM_DOMAINS: list[dict[str, AgentErrors]] = [
+	{'domain': 'https://www.gamestop.com/', 'reason': AgentErrors.PAGE_BLOCKED_ERROR},  # not immediately, but blocked by bot protection
+	{'domain': 'https://www.kbb.com/', 'reason': AgentErrors.PAGE_BLOCKED_ERROR},  # not immediately, but blocked by bot protection
+	{'domain': 'https://www.google.com/shopping?udm=28', 'reason': AgentErrors.CLICK_ERROR},  # until click action fixed
+	{'domain': 'https://www.thumbtack.com/', 'reason': AgentErrors.PAGE_LOAD_ERROR},  # return 404 permanently
 ]
 
 
@@ -52,7 +52,7 @@ class Agent:
 		try:
 			await self.browser.load_url(task.url)
 		except Exception:
-			return self._handle_error_finish(SpecialAgentErrors.URL_LOAD_ERROR, task, output_dir)
+			return self._handle_error_finish(SpecialRunErrors.URL_LOAD_ERROR, task, output_dir)
 
 		os.makedirs(output_dir + '/trajectory', exist_ok=True)
 
@@ -60,7 +60,7 @@ class Agent:
 		while True:
 			# LOOP STEP 0: Check limits & errors and finish the task if needed
 			if step >= step_limit:
-				return self._handle_error_finish(SpecialAgentErrors.STEP_LIMIT_REACHED, task, output_dir)
+				return self._handle_error_finish(SpecialRunErrors.STEP_LIMIT_ERROR, task, output_dir)
 
 			# LOOP STEP 1: PAGE CLEANUP
 			await self.browser.clean_page()
@@ -100,7 +100,7 @@ class Agent:
 				llm_error_count += 1
 				if llm_error_count > self.MAX_ERROR_COUNT:
 					print('Too many errors, aborting. Please check your API key and try again.')
-					return self._handle_error_finish(SpecialAgentErrors.LLM_ERROR, task, output_dir)
+					return self._handle_error_finish(SpecialRunErrors.LLM_ERROR, task, output_dir)
 
 				await self._exponential_backoff(llm_error_count)
 				llm = self._initialize_llm(task, self.api_key)
@@ -119,7 +119,7 @@ class Agent:
 				output_format_error_count += 1
 				if output_format_error_count > self.MAX_ERROR_COUNT:
 					print('Too many errors, aborting')
-					return self._handle_error_finish(SpecialAgentErrors.ACTION_PARSING_ERROR, task, output_dir)
+					return self._handle_error_finish(SpecialRunErrors.LLM_ACTION_PARSING_ERROR, task, output_dir)
 				print('Retrying...')
 				continue
 
@@ -151,7 +151,7 @@ class Agent:
 			await asyncio.sleep(3)
 			step += 1
 
-	def _handle_error_finish(self, error: SpecialAgentErrors | AgentErrors, task: Task, output_dir: str) -> str:
+	def _handle_error_finish(self, error: SpecialRunErrors | AgentErrors, task: Task, output_dir: str) -> str:
 		"""Handle a special error that the agent can encounter."""
 		print(f'Handling special error: {error}')
 
@@ -159,7 +159,7 @@ class Agent:
 		with open(f'{output_dir}/error.txt', 'w') as f:
 			f.write(error.value)
 
-		if error == SpecialAgentErrors.LLM_ERROR:
+		if error == SpecialRunErrors.LLM_ERROR:
 			with open(f'{output_dir}/llm_error.txt', 'w') as f:
 				f.write(error.value)
 
@@ -180,7 +180,7 @@ class Agent:
 
 		if action_result.status == ActionResultStatus.ABORT:
 			with open(f'{output_dir}/error.txt', 'w') as f:
-				f.write(SpecialAgentErrors.ABORTED_BY_LLM.value)
+				f.write(SpecialRunErrors.LLM_ABORTED_ERROR.value)
 
 		output_data = {
 			'number': task.number,

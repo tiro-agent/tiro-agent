@@ -5,10 +5,9 @@ from web_agent_analyzer.analyzer import ResultAnalyzer
 
 def run_analysis(run_id: str) -> None:
 	analyzer = ResultAnalyzer(run_id)
-	analyzer.generate_summary()
-	analyzer.save_results()
 	analyzer.evaluate_all_tasks()
-	analyzer.save_results('results_evaluated.csv')
+	analyzer.generate_summary()
+	analyzer.save_results('results.csv')
 	analyzer.generate_plots()
 
 
