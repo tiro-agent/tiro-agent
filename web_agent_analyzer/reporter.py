@@ -58,11 +58,15 @@ def generate_plots(results: DataFrame[ResultSchema], analysis_folder: Path) -> N
 	_generate_plot_success_rate(results_cleaned, analysis_folder)
 	_generate_plot_success_rate_by_level(results_cleaned, analysis_folder)
 	_generate_plot_run_error_types(results, analysis_folder)
-	_generate_plot_final_error_types(results, analysis_folder)
-	_generate_plot_final_error_types_by_level(results, analysis_folder)
+	_generate_plot_error_types(results, analysis_folder)
+	_generate_plot_error_types(results_cleaned, analysis_folder, filename='error_types_cleaned.png')
+	_generate_plot_error_types_by_level(results, analysis_folder)
+	_generate_plot_error_types_by_level(results_cleaned, analysis_folder, filename_prefix='error_types_cleaned_by_level')
 
 
-def _generate_plot_success_rate(results_cleaned: DataFrame[ResultSchema], analysis_folder: Path) -> None:
+def _generate_plot_success_rate(
+	results_cleaned: DataFrame[ResultSchema], analysis_folder: Path, filename: str = 'success_rate.png'
+) -> None:
 	successful_tasks_count = results_cleaned[results_cleaned[ResultSchema.success]].shape[0]
 	failed_tasks_count = results_cleaned[~results_cleaned[ResultSchema.success]].shape[0]
 
@@ -75,11 +79,13 @@ def _generate_plot_success_rate(results_cleaned: DataFrame[ResultSchema], analys
 	plt.figure(figsize=(10, 5))
 	plt.pie(sizes, labels=labels, autopct='%1.1f%%')
 	plt.title('Success Rate')
-	plt.savefig(analysis_folder / 'success_rate.png')
+	plt.savefig(analysis_folder / filename)
 	plt.close()
 
 
-def _generate_plot_success_rate_by_level(results_cleaned: DataFrame[ResultSchema], analysis_folder: Path) -> None:
+def _generate_plot_success_rate_by_level(
+	results_cleaned: DataFrame[ResultSchema], analysis_folder: Path, filename_prefix: str = 'success_rate_by_level'
+) -> None:
 	unique_levels = results_cleaned[ResultSchema.level].unique()
 	if len(unique_levels) == 0 or unique_levels[0] is None:
 		return
@@ -99,11 +105,11 @@ def _generate_plot_success_rate_by_level(results_cleaned: DataFrame[ResultSchema
 		plt.figure(figsize=(10, 5))
 		plt.pie(sizes, labels=labels, autopct='%1.1f%%')
 		plt.title(f'Success Rate for {level.capitalize()} Level Tasks')
-		plt.savefig(analysis_folder / f'success_rate_by_level_{level}.png')
+		plt.savefig(analysis_folder / f'{filename_prefix}_{level}.png')
 		plt.close()
 
 
-def _generate_plot_run_error_types(results: DataFrame[ResultSchema], analysis_folder: Path) -> None:
+def _generate_plot_run_error_types(results: DataFrame[ResultSchema], analysis_folder: Path, filename: str = 'run_error_types.png') -> None:
 	failed_tasks = results[results[ResultSchema.run_error_type].notna()]
 	if len(failed_tasks) == 0:
 		print('No errors found - all tasks were successful!')
@@ -113,11 +119,11 @@ def _generate_plot_run_error_types(results: DataFrame[ResultSchema], analysis_fo
 		plt.figure(figsize=(10, 5))
 		plt.pie(error_counts.values, labels=error_counts.index, autopct='%1.1f%%')
 		plt.title('Distribution of Run Error Types (Failed Tasks Only)')
-		plt.savefig(analysis_folder / 'run_error_types.png')
+		plt.savefig(analysis_folder / filename)
 		plt.close()
 
 
-def _generate_plot_final_error_types(results: DataFrame[ResultSchema], analysis_folder: Path) -> None:
+def _generate_plot_error_types(results: DataFrame[ResultSchema], analysis_folder: Path, filename: str = 'error_types.png') -> None:
 	# results are already post-evaluation
 	failed_tasks = results[results[ResultSchema.error_type].notna()]
 	if len(failed_tasks) == 0:
@@ -128,11 +134,13 @@ def _generate_plot_final_error_types(results: DataFrame[ResultSchema], analysis_
 		plt.figure(figsize=(10, 5))
 		plt.pie(error_counts.values, labels=error_counts.index, autopct='%1.1f%%')
 		plt.title('Distribution of Final Error Types (Failed Tasks Only)')
-		plt.savefig(analysis_folder / 'final_error_types.png')
+		plt.savefig(analysis_folder / filename)
 		plt.close()
 
 
-def _generate_plot_final_error_types_by_level(results: DataFrame[ResultSchema], analysis_folder: Path) -> None:
+def _generate_plot_error_types_by_level(
+	results: DataFrame[ResultSchema], analysis_folder: Path, filename_prefix: str = 'error_types_by_level'
+) -> None:
 	unique_levels = results[ResultSchema.level].unique()
 	if len(unique_levels) == 0 or unique_levels[0] is None:
 		return
@@ -150,5 +158,5 @@ def _generate_plot_final_error_types_by_level(results: DataFrame[ResultSchema], 
 			plt.figure(figsize=(10, 5))
 			plt.pie(error_counts.values, labels=error_counts.index, autopct='%1.1f%%')
 			plt.title(f'Distribution of Error Types for {level.capitalize()} Level Tasks (Post-Evaluation)')
-			plt.savefig(analysis_folder / f'error_types_post_evaluation_by_level_{level}.png')
+			plt.savefig(analysis_folder / f'{filename_prefix}_{level}.png')
 			plt.close()
