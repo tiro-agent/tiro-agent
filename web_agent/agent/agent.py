@@ -16,6 +16,7 @@ from web_agent.agent.prompts import get_system_prompt
 from web_agent.agent.schemas import AgentDecision, AgentErrors, SpecialRunErrors, Task
 from web_agent.browser.browser import Browser
 
+# These will be skipped immediatly to save time
 KNOWN_PROBLEM_DOMAINS: list[dict[str, AgentErrors]] = [
 	{'domain': 'https://www.gamestop.com/', 'reason': AgentErrors.PAGE_BLOCKED_ERROR},  # not immediately, but blocked by bot protection
 	{'domain': 'https://www.kbb.com/', 'reason': AgentErrors.PAGE_BLOCKED_ERROR},  # not immediately, but blocked by bot protection
@@ -25,8 +26,10 @@ KNOWN_PROBLEM_DOMAINS: list[dict[str, AgentErrors]] = [
 
 
 class Agent:
-	MAX_ERROR_COUNT = 3
-	NUMBER_OF_PREVIOUS_SCREENSHOTS = 2
+	"""Implements the agent loop and basic logic, particularely the LLM integration."""
+
+	MAX_ERROR_COUNT = 3  # Max number of LLM errors before task is aborted
+	NUMBER_OF_PREVIOUS_SCREENSHOTS = 2  # Number of previous screenshots to feed into the LLM at each step
 
 	def __init__(self, browser: Browser, api_key: str | None = None) -> None:
 		self.browser = browser
@@ -35,6 +38,16 @@ class Agent:
 		self.api_key = api_key
 
 	async def run(self, task: Task, output_dir: str, step_limit: int = 20) -> str:  # noqa: PLR0915
+		"""
+		Run the agent on a given task.
+
+		:param task: The task to run.
+		:param output_dir: The directory to save the output.
+		:param step_limit: The maximum number of steps to run.
+
+		:return: The final output of the task.
+		"""
+
 		step = 0
 		output_format_error_count = 0
 		llm_error_count = 0
@@ -64,20 +77,13 @@ class Agent:
 
 			# LOOP STEP 1: PAGE CLEANUP
 			await self.browser.clean_page()
-			# TODO: add actual cleanup
 
 			# LOOP STEP 2: SAVE SCREENSHOT AND GET PAGE DATA
 			screenshot_path = f'{output_dir}/trajectory/{step}_full_screenshot.png'
 			screenshot = await self.browser.save_screenshot(screenshot_path)
 			metadata = await self.browser.get_metadata()
 
-			# LOOP STEP 3: PAGE ANALYSIS
-			# TODO
-
-			# LOOP STEP 4: MULTISTEP PLANNING
-			# TODO
-
-			# LOOP STEP 5: GET AGENT PROMPT
+			# LOOP STEP 3: GET AGENT PROMPT
 			past_actions_str = self.action_history_controller.get_action_history_str()
 			available_actions_str = await self.actions_controller.get_applicable_actions_str(self.browser.page)
 
@@ -89,7 +95,7 @@ class Agent:
 			print('Metadata:', metadata)
 			print('Past actions:\n', past_actions_str)
 
-			# LOOP STEP 6: GET AGENT DECISION
+			# LOOP STEP 4: GET AGENT DECISION
 			try:
 				agent_response = await llm.run(prompt)
 				action_decision: AgentDecision = agent_response.output
@@ -108,7 +114,7 @@ class Agent:
 
 			llm_error_count = 0
 
-			# LOOP STEP 7: ACTION PARSING
+			# LOOP STEP 5: ACTION PARSING
 			try:
 				action = self.actions_controller.parse_action_str(action_decision.action)
 			except ValueError as e:
@@ -125,7 +131,7 @@ class Agent:
 
 			output_format_error_count = 0
 
-			# LOOP STEP 8: ACTION EXECUTION
+			# LOOP STEP 6: ACTION EXECUTION
 			action_result = await action.execute(ActionContext(page=self.browser.page, task=task))
 			self.action_history_controller.add_action(
 				ActionsHistoryStep(
@@ -137,17 +143,13 @@ class Agent:
 				)
 			)
 
-			# LOOP STEP 9: TASK FINISHING
+			# LOOP STEP 7: TASK FINISHING
 			if action_result.status in (ActionResultStatus.FINISH, ActionResultStatus.ABORT):
 				return self._finish(task, action_result, output_dir)
 
-			# LOOP STEP 10: SELF-REVIEW
-			# evaluate the step success (look at pre and after screenshots) and the agent's performance & ADD A NOTE to the action history
-			# TODO
-
 			previous_screenshots.append(screenshot)
 
-			# LOOP STEP 11: NEXT STEP
+			# LOOP STEP 8: NEXT STEP
 			await asyncio.sleep(3)
 			step += 1
 
@@ -168,6 +170,7 @@ class Agent:
 		)
 
 	def _finish(self, task: Task, action_result: ActionResult, output_dir: str) -> str:
+		"""Finish the task and write action history and result to a file."""
 		with open(f'{output_dir}/action_history.txt', 'w') as f:
 			f.write(f'Task description: {task.description}\n')
 			f.write(f'Task url: {task.url}\n')
@@ -202,6 +205,7 @@ class Agent:
 		return final_result
 
 	def _initialize_llm(self, task: Task, api_key: str | None = None) -> ChatAgent:
+		"""Initialize the LLM with the task description."""
 		system_prompt = get_system_prompt() + f'TASK: {task.description}'
 		model_settings = ModelSettings(seed=42, temperature=0, timeout=20)
 
@@ -218,6 +222,7 @@ class Agent:
 		return llm
 
 	async def _exponential_backoff(self, error_count: int) -> None:
+		"""Exponential backoff to wait between errors."""
 		seconds_to_wait = math.exp(error_count - 1) * 10  # 10 sec first error, 27 sec second error, 73 sec third error, etc.
 		await asyncio.sleep(seconds_to_wait)
 		print(f'Retrying in {seconds_to_wait} seconds...')
@@ -230,6 +235,17 @@ class Agent:
 		previous_screenshots: list[str],
 		current_screenshot: str,
 	) -> list[BinaryContent | str]:
+		"""
+		Build the user prompt for the LLM.
+
+		:param metadata: Metadata about the task.
+		:param past_actions_str: String representation of the past actions.
+		:param available_actions_str: String representation of all currently available actions.
+		:param previous_screenshots: List of previous screenshots.
+		:param current_screenshot: Current screenshot.
+
+		:return: List of BinaryContent or str representing the user prompt.
+		"""
 		prompt_str = '\n'
 		prompt_str += f'Metadata: \n{metadata!s}\n\n'
 		prompt_str += f'Past actions:\n{past_actions_str}\n\n'
