@@ -8,6 +8,7 @@ from web_agent_analyzer.schemas import ResultSchema
 
 
 def generate_summary(results: DataFrame[ResultSchema], analysis_folder: Path, print_summary: bool = True) -> None:
+	"""Generates a summary of relevant statistics (success rate, errors, ...)."""
 	errors_removed, results_cleaned = clean_results(results)
 
 	summary = ''
@@ -76,6 +77,7 @@ def generate_summary(results: DataFrame[ResultSchema], analysis_folder: Path, pr
 
 
 def generate_plots(results: DataFrame[ResultSchema], analysis_folder: Path) -> None:
+	"""Generates plots of success rate and error types."""
 	_, results_cleaned = clean_results(results)
 	_generate_plot_success_rate(results_cleaned, analysis_folder)
 	_generate_plot_success_rate_by_level(results_cleaned, analysis_folder)
@@ -89,6 +91,7 @@ def generate_plots(results: DataFrame[ResultSchema], analysis_folder: Path) -> N
 def _generate_plot_success_rate(
 	results_cleaned: DataFrame[ResultSchema], analysis_folder: Path, filename: str = 'success_rate.png'
 ) -> None:
+	"""Generates a plot of the success rate."""
 	successful_tasks_count = results_cleaned[results_cleaned[ResultSchema.success]].shape[0]
 	failed_tasks_count = results_cleaned[~results_cleaned[ResultSchema.success]].shape[0]
 
@@ -108,6 +111,7 @@ def _generate_plot_success_rate(
 def _generate_plot_success_rate_by_level(
 	results_cleaned: DataFrame[ResultSchema], analysis_folder: Path, filename_prefix: str = 'success_rate_by_level'
 ) -> None:
+	"""Generates a plot of the success rate by level."""
 	unique_levels = results_cleaned[ResultSchema.level].unique()
 	if len(unique_levels) == 0 or unique_levels[0] is None:
 		return
@@ -132,6 +136,7 @@ def _generate_plot_success_rate_by_level(
 
 
 def _generate_plot_run_error_types(results: DataFrame[ResultSchema], analysis_folder: Path, filename: str = 'run_error_types.png') -> None:
+	"""Generates a plot of the run error types, i.e. what programmatic error a task was aborted with. Example: API error"""
 	failed_tasks = results[results[ResultSchema.run_error_type].notna()]
 	if len(failed_tasks) == 0:
 		print('No errors found - all tasks were successful!')
@@ -146,6 +151,7 @@ def _generate_plot_run_error_types(results: DataFrame[ResultSchema], analysis_fo
 
 
 def _generate_plot_error_types(results: DataFrame[ResultSchema], analysis_folder: Path, filename: str = 'error_types.png') -> None:
+	"""Generates a plot of the final error types, i.e. why the agent was not able to successfully finish a task. Example: Unable to click"""
 	# results are already post-evaluation
 	failed_tasks = results[results[ResultSchema.error_type].notna()]
 	if len(failed_tasks) == 0:
@@ -163,6 +169,7 @@ def _generate_plot_error_types(results: DataFrame[ResultSchema], analysis_folder
 def _generate_plot_error_types_by_level(
 	results: DataFrame[ResultSchema], analysis_folder: Path, filename_prefix: str = 'error_types_by_level'
 ) -> None:
+	"""Generates a plot of the final error types by level, i.e. why the agent was not able to successfully finish a task."""
 	unique_levels = results[ResultSchema.level].unique()
 	if len(unique_levels) == 0 or unique_levels[0] is None:
 		return

@@ -7,6 +7,10 @@ from web_agent.agent.schemas import AgentErrors
 
 
 class Result(BaseModel):
+	"""
+	Represents a single result of a task.
+	"""
+
 	task_number: int
 	identifier: str
 	level: str
@@ -14,12 +18,16 @@ class Result(BaseModel):
 	steps: int | None = None
 	ai_success_eval: bool | None = None
 	error_type: str | None = None  # final evaluation of the error (human > AI > run)
-	run_error_type: str | None = None  # error type from the run
-	ai_error_type: str | None = None  # error type from the AI evaluation
+	run_error_type: str | None = None  # error type from the run, e.g. API error
+	ai_error_type: str | None = None  # error type from the AI evaluation, e.g. navigation issue
 	human_error_type: str | None = None  # error type from the human evaluation
 
 
 class ResultSchema(pa.DataFrameModel):
+	"""
+	Schema of Result to support DataFrames.
+	"""
+
 	task_number: Series[int]
 	identifier: Series[str]
 	level: Series[str]
@@ -37,5 +45,9 @@ class ResultSchema(pa.DataFrameModel):
 
 
 class TaskErrorEvaluation(BaseModel):
+	"""
+	Represents the evaluation of a task error.
+	"""
+
 	thought_process: str
 	cause: AgentErrors

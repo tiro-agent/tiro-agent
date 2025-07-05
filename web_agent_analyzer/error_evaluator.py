@@ -11,11 +11,18 @@ from web_agent_analyzer.schemas import Result, TaskErrorEvaluation
 
 
 class ErrorEvaluator:
+	"""
+	Handles actual evaluation of an error using LLM.
+	"""
+
 	def __init__(self) -> None:
 		self.llm: ChatAgent | None = None
 		self._init_llm()
 
 	def evaluate_task_error(self, task_result: Result, task_path: Path) -> AgentErrors | None:
+		"""
+		Evaluates the error type of a task using the LLM.
+		"""
 		prompt = self._get_task_prompt(task_path)
 		task_error_evaluation = self._run_llm(prompt)
 
@@ -26,6 +33,9 @@ class ErrorEvaluator:
 		return task_error_evaluation.cause
 
 	def _init_llm(self) -> None:
+		"""
+		Initializes the LLM agent.
+		"""
 		self.llm = ChatAgent(
 			model='google-gla:gemini-2.5-flash-preview-05-20',
 			system_prompt=get_ai_eval_prompt(),
@@ -33,6 +43,9 @@ class ErrorEvaluator:
 		)
 
 	def _run_llm(self, prompt: str | dict) -> TaskErrorEvaluation:
+		"""
+		Runs the LLM agent.
+		"""
 		max_retries = 4
 		base_delay = 4
 
@@ -52,6 +65,9 @@ class ErrorEvaluator:
 					raise
 
 	def _get_task_prompt(self, task_path: Path) -> list[str | BinaryContent]:
+		"""
+		Generates the prompt for the LLM evaluation of a task.
+		"""
 		with open(task_path / 'result.json') as f:
 			task_result_json = json.load(f)
 

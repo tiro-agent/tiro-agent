@@ -12,7 +12,14 @@ from web_agent_analyzer.schemas import Result, ResultSchema
 
 
 class ResultAnalyzer:
+	"""
+	Main class to analyze the results of a specific run ID, generating a summary of relevant statistics and plotting different error types.
+	"""
+
 	def __init__(self, run_id: str) -> None:
+		"""
+		Initializes the ResultAnalyzer with a specific run ID.
+		"""
 		self.run_id = run_id
 		self.output_folder = Path('output').resolve()
 		self.run_path = self.output_folder / run_id
@@ -29,24 +36,36 @@ class ResultAnalyzer:
 		self.is_evaluated = False
 
 	def save_results(self, filename: str = 'results.csv') -> None:
+		"""
+		Saves the evaluated results to a CSV file.
+		"""
 		if not self.is_evaluated:
 			raise ValueError('Results are not evaluated, skipping saving')
 
 		self.results.to_csv(self.analysis_folder / filename, sep=';', index=False)
 
 	def generate_summary(self, print_summary: bool = True) -> None:
+		"""
+		Generates a summary of relevant statistics for the evaluated results.
+		"""
 		if not self.is_evaluated:
 			raise ValueError('Results are not evaluated, skipping summary')
 
 		generate_summary(self.results, self.analysis_folder, print_summary)
 
 	def generate_plots(self) -> None:
+		"""
+		Generates error type plots.
+		"""
 		if not self.is_evaluated:
 			raise ValueError('Results are not evaluated, skipping plots')
 
 		generate_plots(self.results, self.analysis_folder)
 
 	def evaluate_all_tasks(self) -> None:
+		"""
+		Evaluates all tasks in the run.
+		"""
 		if self.is_evaluated:
 			raise ValueError('Results are already evaluated, skipping evaluation')
 
@@ -71,6 +90,9 @@ class ResultAnalyzer:
 		print('Results evaluated')
 
 	def _evaluate_single_task_error(self, task_result: Result) -> bool:
+		"""
+		Evaluates the error of a single task.
+		"""
 		task_path = self.run_path / f'{task_result.task_number:03d}_{task_result.identifier}'
 
 		ai_eval_executed = False
@@ -105,6 +127,9 @@ class ResultAnalyzer:
 		return ai_eval_executed
 
 	def _get_final_error_type(self, task_result: Result) -> str | None:  # noqa PLR0911
+		"""
+		Assign final error type based on prior evaluation.
+		"""
 		if task_result.human_error_type:
 			return task_result.human_error_type
 		if task_result.ai_error_type:

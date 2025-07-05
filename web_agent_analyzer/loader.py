@@ -10,6 +10,9 @@ from web_agent_analyzer.schemas import Result, ResultSchema
 
 
 def load_results(run_path: Path) -> DataFrame[ResultSchema]:
+	"""
+	Loads the results of a specific run ID.
+	"""
 	results: list[Result] = []
 	unfinished_tasks: list[str] = []
 
@@ -65,6 +68,9 @@ def load_results(run_path: Path) -> DataFrame[ResultSchema]:
 
 
 def clean_results(results: DataFrame[ResultSchema]) -> tuple[list[str], DataFrame[ResultSchema]]:
+	"""
+	Cleans the results by removing rows with specific error types.
+	"""
 	ignored_error_types = [
 		AgentErrors.PAGE_BLOCKED_ERROR.value,
 		AgentErrors.PAGE_LOAD_ERROR.value,
@@ -77,6 +83,9 @@ def clean_results(results: DataFrame[ResultSchema]) -> tuple[list[str], DataFram
 
 
 def _results_to_df(results: list[Result]) -> pd.DataFrame:
+	"""
+	Converts a list of results to a DataFrame.
+	"""
 	results_data = [result.model_dump() for result in results]
 	results_df = pd.DataFrame(results_data)
 	results_df = results_df.sort_values(by='task_number')

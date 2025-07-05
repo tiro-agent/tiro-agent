@@ -4,6 +4,9 @@ from web_agent_analyzer.analyzer import ResultAnalyzer
 
 
 def run_analysis(run_id: str) -> None:
+	"""
+	Runs the analysis for a specific run ID.
+	"""
 	analyzer = ResultAnalyzer(run_id)
 	analyzer.evaluate_all_tasks()
 	analyzer.generate_summary()
