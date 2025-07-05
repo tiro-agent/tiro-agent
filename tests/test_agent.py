@@ -5,6 +5,7 @@ from web_agent.browser.browser import Browser
 
 
 def test_build_user_prompt() -> None:
+	"""Tests if the user prompt is built correctly."""
 	browser = Browser()
 	agent = Agent(browser)
 	metadata = {'title': 'Test', 'url': 'https://www.google.com'}

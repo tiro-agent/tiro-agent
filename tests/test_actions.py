@@ -9,6 +9,8 @@ from web_agent.agent.actions.registry import ActionsRegistry
 
 
 class Page:
+	"""A dummy page class."""
+
 	def __init__(self, url: str) -> None:
 		self._url = url
 
@@ -47,7 +49,10 @@ class DummyClickCoordAction(BaseAction):
 
 
 class TestBaseAction:
+	"""Tests the base action class."""
+
 	def test_get_action_name(self) -> None:
+		"""Tests if the action name is generated correctly."""
 		assert DummyClickTextAction.get_action_name() == 'dummy_click_text_action'
 		assert DummyTypeAction.get_action_name() == 'dummy_type_action'
 		assert DummyClickCoordAction.get_action_name() == 'dummy_click_coord_action'
@@ -59,6 +64,8 @@ class TestBaseAction:
 		assert MyLLMAction.get_action_name() == 'my_llm_action'
 
 	async def test_is_applicable_domain_filter(self) -> None:
+		"""Tests if the domain filter is applied correctly."""
+
 		# test with no domains and no page filter
 		class DummyActionNoFilter(DummyClickTextAction):
 			domains: ClassVar[list[str] | None] = None
@@ -126,6 +133,8 @@ class TestBaseAction:
 			await DummyActionWildcardDomain.is_applicable(page)
 
 	async def test_is_applicable_page_filter(self) -> None:
+		"""Tests if the page filter is applied correctly."""
+
 		# test with page filter (positive)
 		class DummyActionPageFilterPositive(DummyClickTextAction):
 			@classmethod
@@ -146,7 +155,11 @@ class TestBaseAction:
 
 
 class TestActionsController:
+	"""Tests the action controller"""
+
 	async def test_get_applicable_actions(self) -> None:
+		"""Tests if the applicable actions are returned correctly, i.e. filters are applied correctly."""
+
 		actions_controller = ActionsRegistry([DummyClickTextAction, DummyTypeAction])
 
 		# test with no domains and no page filter
@@ -180,6 +193,8 @@ class TestActionsController:
 		assert actions[2].get_action_name() == 'dummy_click_coord_action_test'
 
 	async def test_get_applicable_actions_str(self) -> None:
+		"""Tests if the applicable actions string is returned correctly."""
+
 		actions_controller = ActionsRegistry([DummyClickTextAction, DummyTypeAction])
 		page = Page(url='https://google.com')
 		actions_str = await actions_controller.get_applicable_actions_str(page)
@@ -191,6 +206,8 @@ class TestActionsController:
 
 	@pytest.mark.skip(reason='This test is not implemented yet. It includes all the default actions from the actions.py file.')
 	async def test_create_default(self) -> None:
+		"""Tests if the default actions are created correctly."""
+
 		actions_controller = ActionsRegistry.create_default()
 		page = Page(url='https://google.com')
 		actions_str = await actions_controller.get_applicable_actions_str(page)
@@ -203,7 +220,11 @@ class TestActionsController:
 
 
 class TestActionParser:
+	"""Tests the action parser"""
+
 	def test_parse_action_str(self) -> None:
+		"""Tests if the action string is parsed correctly."""
+
 		action_parser = ActionParser()
 
 		# test with single argument

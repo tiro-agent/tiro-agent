@@ -4,6 +4,7 @@ from web_agent.utils import check_domain_pattern_match
 
 
 def test_matches_domain_pattern() -> None:
+	"""Tests if the domain pattern matching works as expected."""
 	assert check_domain_pattern_match('google.com', 'google.com')
 	assert check_domain_pattern_match('www.google.com', 'google.com')
 	assert check_domain_pattern_match('google.com', 'www.google.com')
