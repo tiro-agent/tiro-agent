@@ -26,6 +26,7 @@ class ActionsHistoryController:
 		return self.action_history
 
 	def get_action_history_str(self) -> str:
+		"""Returns the action history as a pretty string."""
 		return '- ' + '\n- '.join(
 			[
 				f'ACTION: {step.action.get_action_str()}, [{step.status.value.capitalize()}]{

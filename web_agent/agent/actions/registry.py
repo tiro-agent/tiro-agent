@@ -24,9 +24,11 @@ class ActionsRegistry:
 		return cls(actions=BaseAction.__subclasses__())
 
 	def register_action(self, action: type[BaseAction]) -> None:
+		"""Register a new action."""
 		self.actions.append(action)
 
 	async def get_applicable_actions(self, page: Page) -> list[type[BaseAction]]:
+		"""Get all applicable actions for a given page."""
 		applicable_actions = []
 		for action in self.actions:
 			if await action.is_applicable(page):
@@ -34,6 +36,7 @@ class ActionsRegistry:
 		return applicable_actions
 
 	async def get_applicable_actions_str(self, page: Page) -> str:
+		"""Get all applicable actions for a given page as a pretty string."""
 		return '- ' + '\n- '.join([action.get_action_definition_str() for action in await self.get_applicable_actions(page)])
 
 	def parse_action_str(self, action_str: str) -> BaseAction:

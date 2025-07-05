@@ -74,6 +74,11 @@ class BaseAction(BaseModel, ABC):
 
 	@classmethod
 	async def is_applicable(cls, page: Page) -> bool:
+		"""
+		Checks if the action is applicable to the given page.
+
+		:param page: The page to check applicability for.
+		"""
 		if cls.domains is not None:
 			domain = urlparse(await page.url).netloc
 			if not any(check_domain_pattern_match(domain, pattern) for pattern in cls.domains):
@@ -84,18 +89,17 @@ class BaseAction(BaseModel, ABC):
 
 	@classmethod
 	def get_action_type_str(cls) -> str:
+		"""Returns pretty string of action's type."""
 		# example: click_by_text('text')
 		return f'{cls.get_action_name()}({", ".join(f"'{name}'" for name in cls.model_fields.keys())})'
 
 	@classmethod
 	def get_action_description(cls) -> str:
+		"""Returns the action's description."""
 		return cls.__doc__
 
-	@classmethod
-	def get_action_definition_str(cls) -> str:
-		return f'{cls.get_action_type_str()} - {cls.get_action_description()}'
-
 	def get_action_str(self) -> str:
+		"""Returns pretty string of action."""
 		return f'{self.get_action_name()}({", ".join(f"{name}='{value}'" for name, value in self.model_dump().items())})'
 
 	@classmethod
