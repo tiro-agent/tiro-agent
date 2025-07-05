@@ -27,6 +27,11 @@ class TaskLevel(Enum):
 
 
 class AgentRunner:
+	"""
+	Handles running the agent on all specified tasks, both sequentially and in parallel. Does NOT analyze results, this is handled by the
+	separate web agent anaylizer.
+	"""
+
 	def __init__(  # noqa: PLR0913
 		self,
 		run_id: str | None = None,
@@ -36,12 +41,23 @@ class AgentRunner:
 		output_dir_prefix: str | None = None,
 		step_factor: int = 2.5,
 	) -> None:
+		"""
+		Initializes the AgentRunner with the specified parameters.
+
+		:param run_id: The ID of the run, i.e. output folder name. If not provided, an ID based on the current time will be generated.
+		:param start_index: The index of the task to start from. Default is 0.
+		:param relevant_task_ids: A list of task IDs to run. If provided, `relevant_task_numbers` must be None.
+		:param relevant_task_numbers: A list of task numbers to run. If provided, `relevant_task_ids` must be None.
+		:param output_dir_prefix: The prefix for the output directory. If not specified, 'output' will be used.
+		:param step_factor: The factor to determine the step limit. Default is 2.5.
+		"""
+
 		self.run_id = run_id
 		self.start_index = start_index
 		self.step_factor = step_factor
 		self.tasks = []
 		self.gemini_api_key = os.environ.get('GEMINI_API_KEY')
-		self.gemini_api_key_2 = os.environ.get('GEMINI_API_KEY_2')
+		self.gemini_api_key_2 = os.environ.get('GEMINI_API_KEY_2')  # Adding a second API key enables parallel execution
 
 		if self.gemini_api_key is None:
 			sys.exit('GEMINI_API_KEY is not set')
@@ -67,6 +83,7 @@ class AgentRunner:
 		if relevant_task_numbers is not None and relevant_task_ids is not None:
 			raise ValueError('Cannot use both relevant-task-numbers and relevant-task-ids')
 
+		# Determine tasks to run
 		with open('data/Online_Mind2Web.json') as f:
 			self.tasks = json.load(f)
 			if relevant_task_ids is not None:
@@ -80,6 +97,11 @@ class AgentRunner:
 		print(f'Runner initialized with max concurrent tasks (API keys): {self.max_concurrent_tasks}')
 
 	async def run_all_tasks(self, level: TaskLevel = TaskLevel.ALL) -> None:
+		"""
+		Runs all tasks with the specified level.
+
+		:param level: The level of tasks to run. Default is TaskLevel.ALL.
+		"""
 		filtered_tasks = []
 		for task in self.tasks:
 			if task['number'] < self.start_index:
@@ -129,6 +151,7 @@ class AgentRunner:
 				await self.api_key_queue.put(api_key)
 
 	async def run_task_by_id(self, task_id: str) -> None:
+		"""Runs a specific task by its ID."""
 		task = next((t for t in self.tasks if t['task_id'] == task_id), None)
 		if task is None:
 			sys.exit(f'Task with id {task_id} not found')
@@ -145,6 +168,7 @@ class AgentRunner:
 		await self.run_task(task_object, task_output_dir)
 
 	async def run_task(self, task: Task, output_dir: str, api_key: str | None = None) -> None:
+		"""Runs a specific task with the given API key."""
 		print(f'============= Task {task.number} =============')
 		print('Id:', task.identifier)
 		print('Task:', task.description)
@@ -165,6 +189,7 @@ class AgentRunner:
 
 
 def check_vpn() -> None:
+	"""Prompts the user to confirm active VPN connection."""
 	user_input = input("To avoid getting your IP blocked, it is recommended to use a VPN. Type 'y' to continue: ")
 	while user_input.lower() != 'y':
 		user_input = input("You did not confirm. Please type 'y' once your VPN is connected to continue: ")
