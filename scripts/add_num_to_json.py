@@ -3,6 +3,7 @@ import os
 
 
 def add_num_to_json_data() -> None:
+	"""Enumerates all tasks in the data file."""
 	with open('data/Online_Mind2Web.json') as f:
 		data = json.load(f)
 
@@ -21,6 +22,7 @@ def add_num_to_json_data() -> None:
 
 
 def add_num_to_json_output(run_id: str) -> None:
+	"""Enumerates all task outputs inside a run folder."""
 	for task_folder in os.listdir(f'output/{run_id}'):
 		for file in os.listdir(f'output/{run_id}/{task_folder}'):
 			if file.endswith('.json'):

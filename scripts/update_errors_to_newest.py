@@ -4,6 +4,7 @@ from web_agent.agent.schemas import AgentErrors, SpecialRunErrors
 
 
 def run(run_id: str) -> None:
+	"""Auxiliary method to update the error types in the output folder to the newest format."""
 	output_folder = f'output/{run_id}'
 	all_task_runs = os.listdir(output_folder)
 
