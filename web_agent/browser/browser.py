@@ -6,10 +6,23 @@ from playwright.async_api import Playwright, async_playwright
 
 
 async def get_js_attr(node: JSHandle, attr: str) -> str:
+	"""
+	Returns the value of a given attribute of a JSHandle.
+
+	:param node: The JSHandle of the element.
+	:param attr: The attribute to get the value of.
+	:return: The value of the attribute.
+	"""
 	return await node.evaluate(f'node => node.{attr}')
 
 
-async def pretty_print_element(node: JSHandle) -> str:
+async def pretty_print_element(node: JSHandle) -> str | None:
+	"""
+	Returns a pretty-printed HTML representation of a given JSHandle, which is easier to read for humans and LLMs.
+
+	:param node: The JSHandle of the element to pretty-print.
+	:return: A string containing the pretty-printed HTML.
+	"""
 	html_tag = (await get_js_attr(node, 'tagName')).lower()
 	html_id = await get_js_attr(node, 'id')
 	html_text = (await get_js_attr(node, 'innerText'))[:50]
@@ -23,18 +36,28 @@ async def pretty_print_element(node: JSHandle) -> str:
 		html_placeholder = await get_js_attr(node, 'placeholder')
 		return f'<input type="{html_type}" id="{html_id}" name="{html_name}" placeholder="{html_placeholder}" value="{html_text}">'
 	elif html_tag == 'body':
-		return None  # Body tag is not useful to print
+		return None  # Body tag is not useful to print as it indicates the entire webpage.
 	else:
 		return f'<{html_tag} id="{html_id}">{html_text}</{html_tag}>'
 
 
 class Browser:
+	"""
+	This class provides a browser instance using Playwright. It supports loading, screenshotting and interacting with a
+	web page.
+	"""
+
 	def __init__(self) -> None:
 		self.playwright: Playwright | None = None
 		self.browser = None
 		self.page = None
 
 	async def __aenter__(self) -> 'Browser':
+		"""
+		Starts the Playwright instance and opens a new browser context.
+
+		:return: The Browser instance.
+		"""
 		self.playwright = await async_playwright().start()
 		browser = await self.playwright.chromium.launch(
 			headless=False,
@@ -45,6 +68,11 @@ class Browser:
 		return self
 
 	async def load_url(self, url: str) -> None:
+		"""
+		Loads the given URL in the browser and handles various response errors.
+
+		:param url: The URL to load.
+		"""
 		try:
 			response = await self.page.goto(url)
 			await self.page.wait_for_load_state('networkidle')
@@ -62,15 +90,29 @@ class Browser:
 			raise Exception('Could not load the URL') from e
 
 	async def clean_page(self) -> None:
+		"""
+		Cleans the page's HTML code.
+		"""
 		try:
+			# Remove target attributes from all a tags to prevent links opening in a new window.
 			await self.page.locator('a').evaluate_all('nodes => nodes.forEach(node => node.removeAttribute("target"))')
 		except Error:
 			print('WARNING: page cleanup failed, proceeding anyways and hoping for automatic recovery in next step')
 
 	async def get_html(self) -> str:
+		"""
+		Returns the HTML code of the current page.
+
+		:return: The HTML code of the current page.
+		"""
 		return await self.page.content()
 
 	async def get_metadata(self) -> dict[str, str]:
+		"""
+		Returns some metadata of the current page.
+
+		:return: A dictionary containing the page's title, URL, and focused element.
+		"""
 		return {
 			'title': await self.page.title(),
 			'url': self.page.url,
@@ -81,50 +123,19 @@ class Browser:
 		}
 
 	async def save_screenshot(self, screenshot_path: str) -> bytes:
-		"""Saves the screenshot to the given path and returns the bytes of the screenshot."""
+		"""
+		Saves the screenshot of the current page to the given path and returns the bytes of the screenshot.
+
+		:param screenshot_path: The path to save the screenshot to.
+		:return: The bytes of the screenshot.
+		"""
 		await self.page.screenshot(path=screenshot_path)  # TODO: check full page screenshots
 		return open(screenshot_path, 'rb').read()
-
-	async def click_by_text(self, text: str, i: int | None = None) -> tuple[bool, str]:
-		targets = self.page.get_by_text(text).filter(visible=True)
-
-		if i and await targets.count() <= i:
-			return False, 'Index out of bounds'
-
-		if await targets.count() == 0:
-			return False, 'Text not found on page'
-		elif await targets.count() == 1:
-			await targets.click()
-			return True, ''
-		elif i is not None:
-			await targets.nth(i).click()
-			return True, ''
-		else:
-			all_targets = await targets.all()
-			targets_str = str(
-				[f'{i} -  {str(await target.element_handle()).replace("JSHandle@", "")}' for i, target in enumerate(all_targets)]
-			)
-			return False, f'Multiple targets found: {targets_str}'
-
-	async def search_and_highlight(self, text: str) -> tuple[bool, str]:
-		targets = self.page.get_by_text(text).filter(visible=True)
-		if await targets.count() == 0:
-			return False, 'Text not found on page'
-		elif await targets.count() == 1:
-			await targets.focus()
-			return True, ''
-		else:
-			return False, 'Multiple targets found: ' + str(await targets.all())
-
-	async def fill_closest_input_to_text(self, text: str, value: str) -> None:
-		locator = self.page.get_by_text(text).filter(visible=True)
-
-		for elem in await locator.all():
-			print(await elem.text_content())
-
-		await locator.first.fill(value)
 
 	async def __aexit__(
 		self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: types.TracebackType | None
 	) -> None:
+		"""
+		Stops the Playwright instance and closes the browser context.
+		"""
 		await self.playwright.stop()
