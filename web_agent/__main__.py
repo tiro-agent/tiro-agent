@@ -13,15 +13,24 @@ async def main() -> None:
 	load_dotenv()
 
 	parser = argparse.ArgumentParser(description='Web Agent')
+
+	# Run ID determines output folder
 	parser.add_argument('--run-id', type=str, help='Run id', required=False, default=None)
+
+	# Configures which tasks to run
 	parser.add_argument('--start-index', type=int, help='Start index', required=False, default=0)
 	parser.add_argument('--task-id', type=str, help='Task to perform (all if not given)', required=False, default=None)
 	parser.add_argument('--relevant-task-ids', nargs='+', type=str, help='Relevant task ids', required=False, default=None)
 	parser.add_argument('--relevant-task-numbers', nargs='+', type=int, help='Relevant task numbers', required=False, default=None)
+	parser.add_argument('--level', type=TaskLevel, help='Level', required=False, default=TaskLevel.ALL, choices=list(TaskLevel))
+
+	# Step limit is determined by this factor times reference length (how many steps a human need)
+	parser.add_argument('--step-factor', type=float, help='Step factor', required=False, default=2.5)
+
+	# Other properties
 	parser.add_argument('--logfire', action='store_true', help='Enable logfire logging', required=False, default=False)
 	parser.add_argument('--disable-vpn-check', action='store_true', help='Disable VPN check', required=False, default=False)
-	parser.add_argument('--level', type=TaskLevel, help='Level', required=False, default=TaskLevel.ALL, choices=list(TaskLevel))
-	parser.add_argument('--step-factor', type=float, help='Step factor', required=False, default=2.5)
+
 	args = parser.parse_args()
 
 	print('Hello from web-agent!')
@@ -39,6 +48,7 @@ async def main() -> None:
 	# overwrite for testing
 	# args.relevant_task_ids = ['824eb7bb0ef1ce40bfd49c12182d9428', 'e4e097222d13a2560db6f6892612dab6']
 
+	# Initialize agent runner
 	runner = AgentRunner(
 		run_id=args.run_id,
 		relevant_task_ids=args.relevant_task_ids,
@@ -48,8 +58,10 @@ async def main() -> None:
 	)
 
 	if args.task_id is None:
+		# If no task is given, run all tasks
 		await runner.run_all_tasks(level=args.level)
 	else:
+		# Otherwise, run given task
 		await runner.run_task_by_id(args.task_id)
 
 
