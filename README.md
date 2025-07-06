@@ -58,7 +58,7 @@ uv run python -m web_agent
 Please consult [this file](web_agent/__main__.py) for available command line arguments.
 
 ### Evaluating runs
-You may use the following script to evaluate a prior run:
+You may use the following script to evaluate a prior run using statistics matching those in the system report:
 ```bash
 ./scripts/run_evaluation.sh
 ```
