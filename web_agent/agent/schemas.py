@@ -44,11 +44,6 @@ class AgentErrors(Enum):
 	LLM_ERROR includes LLM_ACTION_PARSING_ERROR & LLM_ERROR from the SpecialRunErrors.
 	"""
 
-	# TODO: find a better way to combine those with the special errors (maybe make it one enum)
-	# (maybe remove dublicate actions (URL_BLOCKED -> PAGE_BLOCKED_ERROR, URL_LOAD_ERROR -> PAGE_LOAD_ERROR))
-	# (affects the agent analyzer)
-	# (issue ex.: CLICK_action error set during runis not propagated to the agent analyzer)
-
 	OPTION_SELECTION_ERROR = 'OPTION_SELECTION_ERROR'
 	FILTER_ERROR = 'FILTER_ERROR'
 	CLICK_ERROR = 'CLICK_ERROR'

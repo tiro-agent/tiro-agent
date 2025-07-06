@@ -133,23 +133,6 @@ class AgentRunner:
 			for task in filtered_tasks:
 				await self._run_task_with_api_key(task)
 
-	async def _run_task_with_api_key(self, task: Task) -> None:
-		"""Run a single task with proper API key management."""
-
-		task_output_dir = f'{self.output_dir}/{task.number:03d}_{task.identifier}'
-
-		if os.path.exists(task_output_dir):
-			print(f'Task {task.number} already executed, skipping')
-			return
-
-		# Acquire semaphore and get API key
-		async with self.semaphore:
-			api_key = await self.api_key_queue.get()
-			try:
-				await self.run_task(task, task_output_dir, api_key)
-			finally:
-				await self.api_key_queue.put(api_key)
-
 	async def run_task_by_id(self, task_id: str) -> None:
 		"""Runs a specific task by its ID."""
 		task = next((t for t in self.tasks if t['task_id'] == task_id), None)
@@ -165,9 +148,26 @@ class AgentRunner:
 			number=task['number'],
 			reference_length=task['reference_length'],
 		)
-		await self.run_task(task_object, task_output_dir)
+		await self._run_task(task_object, task_output_dir)
 
-	async def run_task(self, task: Task, output_dir: str, api_key: str | None = None) -> None:
+	async def _run_task_with_api_key(self, task: Task) -> None:
+		"""Run a single task with proper API key management."""
+
+		task_output_dir = f'{self.output_dir}/{task.number:03d}_{task.identifier}'
+
+		if os.path.exists(task_output_dir):
+			print(f'Task {task.number} already executed, skipping')
+			return
+
+		# Acquire semaphore and get API key
+		async with self.semaphore:
+			api_key = await self.api_key_queue.get()
+			try:
+				await self._run_task(task, task_output_dir, api_key)
+			finally:
+				await self.api_key_queue.put(api_key)
+
+	async def _run_task(self, task: Task, output_dir: str, api_key: str | None = None) -> None:
 		"""Runs a specific task with the given API key."""
 		print(f'============= Task {task.number} =============')
 		print('Id:', task.identifier)
