@@ -1,6 +1,9 @@
 # <img src="https://upload.wikimedia.org/wikipedia/commons/c/c8/Logo_of_the_Technical_University_of_Munich.svg" width="44">&ensp;Tiro - an autonomous web agent
 This repository consists of a web agent that can be used to automate tasks on the live web. For more details, please refer to the system report.
 
+> [!IMPORTANT]
+> Please note that operating in a live web environment, as this agent does, may result in occasional inconsistencies or unexpected errors. Although multiple error-handling mechanisms are in place, some issues may still arise. Additionally, the use of a large language model introduces inherent unpredictability. For this reason, __YOU SHOULD NEVER USE THIS AGENT FOR SENSITIVE TASKS OR DATA.__ Please keep this in mind while using the agent.
+
 ## 🗂️ Project structure
 This shows an excerpt of the project structure to highlight relevant directories.
 ```
@@ -64,6 +67,9 @@ Please change the `run_id` inside the script to match the run to be evaluated.
 ## 🖥️ Tested on
 MacOS 15.5, M2 Pro, Python 3.13.4<br>
 ...
+
+## 🚧 Known issues
+__Gemini API instability:__ Occasionally, the Gemini API will either time out or produce invalid responses. This is a [known issue](https://discuss.ai.google.dev/t/persistent-500-error-for-gemini-2-5-flash-for-certain-prompts-even-after-an-hour-of-retries/89319) on Google's side as well. For now, the agent skips to the next tasks if this issue occurs. Should it happen too often, this can impact the accuracy of evaluation results. Thus, it is recommended to rerun those tasks before final evaluation.
 
 ## ✉️ Contact
 This project: [Niklas Simakov (TUM CIT)](mailto:niklas.simakov@tum.de), [Karl Benedikt Kaesen (TUM CIT)](mailto:benedikt.kaesen@tum.de)<br>
