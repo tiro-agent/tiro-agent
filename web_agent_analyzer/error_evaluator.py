@@ -13,6 +13,8 @@ from web_agent_analyzer.schemas import Result, TaskErrorEvaluation
 class ErrorEvaluator:
 	"""
 	Handles actual evaluation of an error using LLM.
+
+	Used to evaluate the actual error types of the tasks that failed with STEP_LIMIT_ERROR or LLM_ACTION_PARSING_ERROR.
 	"""
 
 	def __init__(self) -> None:

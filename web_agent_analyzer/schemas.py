@@ -16,11 +16,10 @@ class Result(BaseModel):
 	level: str
 	success: bool
 	steps: int | None = None
-	ai_success_eval: bool | None = None
 	error_type: str | None = None  # final evaluation of the error (human > AI > run)
-	run_error_type: str | None = None  # error type from the run, e.g. API error
-	ai_error_type: str | None = None  # error type from the AI evaluation, e.g. navigation issue
-	human_error_type: str | None = None  # error type from the human evaluation
+	run_error_type: str | None = None  # error type from the run, e.g. API error (set during run in error.txt)
+	ai_error_type: str | None = None  # error type from the AI evaluation, e.g. navigation issue (set in ErrorEvaluator & saved to ai.eval)
+	human_error_type: str | None = None  # error type from the human evaluation (set in human.eval)
 
 
 class ResultSchema(pa.DataFrameModel):
@@ -33,7 +32,6 @@ class ResultSchema(pa.DataFrameModel):
 	level: Series[str]
 	success: Series[bool]
 	steps: Series[pd.Int64Dtype] = pa.Field(nullable=True)
-	ai_success_eval: Series[bool] = pa.Field(nullable=True)
 	error_type: Series[str] = pa.Field(nullable=True)
 	run_error_type: Series[str] = pa.Field(nullable=True)
 	ai_error_type: Series[str] = pa.Field(nullable=True)
