@@ -64,6 +64,9 @@ You may use the following script to evaluate a prior run using statistics matchi
 ```
 Please change the `run_id` inside the script to match the run to be evaluated.
 
+## 📊 Performance
+An evaluation of the agent’s performance on the Online-Mind2Web benchmark is provided in the system report, along with a discussion of common error cases.
+
 ## 🖥️ Tested on
 MacOS 15.5, M2 Pro, Python 3.13.4<br>
 ...
