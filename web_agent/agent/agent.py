@@ -21,6 +21,8 @@ KNOWN_PROBLEM_DOMAINS: list[dict[str, AgentErrors]] = [
 	{'domain': 'https://www.gamestop.com/', 'reason': AgentErrors.PAGE_BLOCKED_ERROR},  # not immediately, but blocked by bot protection
 	{'domain': 'https://www.kbb.com/', 'reason': AgentErrors.PAGE_BLOCKED_ERROR},  # not immediately, but blocked by bot protection
 	{'domain': 'https://www.google.com/shopping?udm=28', 'reason': AgentErrors.HUMAN_VERIFICATION_ERROR},  # captcha after typing
+	{'domain': 'https://seatgeek.com/', 'reason': AgentErrors.HUMAN_VERIFICATION_ERROR},  # blocked with captcha directly
+	{'domain': 'https://doctor.webmd.com/', 'reason': AgentErrors.HUMAN_VERIFICATION_ERROR},  # blocked with captcha after clicking
 	{'domain': 'https://www.thumbtack.com/', 'reason': AgentErrors.PAGE_LOAD_ERROR},  # return 404 permanently
 ]
 
