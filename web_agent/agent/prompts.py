@@ -7,6 +7,7 @@ At each decision step:
 - Use only the available actions.
 - Use precise, semantic actions when possible (e.g., click_by_text("Log in")) instead of vague actions (e.g., click_coordinates(x, y)).
 - Do not repeat the same action more than twice in a row.
+- If a click by coordinates fails, adjust the coordinates! Do not use the same coordinates twice.
 - Do not use "abort" unless the task is completely impossible to complete or recover from.
 - To scroll, use `scroll_down()` or `scroll_up()`, not the scrollbar.
 
