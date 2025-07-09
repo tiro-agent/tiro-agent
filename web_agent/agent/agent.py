@@ -20,7 +20,7 @@ from web_agent.browser.browser import Browser
 KNOWN_PROBLEM_DOMAINS: list[dict[str, AgentErrors]] = [
 	{'domain': 'https://www.gamestop.com/', 'reason': AgentErrors.PAGE_BLOCKED_ERROR},  # not immediately, but blocked by bot protection
 	{'domain': 'https://www.kbb.com/', 'reason': AgentErrors.PAGE_BLOCKED_ERROR},  # not immediately, but blocked by bot protection
-	{'domain': 'https://www.google.com/shopping?udm=28', 'reason': AgentErrors.CLICK_ERROR},  # until click action fixed
+	{'domain': 'https://www.google.com/shopping?udm=28', 'reason': AgentErrors.HUMAN_VERIFICATION_ERROR},  # captcha after typing
 	{'domain': 'https://www.thumbtack.com/', 'reason': AgentErrors.PAGE_LOAD_ERROR},  # return 404 permanently
 ]
 
