@@ -98,8 +98,13 @@ class BaseAction(BaseModel, ABC):
 		"""Returns the action's description."""
 		return cls.__doc__
 
+	@classmethod
+	def get_action_definition_str(cls) -> str:
+		"""Returns the action's definition string given to the Agent."""
+		return f'{cls.get_action_type_str()} - {cls.get_action_description()}'
+
 	def get_action_str(self) -> str:
-		"""Returns pretty string of action."""
+		"""Returns pretty string of action, when already initialized with values."""
 		return f'{self.get_action_name()}({", ".join(f"{name}='{value}'" for name, value in self.model_dump().items())})'
 
 	@classmethod
