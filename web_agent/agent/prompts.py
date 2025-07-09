@@ -9,6 +9,7 @@ At each decision step:
 - Do not repeat the same action more than twice in a row.
 - If a click by coordinates fails, adjust the coordinates! Do not use the same coordinates twice.
 - Do not use "abort" unless the task is completely impossible to complete or recover from.
+- If there is a captcha, abort the task.
 - To scroll, use `scroll_down()` or `scroll_up()`, not the scrollbar.
 
 Your output must always be a **single JSON object** with:

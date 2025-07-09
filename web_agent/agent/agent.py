@@ -138,7 +138,9 @@ class Agent:
 			output_format_error_count = 0
 
 			# LOOP STEP 6: ACTION EXECUTION
-			action_result = await action.execute(ActionContext(page=self.browser.page, task=task))
+			action_result = await action.execute(
+				ActionContext(page=self.browser.page, task=task, thought=action_decision.thought, screenshot=screenshot)
+			)
 
 			if action_result.context_change:
 				if action_result.context_change.action == ContextChangeTypes.SCREENSHOT:

@@ -1,5 +1,8 @@
 import asyncio
+import base64
+import os
 
+from openai import OpenAI
 from playwright._impl._errors import TimeoutError
 from playwright.async_api import Page
 from pydantic import Field
@@ -9,8 +12,6 @@ from web_agent.agent.actions.base import (
 	ActionResult,
 	ActionResultStatus,
 	BaseAction,
-	ContextChange,
-	ContextChangeTypes,
 	default_action,
 )
 from web_agent.browser.browser import pretty_print_element
@@ -237,41 +238,57 @@ class ClickByCoords(BaseAction):
 	y: int = Field(description='The y coordinate to click on.')
 
 	async def execute(self, context: ActionContext) -> ActionResult:
-		# evaluate the mouse-helper.js file to show the mouse pointer in the screenshots
+		screenshot_base64 = f'data:image/png;base64,{base64.b64encode(context.screenshot).decode("utf-8")}'
 
-		pre_action_screenshot = await context.page.screenshot()
+		# open ai client
+		openai_client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+		response = openai_client.responses.create(
+			model='computer-use-preview',
+			tools=[
+				{
+					'type': 'computer_use_preview',
+					'display_width': 1920,
+					'display_height': 1080,
+					'environment': 'browser',  # other possible values: "mac", "windows", "ubuntu"
+				}
+			],
+			input=[
+				{
+					'role': 'user',
+					'content': [
+						{
+							'type': 'input_text',
+							'text': f'Thought: {context.thought}. I want to click on the right coordinates. And I want you to proceed with the action, without asking me for confirmation.',  # noqa: E501
+						},
+						{'type': 'input_image', 'image_url': screenshot_base64},
+					],
+				}
+			],
+			reasoning={
+				'summary': 'concise',
+			},
+			truncation='auto',
+		)
 
-		with open('web_agent/agent/actions/mouse-helper.js') as f:
-			js_code = f.read()
+		print(response.output)
 
-		await context.page.evaluate(js_code)
-		await context.page.evaluate("window['mouse-helper']();")
-		await context.page.wait_for_timeout(300)
-		await context.page.mouse.move(self.x, self.y)
-		await context.page.wait_for_timeout(300)
-		screenshot = await context.page.screenshot()
+		for item in response.output:
+			print(item)
+			print(item.type)
+			if item.type == 'computer_call':
+				print(item.action)
+				print(item.action.type)
 
-		await context.page.mouse.click(self.x, self.y, delay=150)
+				if item.action.type == 'click':
+					await context.page.mouse.click(item.action.x, item.action.y, delay=150)
+					return ActionResult(status=ActionResultStatus.SUCCESS, message='Clicked on the given coordinates.')
+				else:
+					continue
 
-		await context.page.evaluate("window['mouse-helper-destroy']();")
-
-		post_action_screenshot = await context.page.screenshot()
-
-		if pre_action_screenshot == post_action_screenshot:
-			return ActionResult(
-				status=ActionResultStatus.FAILURE,
-				message='Clicked on the given coordinates. The mouse pointer is visible in the screenshot.'
-				+ ' But it does not appear to have changed anything on the page.'
-				+ ' If the desired outcome was not achieved, try to slightly adjust the coordinates, and try again.',
-				context_change=ContextChange(action=ContextChangeTypes.SCREENSHOT, data={'screenshot': screenshot}),
-			)
-		else:
-			return ActionResult(
-				status=ActionResultStatus.UNKNOWN,
-				message='Clicked on the given coordinates. The mouse pointer is visible in the screenshot.'
-				+ ' If the desired outcome was not achieved, try to slightly adjust the coordinates, and try again.',
-				context_change=ContextChange(action=ContextChangeTypes.SCREENSHOT, data={'screenshot': screenshot}),
-			)
+		return ActionResult(
+			status=ActionResultStatus.FAILURE,
+			message='Clicked failed, please elaborate more where to click in the thought of the click action. If there is a captcha, abort the task.',  # noqa: E501
+		)
 
 
 @default_action

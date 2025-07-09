@@ -46,6 +46,8 @@ class ActionContext(BaseModel):
 
 	page: Page
 	task: Task
+	thought: str = Field(description='The thought of the agent before the action.')
+	screenshot: bytes = Field(description='The screenshot of the page before the action.')
 
 	model_config = {
 		'arbitrary_types_allowed': True,
