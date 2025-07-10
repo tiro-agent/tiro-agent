@@ -4,6 +4,7 @@ from pathlib import Path
 
 from pydantic_ai import Agent as ChatAgent
 from pydantic_ai import BinaryContent
+from pydantic_ai.settings import ModelSettings
 
 from web_agent.agent.schemas import AgentErrors
 from web_agent_analyzer.prompts import get_ai_eval_prompt
@@ -49,6 +50,7 @@ class ErrorEvaluator:
 			model='google-gla:gemini-2.5-flash-preview-05-20',
 			system_prompt=get_ai_eval_prompt(),
 			output_type=TaskErrorEvaluation,
+			model_settings=ModelSettings(seed=42, temperature=0, timeout=20),
 		)
 
 	def _run_llm(self, prompt: str | dict) -> TaskErrorEvaluation:
