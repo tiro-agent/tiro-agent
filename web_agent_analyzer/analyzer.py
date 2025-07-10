@@ -32,7 +32,7 @@ class ResultAnalyzer:
 			self.analysis_folder.mkdir(parents=True, exist_ok=True)
 
 		self.results: DataFrame[ResultSchema] = load_results(self.run_path)
-		self.error_evaluator = ErrorEvaluator()
+		self.error_evaluator = ErrorEvaluator(self.analysis_folder)
 		self.is_evaluated = False
 
 	def save_results(self, filename: str = 'results.csv') -> None:

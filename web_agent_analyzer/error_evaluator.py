@@ -17,9 +17,10 @@ class ErrorEvaluator:
 	Used to evaluate the actual error types of the tasks that failed with STEP_LIMIT_ERROR or LLM_ACTION_PARSING_ERROR.
 	"""
 
-	def __init__(self) -> None:
+	def __init__(self, analysis_folder: Path) -> None:
 		self.llm: ChatAgent | None = None
 		self._init_llm()
+		self.analysis_folder = analysis_folder
 
 	def evaluate_task_error(self, task_result: Result, task_path: Path) -> AgentErrors | None:
 		"""
@@ -31,6 +32,12 @@ class ErrorEvaluator:
 		print('-' * 100)
 		print(f'Task number: {task_result.task_number}')
 		print(task_error_evaluation.model_dump_json(indent=4))
+
+		# save the task error evaluation to the analysis folder to a log file
+		with open(self.analysis_folder / 'error_evaluation.log', 'a') as f:
+			f.write(f'Task number: {task_result.task_number}\n')
+			f.write(task_error_evaluation.model_dump_json(indent=4))
+			f.write('\n')
 
 		return task_error_evaluation.cause
 
