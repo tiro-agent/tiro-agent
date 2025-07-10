@@ -24,8 +24,11 @@ async def main() -> None:
 	parser.add_argument('--relevant-task-numbers', nargs='+', type=int, help='Relevant task numbers', required=False, default=None)
 	parser.add_argument('--level', type=TaskLevel, help='Level', required=False, default=TaskLevel.ALL, choices=list(TaskLevel))
 
-	# Step limit is determined by this factor times reference length (how many steps a human need)
+	# Step limit is determined by this factor times reference length (how many steps a human needs). Can be set to negative to use max steps instead.
 	parser.add_argument('--step-factor', type=float, help='Step factor', required=False, default=2.5)
+
+	# Max steps is the maximum number of steps to run. Default is -1, which means no limit. The smaller number between step factor and max steps will be used.
+	parser.add_argument('--max-steps', type=int, help='Max steps', required=False, default=-1)
 
 	# Other properties
 	parser.add_argument('--logfire', action='store_true', help='Enable logfire logging', required=False, default=False)
@@ -37,6 +40,9 @@ async def main() -> None:
 
 	if args.relevant_task_ids is not None and args.relevant_task_numbers is not None:
 		raise ValueError('Cannot use both --relevant-task-ids and --relevant-task-numbers')
+
+	if args.step_factor <= 0 and args.max_steps <= 0:
+		raise ValueError('Please set either step factor or max steps to a positive value')
 
 	if not args.disable_vpn_check:
 		check_vpn()
@@ -55,6 +61,7 @@ async def main() -> None:
 		relevant_task_numbers=args.relevant_task_numbers,
 		start_index=args.start_index,
 		step_factor=args.step_factor,
+		max_steps=args.max_steps,
 	)
 
 	if args.task_id is None:

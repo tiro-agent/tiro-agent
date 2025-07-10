@@ -39,7 +39,8 @@ class AgentRunner:
 		relevant_task_ids: list[str] | None = None,
 		relevant_task_numbers: list[int] | None = None,
 		output_dir_prefix: str | None = None,
-		step_factor: int = 2.5,
+		step_factor: float = 2.5,
+		max_steps: int = 20,
 	) -> None:
 		"""
 		Initializes the AgentRunner with the specified parameters.
@@ -49,12 +50,14 @@ class AgentRunner:
 		:param relevant_task_ids: A list of task IDs to run. If provided, `relevant_task_numbers` must be None.
 		:param relevant_task_numbers: A list of task numbers to run. If provided, `relevant_task_ids` must be None.
 		:param output_dir_prefix: The prefix for the output directory. If not specified, 'output' will be used.
-		:param step_factor: The factor to determine the step limit. Default is 2.5.
+		:param step_factor: The factor to determine the step limit. Default is 2.5. If negative, the max steps will be used.
+		:param max_steps: The maximum number of steps to run. Default is 20.
 		"""
 
 		self.run_id = run_id
 		self.start_index = start_index
 		self.step_factor = step_factor
+		self.max_steps = max_steps
 		self.tasks = []
 		self.gemini_api_key = os.environ.get('GEMINI_API_KEY')
 		self.gemini_api_key_2 = os.environ.get('GEMINI_API_KEY_2')  # Adding a second API key enables parallel execution
@@ -175,7 +178,16 @@ class AgentRunner:
 		print('Website:', task.url)
 		print('Level:', task.level)
 
-		step_limit = round(self.step_factor * task.reference_length)
+		if self.max_steps > 0 and self.step_factor > 0:
+			step_limit = round(self.step_factor * task.reference_length)
+			step_limit = min(step_limit, self.max_steps)  # if step limit is negative, this will be ignored
+		elif self.max_steps > 0 and self.step_factor <= 0:
+			step_limit = self.max_steps
+		elif self.max_steps <= 0 and self.step_factor > 0:
+			step_limit = round(self.step_factor * task.reference_length)
+		else:
+			raise ValueError('Please set either step factor or max steps to a positive value')
+
 		print('Step limit:', step_limit)
 
 		async with Browser() as browser:
