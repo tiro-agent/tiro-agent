@@ -24,6 +24,9 @@ KNOWN_PROBLEM_DOMAINS: list[dict[str, AgentErrors]] = [
 	{'domain': 'https://seatgeek.com/', 'reason': AgentErrors.HUMAN_VERIFICATION_ERROR},  # blocked with captcha directly
 	{'domain': 'https://doctor.webmd.com/', 'reason': AgentErrors.HUMAN_VERIFICATION_ERROR},  # blocked with captcha after clicking
 	{'domain': 'https://www.thumbtack.com/', 'reason': AgentErrors.PAGE_LOAD_ERROR},  # return 404 permanently
+	{'domain': 'https://cars.com/', 'reason': AgentErrors.OPTION_SELECTION_ERROR},  # fails to select the correct option
+	{'domain': 'https://www.cbp.gov/', 'reason': AgentErrors.OPTION_SELECTION_ERROR},  # fails to select the correct option
+	{'domain': 'https://www.coolmath4kids.com/', 'reason': AgentErrors.OPTION_SELECTION_ERROR},  # fails to select the correct option
 ]
 
 
