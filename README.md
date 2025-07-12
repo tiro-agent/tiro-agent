@@ -16,7 +16,7 @@ This shows an excerpt of the project structure to highlight relevant directories
 
 ## 🚀 Getting started
 ### Environment and dependencies
-To get started, you need to install the required dependencies. This project uses [uv](https://docs.astral.sh/uv/), so make sure to you have it installed.
+To get started, you need to install the required dependencies. This project uses [uv](https://docs.astral.sh/uv/), so make sure to have it installed.
 
 Then, create an environment and sync all dependencies:
 ```bash
