@@ -66,7 +66,7 @@ Please change the `run_id` inside the script to match the run to be evaluated.
 
 Alternatively, or if you are on Windows, just use the following command directly:
 ```bash
-uv run -m web_agent_analyzer --run_id [your_rund_id]
+uv run -m web_agent_analyzer --run_id [your_run_id]
 ```
 
 ## 📊 Performance
