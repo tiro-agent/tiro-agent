@@ -1,6 +1,7 @@
 from playwright._impl._errors import TimeoutError
 from playwright.async_api import Page
 from pydantic import Field
+import asyncio
 
 from web_agent.agent.actions.base import ActionContext, ActionResult, ActionResultStatus, BaseAction, default_action
 from web_agent.browser.browser import pretty_print_element
@@ -87,8 +88,16 @@ class ScrollUp(BaseAction):
 	"""Scrolls up on the page."""
 
 	async def execute(self, context: ActionContext) -> ActionResult:
+		before_scroll_y = await context.page.evaluate('window.scrollY')
+		print(f'Page Y before scrolling: {before_scroll_y}')
 		await context.page.mouse.wheel(0, -700)
-		return ActionResult(status=ActionResultStatus.UNKNOWN, message='Sent scroll up command.')
+		await asyncio.sleep(1)
+		after_scroll_y = await context.page.evaluate('window.scrollY')
+		print(f'Page Y after scrolling: {after_scroll_y}')
+		
+		if before_scroll_y == after_scroll_y:
+			return ActionResult(status=ActionResultStatus.FAILURE, message='No scrolling detected, you might already be at the top of the page.')
+		return ActionResult(status=ActionResultStatus.SUCCESS, message='Scrolled up.')
 
 
 @default_action
@@ -96,8 +105,16 @@ class ScrollDown(BaseAction):
 	"""Scrolls down on the page."""
 
 	async def execute(self, context: ActionContext) -> ActionResult:
+		before_scroll_y = await context.page.evaluate('window.scrollY')
+		print(f'Page Y before scrolling: {before_scroll_y}')
 		await context.page.mouse.wheel(0, 700)
-		return ActionResult(status=ActionResultStatus.UNKNOWN, message='Sent scroll down command.')
+		await asyncio.sleep(1)
+		after_scroll_y = await context.page.evaluate('window.scrollY')
+		print(f'Page Y after scrolling: {after_scroll_y}')
+
+		if before_scroll_y == after_scroll_y:
+			return ActionResult(status=ActionResultStatus.FAILURE, message='No scrolling detected, you might already be at the bottom of the page.')
+		return ActionResult(status=ActionResultStatus.SUCCESS, message='Scrolled down.')
 
 
 @default_action
