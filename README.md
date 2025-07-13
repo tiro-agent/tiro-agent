@@ -64,6 +64,11 @@ You may use the following script to evaluate a prior run using statistics matchi
 ```
 Please change the `run_id` inside the script to match the run to be evaluated.
 
+Alternatively, or if you are on Windows, just use the following command directly:
+```bash
+uv run -m web_agent_analyzer --run_id [your_rund_id]
+```
+
 ## 📊 Performance
 An evaluation of the agent’s performance on the Online-Mind2Web benchmark is provided in the system report, along with a discussion of common error cases.
 
