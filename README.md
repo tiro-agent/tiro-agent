@@ -70,7 +70,16 @@ uv run -m web_agent_analyzer --run_id [your_run_id]
 ```
 
 ## 📊 Performance
-An evaluation of the agent’s performance on the Online-Mind2Web benchmark is provided in the system report, along with a discussion of common error cases.
+Tiro 1 is evaluated based on the [Online-Mind2Web](https://github.com/OSU-NLP-Group/Online-Mind2Web) benchmark.
+
+> [!NOTE]  
+> Please note that due to the inherent randomness of large language models (even at temperature 0) and the constantly evolving nature of the live web environment, results may vary. Running the exact same setup even a week apart can yield differences of several percentage points. This variability is an unavoidable aspect of working with live benchmarks. Thus, we report our results together with the date of measurement. More details are given in the system report.
+
+| Measurement date | Model                          | Success rate |
+|------------------|--------------------------------|-------------:|
+| 2025-07-02       | Gemini 2.5 Flash Preview 04-17 |      41.00 % |
+
+A more thorough analysis of the agent’s performance is provided in the system report, along with a discussion of common error cases.
 
 ## 🖥️ Tested on
 MacOS 15.5, M2 Pro, Python 3.13.4<br>
