@@ -1,4 +1,5 @@
 import argparse
+from dotenv import load_dotenv
 
 from web_agent_analyzer.analyzer import ResultAnalyzer
 
@@ -15,6 +16,8 @@ def run_analysis(run_id: str) -> None:
 
 
 if __name__ == '__main__':
+	load_dotenv()
+
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--run_id', type=str, required=True)
 	args = parser.parse_args()
