@@ -77,8 +77,10 @@ MacOS 15.5, M2 Pro, Python 3.13.4<br>
 MacOS 15.5, M1 Pro, Python 3.13.4<br>
 Windows 11 24H2, i7-8700K, Python 3.13.5
 
-## 🚧 Known issues
-__Gemini API instability:__ Occasionally, the Gemini API will either time out or produce invalid responses. This is a [known issue](https://discuss.ai.google.dev/t/persistent-500-error-for-gemini-2-5-flash-for-certain-prompts-even-after-an-hour-of-retries/89319) on Google's side as well. For now, the agent skips to the next tasks if this issue occurs. Should it happen too often, this can impact the accuracy of evaluation results. Thus, it is recommended to rerun those tasks before final evaluation.
+## 🚧 Known issues / Things to note
+__Gemini API instability:__ Occasionally, the Gemini API will either time out or produce invalid responses. This is a [known issue](https://discuss.ai.google.dev/t/persistent-500-error-for-gemini-2-5-flash-for-certain-prompts-even-after-an-hour-of-retries/89319) on Google's side as well. For now, the agent skips to the next tasks if this issue occurs. Should it happen too often, this can impact the accuracy of evaluation results. Thus, it is recommended to rerun those tasks before final evaluation. A script is provided for this purpose.
+
+__Gemini API rate limit:__ As of July 2025, Google has drastically reduced the rate limit of free tier API keys. This limits the number of tasks which can be run per day to about 15 per key, depending on your parameter settings. We recommend either using an academic key or upgrading to a suitable paid tier, if you intend to run the entire benchmark.
 
 ## ✉️ Contact
 This project: [Niklas Simakov (TUM CIT)](mailto:niklas.simakov@tum.de), [Karl Benedikt Kaesen (TUM CIT)](mailto:benedikt.kaesen@tum.de)<br>
