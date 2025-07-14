@@ -27,6 +27,7 @@ KNOWN_PROBLEM_DOMAINS: list[dict[str, AgentErrors]] = [
 	{'domain': 'https://cars.com/', 'reason': AgentErrors.OPTION_SELECTION_ERROR},  # fails to select the correct option
 	{'domain': 'https://www.cbp.gov/', 'reason': AgentErrors.OPTION_SELECTION_ERROR},  # fails to select the correct option
 	{'domain': 'https://www.coolmath4kids.com/', 'reason': AgentErrors.OPTION_SELECTION_ERROR},  # fails to select the correct option
+	{'domain': 'https://www.macys.com/', 'reason': AgentErrors.PAGE_BLOCKED_ERROR},  # blocked by bot protection after clicking
 ]
 
 
