@@ -1,6 +1,7 @@
 import argparse
-from dotenv import load_dotenv
+
 import logfire
+from dotenv import load_dotenv
 
 from web_agent_analyzer.analyzer import ResultAnalyzer
 
@@ -19,12 +20,14 @@ def run_analysis(run_id: str) -> None:
 if __name__ == '__main__':
 	load_dotenv()
 
-	# logfire.configure()
-	# logfire.instrument_pydantic_ai()
-
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--run_id', type=str, required=True)
+	parser.add_argument('--logfire', action='store_true', help='Enable logfire logging', required=False, default=False)
 	args = parser.parse_args()
 	run_id = args.run_id
+
+	if args.logfire:
+		logfire.configure()
+		logfire.instrument_pydantic_ai()
 
 	run_analysis(run_id)
