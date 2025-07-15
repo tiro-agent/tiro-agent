@@ -96,19 +96,21 @@ class ResultAnalyzer:
 		task_path = self.run_path / f'{task_result.task_number:03d}_{task_result.identifier}'
 
 		ai_eval_executed = False
+		ai_eval = None
 
 		human_eval_file_path = task_path / 'human.eval'
+		ai_eval_file_path = task_path / 'ai.eval'
 		human_eval = None
 		if human_eval_file_path.exists():
 			with open(human_eval_file_path) as f:
 				human_eval = f.read().strip()
 
-		ai_eval_file_path = task_path / 'ai.eval'
-		if ai_eval_file_path.exists():
+		elif ai_eval_file_path.exists():
 			with open(ai_eval_file_path) as f:
 				ai_eval_str = f.read().strip()
 				ai_eval = ai_eval_str if ai_eval_str else None
 		else:
+			print(f'Evaluating task {task_result.task_number} with LLM')
 			ai_eval_result = self.error_evaluator.evaluate_task_error(task_result, task_path)
 			ai_eval = ai_eval_result.value if ai_eval_result else None
 			ai_eval_executed = True
