@@ -25,10 +25,10 @@ async def main() -> None:
 	parser.add_argument('--level', type=TaskLevel, help='Level', required=False, default=TaskLevel.ALL, choices=list(TaskLevel))
 
 	# Step limit is determined by this factor times reference length (how many steps a human needs). Can be set to negative to use max steps instead.
-	parser.add_argument('--step-factor', type=float, help='Step factor', required=False, default=2.5)
+	parser.add_argument('--step-factor', type=float, help='Step factor', required=False, default=-1)
 
 	# Max steps is the maximum number of steps to run. Default is -1, which means no limit. The smaller number between step factor and max steps will be used.
-	parser.add_argument('--max-steps', type=int, help='Max steps', required=False, default=-1)
+	parser.add_argument('--max-steps', type=int, help='Max steps', required=False, default=25)
 
 	# Other properties
 	parser.add_argument('--logfire', action='store_true', help='Enable logfire logging', required=False, default=False)
