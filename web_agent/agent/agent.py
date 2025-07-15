@@ -213,7 +213,7 @@ class Agent:
 	def _initialize_llm(self, task: Task, api_key: str | None = None) -> ChatAgent:
 		"""Initialize the LLM with the task description."""
 		system_prompt = get_system_prompt() + f'TASK: {task.description}'
-		model_settings = ModelSettings(seed=42, temperature=0, timeout=20)
+		model_settings = ModelSettings(seed=42, temperature=0, timeout=40)
 
 		# if api_key is not None, the key from os.environ.get('GEMINI_API_KEY') is used
 		model_provider = GoogleGLAProvider(api_key=api_key)

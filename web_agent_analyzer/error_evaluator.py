@@ -50,7 +50,7 @@ class ErrorEvaluator:
 			model='google-gla:gemini-2.5-flash-preview-05-20',
 			system_prompt=get_ai_eval_prompt(),
 			output_type=TaskErrorEvaluation,
-			model_settings=ModelSettings(seed=42, temperature=0, timeout=20),
+			model_settings=ModelSettings(seed=42, temperature=0, timeout=40),
 		)
 
 	def _run_llm(self, prompt: str | dict) -> TaskErrorEvaluation:
