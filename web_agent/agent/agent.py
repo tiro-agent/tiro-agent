@@ -36,6 +36,7 @@ class Agent:
 
 	MAX_ERROR_COUNT = 3  # Max number of LLM errors before task is aborted
 	NUMBER_OF_PREVIOUS_SCREENSHOTS = 2  # Number of previous screenshots to feed into the LLM at each step
+	ADD_CURSOR_TO_SCREENSHOT = False  # Whether to add the cursor to the screenshot
 
 	def __init__(self, browser: Browser, api_key: str | None = None) -> None:
 		self.browser = browser
@@ -74,6 +75,14 @@ class Agent:
 			return self._handle_error_finish(SpecialRunErrors.URL_LOAD_ERROR, task, output_dir)
 
 		os.makedirs(output_dir + '/trajectory', exist_ok=True)
+
+		if self.ADD_CURSOR_TO_SCREENSHOT:
+			# Show mouse helper for visual feedback
+			with open('web_agent/agent/actions/mouse-helper.js') as f:
+				js_code = f.read()
+
+			await self.browser.page.evaluate(js_code)
+			await self.browser.page.evaluate("window['mouse-helper']();")
 
 		# STEP 3: AGENT LOOP
 		while True:
