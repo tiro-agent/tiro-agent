@@ -4,7 +4,15 @@ from playwright._impl._errors import TimeoutError
 from playwright.async_api import Page
 from pydantic import Field
 
-from web_agent.agent.actions.base import ActionContext, ActionResult, ActionResultStatus, BaseAction, default_action
+from web_agent.agent.actions.base import (
+	ActionContext,
+	ActionResult,
+	ActionResultStatus,
+	BaseAction,
+	ContextChange,
+	ContextChangeTypes,
+	default_action,
+)
 from web_agent.browser.browser import pretty_print_element
 
 
@@ -224,9 +232,123 @@ class ClickByCoords(BaseAction):
 	x: int = Field(description='The x coordinate to click on.')
 	y: int = Field(description='The y coordinate to click on.')
 
+	async def _get_dom_state(self, page: Page) -> dict:
+		"""Captures a snapshot of key UI elements on the page."""
+		return await page.evaluate("""
+			() => {
+				const state = { alerts: [], modals: [], validationMessages: [] };
+				const an_sel = '[role="alert"], .alert, .notification';
+				const m_sel = '[role="dialog"], .modal, .popup';
+				const v_sel = '.error, .success, [role="status"]';
+
+				document.querySelectorAll(an_sel).forEach(el => {
+					if (el.offsetParent !== null) state.alerts.push({ text: el.textContent.trim(), classes: el.className });
+				});
+				document.querySelectorAll(m_sel).forEach(el => {
+					if (el.style.display !== 'none' && el.offsetParent !== null) state.modals.push({ text: el.textContent.trim(), classes: el.className });
+				});
+				document.querySelectorAll(v_sel).forEach(el => {
+					if (el.offsetParent !== null && el.textContent.trim()) state.validationMessages.push({ text: el.textContent.trim(), classes: el.className });
+				});
+				return state;
+			}
+		""")  # noqa: E501
+
+	async def _wait_for_change(self, context: ActionContext, action_coro: callable) -> tuple[bool, str]:
+		"""
+		Performs an action and waits for various types of page changes to occur.
+		Returns a tuple of (change_detected, change_type).
+		"""
+		import asyncio
+
+		initial_url = context.page.url
+		initial_state = await self._get_dom_state(context.page)
+
+		# Set up event listeners BEFORE the action
+		tasks = [
+			asyncio.create_task(context.page.wait_for_event('framenavigated'), name='navigation'),
+			asyncio.create_task(context.page.wait_for_event('request'), name='network_activity'),
+			asyncio.create_task(context.page.wait_for_event('dialog'), name='dialog_opened'),
+		]
+
+		await action_coro()
+
+		# Race for the first event to complete with a 2-second timeout
+		done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED, timeout=2.0)
+
+		# Clean up tasks that didn't complete
+		for task in pending:
+			task.cancel()
+
+		if done:
+			for task in done:
+				try:
+					task.result()  # Raise exception if task failed
+					return True, task.get_name()
+				except Exception:
+					continue  # Ignore failed/cancelled tasks
+
+		# Fallback checks if no events fired quickly
+		if context.page.url != initial_url:
+			return True, 'url_change'
+
+		await context.page.wait_for_timeout(300)  # Give DOM a moment to settle
+		new_state = await self._get_dom_state(context.page)
+
+		def states_different(old: dict, new: dict) -> bool:
+			for key in ['alerts', 'modals', 'validationMessages']:
+				if len(old[key]) != len(new[key]):
+					return True
+				old_items = {f'{item["text"]}_{item["classes"]}' for item in old[key]}
+				new_items = {f'{item["text"]}_{item["classes"]}' for item in new[key]}
+				if old_items != new_items:
+					return True
+			return False
+
+		if states_different(initial_state, new_state):
+			return True, 'dom_change'
+
+		return False, 'unknown'
+
 	async def execute(self, context: ActionContext) -> ActionResult:
-		await context.page.mouse.click(self.x, self.y, delay=150)
-		return ActionResult(status=ActionResultStatus.UNKNOWN, message='Clicked on the given coordinates.')
+		# Determine device pixel ratio and adjust coordinates
+		pixel_ratio = await context.page.evaluate('() => window.devicePixelRatio')
+		x_coord = self.x / pixel_ratio
+		y_coord = self.y / pixel_ratio
+
+		if not context.mouse_cursor:
+			# Show mouse helper for visual feedback
+			with open('web_agent/agent/actions/mouse-helper.js') as f:
+				js_code = f.read()
+
+			await context.page.evaluate(js_code)
+			await context.page.evaluate("window['mouse-helper']();")
+			await context.page.wait_for_timeout(300)
+
+		await context.page.mouse.move(x_coord, y_coord)
+		await context.page.wait_for_timeout(300)
+		screenshot = await context.page.screenshot()
+
+		async def click_action() -> None:
+			await context.page.mouse.click(x_coord, y_coord, delay=150)
+
+		change_detected, change_type = await self._wait_for_change(context, click_action)
+
+		if not context.mouse_cursor:
+			await context.page.evaluate("window['mouse-helper-destroy']();")
+
+		if change_detected:
+			return ActionResult(
+				status=ActionResultStatus.SUCCESS,
+				message=f'Clicked on coordinates ({self.x}, {self.y}). Change detected: {change_type}. The mouse pointer is visible in the screenshot.',  # noqa: E501
+				context_change=ContextChange(action=ContextChangeTypes.SCREENSHOT, data={'screenshot': screenshot}),
+			)
+		else:
+			return ActionResult(
+				status=ActionResultStatus.UNKNOWN,
+				message=f'Clicked on coordinates ({self.x}, {self.y}). No obvious changes detected. Adjust the coordinates, and try again. Do not try again with the same coordinates. Try adding/removing a few pixels up or down, left or right. Analyze the position of the cursor in the screenshot, that is the position the click was made.',  # noqa: E501
+				context_change=ContextChange(action=ContextChangeTypes.SCREENSHOT, data={'screenshot': screenshot}),
+			)
 
 
 @default_action
