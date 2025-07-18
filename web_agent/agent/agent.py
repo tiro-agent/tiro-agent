@@ -155,16 +155,13 @@ class Agent:
 				if action_result.context_change.action == ContextChangeTypes.SCREENSHOT:
 					print('Context change requested: screenshot')
 
-					# drop the screenshot from the previous_screenshots list
-					previous_screenshots.pop()
-					previous_screenshots.append(action_result.context_change.data['screenshot'])
+					# replace the screenshot with the new one
+					screenshot = action_result.context_change.data['screenshot']
 
 					# replace the screenshot file with the new one
 					os.remove(screenshot_path)
-
-					# save the new screenshot
 					with open(screenshot_path, 'wb') as f:
-						f.write(action_result.context_change.data['screenshot'])
+						f.write(screenshot)
 
 			self.action_history_controller.add_action(
 				ActionsHistoryStep(
