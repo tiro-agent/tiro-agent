@@ -1638,16 +1638,18 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "matplotlib" },
-    { name = "numpy" },
-    { name = "pandas" },
-    { name = "pandera" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-playwright" },
     { name = "ruff" },
-    { name = "tqdm" },
     { name = "web-agent" },
+]
+evaluator = [
+    { name = "matplotlib" },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "pandera" },
+    { name = "tqdm" },
 ]
 
 [package.metadata]
@@ -1661,16 +1663,18 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "matplotlib", specifier = ">=3.10.3" },
-    { name = "numpy", specifier = ">=2.3.1" },
-    { name = "pandas", specifier = ">=2.3.0" },
-    { name = "pandera", specifier = ">=0.24.0" },
     { name = "pytest", specifier = ">=8.3.5" },
     { name = "pytest-asyncio", specifier = ">=1.0.0" },
     { name = "pytest-playwright", specifier = ">=0.7.0" },
     { name = "ruff", specifier = ">=0.11.12" },
-    { name = "tqdm", specifier = ">=4.67.1" },
     { name = "web-agent", virtual = "." },
+]
+evaluator = [
+    { name = "matplotlib", specifier = ">=3.10.3" },
+    { name = "numpy", specifier = ">=2.3.1" },
+    { name = "pandas", specifier = ">=2.3.0" },
+    { name = "pandera", specifier = ">=0.24.0" },
+    { name = "tqdm", specifier = ">=4.67.1" },
 ]
 
 [[package]]
