@@ -203,7 +203,11 @@ class TypeText(BaseAction):
 
 	@classmethod
 	async def page_filter(cls, page: Page) -> bool:
-		return await page.evaluate('document.activeElement.tagName !== "BODY"')
+		try:
+			return await page.evaluate('document.activeElement.tagName !== "BODY"')
+		except Exception:
+			# Handle cases where execution context is destroyed (e.g., due to navigation)
+			return False
 
 	async def execute(self, context: ActionContext) -> ActionResult:
 		try:
@@ -224,7 +228,11 @@ class ClearInputField(BaseAction):
 
 	@classmethod
 	async def page_filter(cls, page: Page) -> bool:
-		return await page.evaluate('document.activeElement.hasAttribute("value") && document.activeElement.value != ""')
+		try:
+			return await page.evaluate('document.activeElement.hasAttribute("value") && document.activeElement.value != ""')
+		except Exception:
+			# Handle cases where execution context is destroyed (e.g., due to navigation)
+			return False
 
 	async def execute(self, context: ActionContext) -> ActionResult:
 		try:

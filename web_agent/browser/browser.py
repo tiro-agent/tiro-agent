@@ -113,13 +113,19 @@ class Browser:
 
 		:return: A dictionary containing the page's title, URL, and focused element.
 		"""
+		try:
+			focused_element = await pretty_print_element(await self.page.evaluate_handle('document.activeElement'))
+		except Exception:
+			# Handle cases where execution context is destroyed (e.g., due to navigation)
+			focused_element = 'Unable to determine focused element.'
+
 		return {
 			'title': await self.page.title(),
 			'url': self.page.url,
 			# 'description': self.page.meta.get('description', ''),
 			# 'is_scrollable': await self.page.evaluate('document.body.scrollHeight > document.body.clientHeight')
 			# TODO: add more useful metadata
-			'focused_element': await pretty_print_element(await self.page.evaluate_handle('document.activeElement')),
+			'focused_element': focused_element,
 		}
 
 	async def save_screenshot(self, screenshot_path: str) -> bytes:
