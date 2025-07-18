@@ -322,10 +322,26 @@ class ClickByCoords(BaseAction):
 			# If the page is already closed, we can't wait for events
 			return False, 'target_closed'
 
-		await action_coro()
+		try:
+			await action_coro()
+		except TargetClosedError:
+			# Handle case where browser is closed during action execution
+			for task in tasks:
+				task.cancel()
+			if tasks:
+				await asyncio.gather(*tasks, return_exceptions=True)
+			return False, 'target_closed'
 
 		# Race for the first event to complete with a 2-second timeout
-		done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED, timeout=2.0)
+		try:
+			done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED, timeout=2.0)
+		except TargetClosedError:
+			# Handle case where browser is closed during wait
+			for task in tasks:
+				task.cancel()
+			if tasks:
+				await asyncio.gather(*tasks, return_exceptions=True)
+			return False, 'target_closed'
 
 		# Clean up tasks that didn't complete
 		for task in pending:
@@ -333,7 +349,10 @@ class ClickByCoords(BaseAction):
 
 		# Wait for cancelled tasks to finish and retrieve their exceptions to avoid warnings
 		if pending:
-			await asyncio.gather(*pending, return_exceptions=True)
+			try:
+				await asyncio.gather(*pending, return_exceptions=True)
+			except TargetClosedError:
+				pass  # Ignore TargetClosedError during cleanup
 
 		if done:
 			for task in done:

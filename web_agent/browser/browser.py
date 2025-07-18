@@ -144,4 +144,14 @@ class Browser:
 		"""
 		Stops the Playwright instance and closes the browser context.
 		"""
-		await self.playwright.stop()
+		try:
+			if self.browser:
+				await self.browser.close()
+		except Exception as e:
+			print(f'Warning: Error closing browser: {e}')
+
+		try:
+			if self.playwright:
+				await self.playwright.stop()
+		except Exception as e:
+			print(f'Warning: Error stopping playwright: {e}')
