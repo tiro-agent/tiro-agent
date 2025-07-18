@@ -279,15 +279,22 @@ class ClickByCoords(BaseAction):
 		"""
 		import asyncio
 
+		from playwright._impl._errors import TargetClosedError
+
 		initial_url = context.page.url
 		initial_state = await self._get_dom_state(context.page)
 
 		# Set up event listeners BEFORE the action
-		tasks = [
-			asyncio.create_task(context.page.wait_for_event('framenavigated'), name='navigation'),
-			asyncio.create_task(context.page.wait_for_event('request'), name='network_activity'),
-			asyncio.create_task(context.page.wait_for_event('dialog'), name='dialog_opened'),
-		]
+		tasks = []
+		try:
+			tasks = [
+				asyncio.create_task(context.page.wait_for_event('framenavigated'), name='navigation'),
+				asyncio.create_task(context.page.wait_for_event('request'), name='network_activity'),
+				asyncio.create_task(context.page.wait_for_event('dialog'), name='dialog_opened'),
+			]
+		except TargetClosedError:
+			# If the page is already closed, we can't wait for events
+			return False, 'target_closed'
 
 		await action_coro()
 
@@ -298,20 +305,28 @@ class ClickByCoords(BaseAction):
 		for task in pending:
 			task.cancel()
 
+		# Wait for cancelled tasks to finish and retrieve their exceptions to avoid warnings
+		if pending:
+			await asyncio.gather(*pending, return_exceptions=True)
+
 		if done:
 			for task in done:
 				try:
 					task.result()  # Raise exception if task failed
 					return True, task.get_name()
-				except Exception:
+				except (Exception, TargetClosedError):
 					continue  # Ignore failed/cancelled tasks
 
 		# Fallback checks if no events fired quickly
-		if context.page.url != initial_url:
-			return True, 'url_change'
+		try:
+			if context.page.url != initial_url:
+				return True, 'url_change'
 
-		await context.page.wait_for_timeout(300)  # Give DOM a moment to settle
-		new_state = await self._get_dom_state(context.page)
+			await context.page.wait_for_timeout(300)  # Give DOM a moment to settle
+			new_state = await self._get_dom_state(context.page)
+		except TargetClosedError:
+			# Page was closed during fallback checks
+			return False, 'target_closed'
 
 		def states_different(old: dict, new: dict) -> bool:
 			for key in ['alerts', 'modals', 'validationMessages']:
