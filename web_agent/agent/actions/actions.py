@@ -107,11 +107,22 @@ class ScrollUp(BaseAction):
 	"""Scrolls up on the page."""
 
 	async def execute(self, context: ActionContext) -> ActionResult:
-		before_scroll_y = await context.page.evaluate('window.scrollY')
+		try:
+			before_scroll_y = await context.page.evaluate('window.scrollY')
+		except Exception:
+			# Handle cases where execution context is destroyed, assume starting from 0
+			before_scroll_y = 0
+
 		print(f'Page Y before scrolling: {before_scroll_y}')
 		await context.page.mouse.wheel(0, -700)
 		await asyncio.sleep(1)
-		after_scroll_y = await context.page.evaluate('window.scrollY')
+
+		try:
+			after_scroll_y = await context.page.evaluate('window.scrollY')
+		except Exception:
+			# Handle cases where execution context is destroyed, assume scroll succeeded
+			return ActionResult(status=ActionResultStatus.SUCCESS, message='Scrolled up.')
+
 		print(f'Page Y after scrolling: {after_scroll_y}')
 
 		if before_scroll_y == after_scroll_y:
@@ -126,11 +137,22 @@ class ScrollDown(BaseAction):
 	"""Scrolls down on the page."""
 
 	async def execute(self, context: ActionContext) -> ActionResult:
-		before_scroll_y = await context.page.evaluate('window.scrollY')
+		try:
+			before_scroll_y = await context.page.evaluate('window.scrollY')
+		except Exception:
+			# Handle cases where execution context is destroyed, assume starting from 0
+			before_scroll_y = 0
+
 		print(f'Page Y before scrolling: {before_scroll_y}')
 		await context.page.mouse.wheel(0, 700)
 		await asyncio.sleep(1)
-		after_scroll_y = await context.page.evaluate('window.scrollY')
+
+		try:
+			after_scroll_y = await context.page.evaluate('window.scrollY')
+		except Exception:
+			# Handle cases where execution context is destroyed, assume scroll succeeded
+			return ActionResult(status=ActionResultStatus.SUCCESS, message='Scrolled down.')
+
 		print(f'Page Y after scrolling: {after_scroll_y}')
 
 		if before_scroll_y == after_scroll_y:
@@ -252,25 +274,29 @@ class ClickByCoords(BaseAction):
 
 	async def _get_dom_state(self, page: Page) -> dict:
 		"""Captures a snapshot of key UI elements on the page."""
-		return await page.evaluate("""
-			() => {
-				const state = { alerts: [], modals: [], validationMessages: [] };
-				const an_sel = '[role="alert"], .alert, .notification';
-				const m_sel = '[role="dialog"], .modal, .popup';
-				const v_sel = '.error, .success, [role="status"]';
+		try:
+			return await page.evaluate("""
+				() => {
+					const state = { alerts: [], modals: [], validationMessages: [] };
+					const an_sel = '[role="alert"], .alert, .notification';
+					const m_sel = '[role="dialog"], .modal, .popup';
+					const v_sel = '.error, .success, [role="status"]';
 
-				document.querySelectorAll(an_sel).forEach(el => {
-					if (el.offsetParent !== null) state.alerts.push({ text: el.textContent.trim(), classes: el.className });
-				});
-				document.querySelectorAll(m_sel).forEach(el => {
-					if (el.style.display !== 'none' && el.offsetParent !== null) state.modals.push({ text: el.textContent.trim(), classes: el.className });
-				});
-				document.querySelectorAll(v_sel).forEach(el => {
-					if (el.offsetParent !== null && el.textContent.trim()) state.validationMessages.push({ text: el.textContent.trim(), classes: el.className });
-				});
-				return state;
-			}
-		""")  # noqa: E501
+					document.querySelectorAll(an_sel).forEach(el => {
+						if (el.offsetParent !== null) state.alerts.push({ text: el.textContent.trim(), classes: el.className });
+					});
+					document.querySelectorAll(m_sel).forEach(el => {
+						if (el.style.display !== 'none' && el.offsetParent !== null) state.modals.push({ text: el.textContent.trim(), classes: el.className });
+					});
+					document.querySelectorAll(v_sel).forEach(el => {
+						if (el.offsetParent !== null && el.textContent.trim()) state.validationMessages.push({ text: el.textContent.trim(), classes: el.className });
+					});
+					return state;
+				}
+			""")
+		except Exception:
+			# Handle cases where execution context is destroyed (e.g., due to navigation)
+			return {'alerts': [], 'modals': [], 'validationMessages': []}
 
 	async def _wait_for_change(self, context: ActionContext, action_coro: callable) -> tuple[bool, str]:
 		"""
@@ -345,18 +371,27 @@ class ClickByCoords(BaseAction):
 
 	async def execute(self, context: ActionContext) -> ActionResult:
 		# Determine device pixel ratio and adjust coordinates
-		pixel_ratio = await context.page.evaluate('() => window.devicePixelRatio')
+		try:
+			pixel_ratio = await context.page.evaluate('() => window.devicePixelRatio')
+		except Exception:
+			# Handle cases where execution context is destroyed, fallback to default ratio
+			pixel_ratio = 1.0
+
 		x_coord = self.x / pixel_ratio
 		y_coord = self.y / pixel_ratio
 
 		if not context.mouse_cursor:
 			# Show mouse helper for visual feedback
-			with open('web_agent/agent/actions/mouse-helper.js') as f:
-				js_code = f.read()
+			try:
+				with open('web_agent/agent/actions/mouse-helper.js') as f:
+					js_code = f.read()
 
-			await context.page.evaluate(js_code)
-			await context.page.evaluate("window['mouse-helper']();")
-			await context.page.wait_for_timeout(300)
+				await context.page.evaluate(js_code)
+				await context.page.evaluate("window['mouse-helper']();")
+				await context.page.wait_for_timeout(300)
+			except Exception:
+				# Handle cases where execution context is destroyed, continue without mouse helper
+				pass
 
 		await context.page.mouse.move(x_coord, y_coord)
 		await context.page.wait_for_timeout(300)
@@ -368,7 +403,11 @@ class ClickByCoords(BaseAction):
 		change_detected, change_type = await self._wait_for_change(context, click_action)
 
 		if not context.mouse_cursor:
-			await context.page.evaluate("window['mouse-helper-destroy']();")
+			try:
+				await context.page.evaluate("window['mouse-helper-destroy']();")
+			except Exception:
+				# Handle cases where execution context is destroyed, continue without cleanup
+				pass
 
 		if change_detected:
 			return ActionResult(
