@@ -20,7 +20,7 @@ def remove_unfinished_tasks(run_id: str, preview: bool = False) -> None:
 
 
 if __name__ == '__main__':
-	preview = True
-	run_id = 'try_click_action_eval_v1'
+	preview = True  # set to False to actually remove the tasks
+	run_id = 'set_run_id_here'
 
 	remove_unfinished_tasks(run_id, preview)

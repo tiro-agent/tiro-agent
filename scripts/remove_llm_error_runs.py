@@ -47,8 +47,8 @@ def remove_errors_by_ai_eval_error_type(run_id: str, error_type: str, preview: b
 
 
 if __name__ == '__main__':
-	preview = True
-	run_id = 'try_click_action_eval_v1'
+	preview = True  # set to False to actually remove the tasks
+	run_id = 'set_run_id_here'
 
 	remove_errors_by_run_error_type(run_id, 'LLM_ERROR', preview)
 	remove_errors_by_run_error_type(run_id, 'LLM_ACTION_PARSING_ERROR', preview)
