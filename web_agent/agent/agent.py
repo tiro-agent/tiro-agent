@@ -28,6 +28,7 @@ KNOWN_PROBLEM_DOMAINS: list[dict[str, AgentErrors]] = [
 	{'domain': 'https://www.cbp.gov/', 'reason': AgentErrors.OPTION_SELECTION_ERROR},  # fails to select the correct option
 	{'domain': 'https://www.coolmath4kids.com/', 'reason': AgentErrors.OPTION_SELECTION_ERROR},  # fails to select the correct option
 	{'domain': 'https://www.macys.com/', 'reason': AgentErrors.PAGE_BLOCKED_ERROR},  # blocked by bot protection after clicking
+	{'domain': 'https://www.apartments.com/', 'reason': AgentErrors.CLICK_ERROR},  # unable to perform the click action to search
 ]
 
 
@@ -180,7 +181,7 @@ class Agent:
 			previous_screenshots.append(screenshot)
 
 			# LOOP STEP 8: NEXT STEP
-			await asyncio.sleep(3)
+			await asyncio.sleep(1)
 			step += 1
 
 	def _handle_error_finish(self, error: SpecialRunErrors | AgentErrors, task: Task, output_dir: str) -> str:
