@@ -3,6 +3,12 @@ import shutil
 
 
 def remove_unfinished_tasks(run_id: str, preview: bool = False) -> None:
+	"""
+	Remove unfinished tasks from a run.
+
+	Unfinished tasks are tasks that have no result.json file but have a trajectory folder.
+	"""
+
 	output_dir = f'output/{run_id}'
 
 	tasks = os.listdir(output_dir)
